@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, AlertTriangle, TrendingUp, TrendingDown } from 'lu
 import { getPromotions, savePromotion, deletePromotion, getProducts, getIngredients } from '@/utils/storage'
 import { formatMoneyDisplay } from '@/utils/formatters'
 import Modal from '@/components/Modal'
+import SearchSelect from '@/components/SearchSelect'
 import Button from '@/components/Button'
 import { useI18n } from '@/context/I18nContext'
 
@@ -425,30 +426,18 @@ export default function PromotionsNew() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                {(formData.items || []).map((item, index) => (
-                  <div key={index} className={`p-3 rounded-lg flex gap-2 items-center ${
+              <div className="space-y-4">
+                {(formData.items ?? []).map((item, index) => (
+                  <div key={index} className={`p-4 rounded-lg flex gap-3 items-center ${
                     isDarkMode ? 'bg-[#111827] border border-gray-700' : 'bg-gray-50 border border-gray-200'
                   }`}>
-                    <select
+                    <SearchSelect
+                      options={item.type === 'product' ? products : ingredients}
                       value={item.id}
-                      onChange={(e) => handleItemChange(index, 'id', e.target.value)}
-                      className={`flex-1 px-3 py-1 rounded border ${
-                        isDarkMode
-                          ? 'bg-[#1f2937] border-gray-600 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    >
-                      <option value="">Seleccionar {item.type}</option>
-                      {item.type === 'product'
-                        ? products.map(prod => (
-                            <option key={prod.id} value={prod.id}>{prod.name}</option>
-                          ))
-                        : ingredients.map(ing => (
-                            <option key={ing.id} value={ing.id}>{ing.name}</option>
-                          ))
-                      }
-                    </select>
+                      onChange={(value) => handleItemChange(index, 'id', value)}
+                      displayKey="name"
+                      placeholder={`Buscar ${item.type === 'product' ? 'producto' : 'ingrediente'}...`}
+                    />
 
                     <input
                       type="number"
@@ -474,7 +463,7 @@ export default function PromotionsNew() {
             </div>
 
             {/* Análisis Inteligente */}
-            {(formData.items || []).length > 0 && (
+            {(formData.items ?? []).length > 0 && (
               <div className={`p-4 rounded-lg ${
                 metrics.isLosing
                   ? 'bg-red-900/20 border-2 border-red-500'

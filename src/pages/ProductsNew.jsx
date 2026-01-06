@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, TrendingUp, DollarSign } from 'lucide-react'
 import { getProducts, saveProduct, deleteProduct, getIngredients, getRecipes } from '@/utils/storage'
 import { formatMoneyDisplay } from '@/utils/formatters'
 import Modal from '@/components/Modal'
+import SearchSelect from '@/components/SearchSelect'
 import Button from '@/components/Button'
 import { useI18n } from '@/context/I18nContext'
 
@@ -201,7 +202,7 @@ export default function ProductsNew() {
 
       {/* Grid de Productos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(products || []).map(product => (
+        {(products ?? []).map(product => (
           <div key={product.id} className={`p-4 rounded-xl border ${
             isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
           }`}>
@@ -358,30 +359,18 @@ export default function ProductsNew() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                {(formData.items || []).map((item, index) => (
-                  <div key={index} className={`p-3 rounded-lg flex gap-2 items-center ${
+              <div className="space-y-4">
+                {(formData.items ?? []).map((item, index) => (
+                  <div key={index} className={`p-4 rounded-lg flex gap-3 items-center ${
                     isDarkMode ? 'bg-[#111827] border border-gray-700' : 'bg-gray-50 border border-gray-200'
                   }`}>
-                    <select
+                    <SearchSelect
+                      options={item.type === 'ingredient' ? ingredients : recipes}
                       value={item.id}
-                      onChange={(e) => handleItemChange(index, 'id', e.target.value)}
-                      className={`flex-1 px-3 py-1 rounded border ${
-                        isDarkMode
-                          ? 'bg-[#1f2937] border-gray-600 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    >
-                      <option value="">Seleccionar {item.type}</option>
-                      {item.type === 'ingredient'
-                        ? ingredients.map(ing => (
-                            <option key={ing.id} value={ing.id}>{ing.name}</option>
-                          ))
-                        : recipes.map(rec => (
-                            <option key={rec.id} value={rec.id}>{rec.name}</option>
-                          ))
-                      }
-                    </select>
+                      onChange={(value) => handleItemChange(index, 'id', value)}
+                      displayKey="name"
+                      placeholder={`Buscar ${item.type === 'ingredient' ? 'ingrediente' : 'receta'}...`}
+                    />
 
                     <input
                       type="number"
@@ -407,7 +396,7 @@ export default function ProductsNew() {
             </div>
 
             {/* Cálculos Automáticos */}
-            {(formData.items || []).length > 0 && (
+            {(formData.items ?? []).length > 0 && (
               <div className={`p-4 rounded-lg space-y-3 ${
                 isDarkMode ? 'bg-[#111827] border border-gray-700' : 'bg-gray-50 border border-gray-200'
               }`}>

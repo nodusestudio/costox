@@ -4,6 +4,7 @@ import { getRecipes, saveRecipe, deleteRecipe, getIngredients } from '@/utils/st
 import { formatMoneyDisplay } from '@/utils/formatters'
 import Modal from '@/components/Modal'
 import Button from '@/components/Button'
+import SearchSelect from '@/components/SearchSelect'
 import { useI18n } from '@/context/I18nContext'
 
 export default function RecipesNew() {
@@ -319,65 +320,47 @@ export default function RecipesNew() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                {(formData.ingredients || []).map((item, index) => (
-                  <div key={index} className={`p-4 rounded-lg border-2 ${
-                    isDarkMode ? 'bg-[#1f2937] border-gray-600' : 'bg-gray-50 border-gray-300'
-                  }`}>
-                    <div className="flex gap-3 items-start">
-                      <div className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
+              <div className="space-y-4">
+                {(formData.ingredients ?? []).map((item, index) => (
+                  <div key={index} className="p-6 rounded-xl border-2 bg-[#111827] border-gray-600 shadow-lg">
+                    <div className="flex gap-4 items-start">
+                      <div className={`px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-2 shadow-md ${
                         item.type === 'ingredient'
                           ? 'bg-blue-600 text-white'
                           : 'bg-purple-600 text-white'
                       }`}>
-                        {item.type === 'ingredient' ? <Package size={16} /> : <BookOpen size={16} />}
+                        {item.type === 'ingredient' ? <Package size={18} /> : <BookOpen size={18} />}
                         {item.type === 'ingredient' ? 'Ingrediente' : 'Receta'}
                       </div>
                       
-                      <div className="flex-1">
-                        <select
+                      <div className="flex-1 space-y-3">
+                        <SearchSelect
+                          options={item.type === 'ingredient' ? ingredients : (recipes ?? []).filter(r => r.id !== editingId)}
                           value={item.id}
-                          onChange={(e) => handleItemChange(index, 'id', e.target.value)}
-                          className={`w-full px-3 py-2 rounded-lg border mb-2 ${
-                            isDarkMode
-                              ? 'bg-[#111827] border-gray-600 text-white'
-                              : 'bg-white border-gray-300 text-gray-900'
-                          }`}
-                        >
-                          <option value="">Seleccionar {item.type === 'ingredient' ? 'ingrediente' : 'receta'}</option>
-                          {item.type === 'ingredient'
-                            ? (ingredients || []).map(ing => (
-                                <option key={ing.id} value={ing.id}>{ing.name}</option>
-                              ))
-                            : (recipes || []).filter(r => r.id !== editingId).map(rec => (
-                                <option key={rec.id} value={rec.id}>{rec.name}</option>
-                              ))
-                          }
-                        </select>
-
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={item.quantity}
-                          onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
-                          className={`w-24 px-3 py-2 rounded-lg border ${
-                            isDarkMode
-                              ? 'bg-[#111827] border-gray-600 text-white'
-                              : 'bg-white border-gray-300 text-gray-900'
-                          }`}
-                          placeholder="Cantidad"
+                          onChange={(value) => handleItemChange(index, 'id', value)}
+                          placeholder={`Buscar ${item.type === 'ingredient' ? 'ingrediente' : 'receta'}...`}
+                          displayKey="name"
+                          valueKey="id"
                         />
+
+                        <div className="flex gap-3 items-center">
+                          <label className="text-gray-400 text-sm font-medium">Cantidad:</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={item.quantity}
+                            onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
+                            className="w-32 px-4 py-2 rounded-lg border bg-[#1f2937] border-gray-600 text-white focus:border-primary-blue focus:outline-none"
+                            placeholder="0.00"
+                          />
+                        </div>
                       </div>
 
                       <button
                         onClick={() => handleRemoveItem(index)}
-                        className={`p-2 rounded-lg transition-colors ${
-                          isDarkMode
-                            ? 'hover:bg-red-900/20 text-red-400'
-                            : 'hover:bg-red-100 text-red-600'
-                        }`}
+                        className="p-3 rounded-lg hover:bg-red-900/30 text-red-400 transition-colors"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={20} />
                       </button>
                     </div>
                   </div>
