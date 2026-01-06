@@ -143,23 +143,34 @@ export default function RecipesNew() {
         if (ing) {
           const quantity = parseFloat(item.quantity || 0)
           
+          // DEBUG: Mostrar TODOS los datos del ingrediente
+          console.log('═══════════════════════════════════════')
+          console.log(`📦 INGREDIENTE: ${ing.name}`)
+          console.log(`   Cantidad usada: ${quantity}`)
+          console.log(`   costoPorGramo: ${ing.costoPorGramo}`)
+          console.log(`   pesoEmpaqueTotal: ${ing.pesoEmpaqueTotal}`)
+          console.log(`   costWithWastage: ${ing.costWithWastage}`)
+          console.log(`   purchaseCost: ${ing.purchaseCost}`)
+          console.log('═══════════════════════════════════════')
+          
           // Usar costoPorGramo si está disponible (recomendado)
           if (ing.costoPorGramo && ing.costoPorGramo > 0) {
             const cost = ing.costoPorGramo * quantity
-            console.log(`[RECETA CALC] ${ing.name}: ${quantity}g x $${ing.costoPorGramo.toFixed(4)}/g = $${cost.toFixed(2)}`)
+            console.log(`✅ USANDO costoPorGramo: ${quantity}g × $${ing.costoPorGramo.toFixed(4)}/g = $${cost.toFixed(2)}`)
             total += cost
           } 
           // Fallback 1: Calcular usando pesoEmpaqueTotal
           else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
             const costoPorGramo = ing.costWithWastage / ing.pesoEmpaqueTotal
             const cost = costoPorGramo * quantity
-            console.log(`[RECETA CALC FALLBACK1] ${ing.name}: ${quantity}g x $${costoPorGramo.toFixed(4)}/g = $${cost.toFixed(2)}`)
+            console.log(`⚠️ FALLBACK1 (Calculando): ${quantity}g × $${costoPorGramo.toFixed(4)}/g = $${cost.toFixed(2)}`)
             total += cost
           } 
           // Fallback 2: Ingredientes muy antiguos
           else if (ing.costWithWastage) {
             const cost = ing.costWithWastage * quantity
-            console.log(`[RECETA CALC FALLBACK2 ERROR] ${ing.name}: ${quantity} x $${ing.costWithWastage} = $${cost.toFixed(2)} (SIN DIVISOR)`)
+            console.log(`❌ ERROR FALLBACK2 (Sin divisor): ${quantity} × $${ing.costWithWastage} = $${cost.toFixed(2)}`)
+            console.log(`   ⚠️ ESTE INGREDIENTE NECESITA EDICIÓN: Falta pesoEmpaqueTotal`)
             total += cost
           }
         }
