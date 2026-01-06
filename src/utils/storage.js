@@ -533,6 +533,3 @@ export const saveRecipes = async (recipes) => {
   // Deprecated: usar saveRecipe individualmente
   console.warn('saveRecipes is deprecated')
 }
-export const savePromotions = (promotions) => {
-  return saveToStorage('promotions', promotions)
-}
