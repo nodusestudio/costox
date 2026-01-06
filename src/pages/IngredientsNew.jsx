@@ -375,9 +375,12 @@ export default function IngredientsNew() {
                     {formatMoneyDisplay(ing.costWithWastage)}
                   </td>
                   <td className={`px-4 py-3 text-right font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                    {ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 
-                      ? formatMoneyDisplay(ing.costWithWastage / ing.pesoEmpaqueTotal)
-                      : <span className="text-red-500 text-xs">Sin dato</span>
+                    {ing.costoPorGramo && ing.costoPorGramo > 0
+                      ? formatMoneyDisplay(ing.costoPorGramo)
+                      : (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage
+                        ? formatMoneyDisplay(ing.costWithWastage / ing.pesoEmpaqueTotal)
+                        : <span className="text-red-500 text-xs">Sin dato</span>
+                      )
                     }
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -594,7 +597,7 @@ export default function IngredientsNew() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-6 mt-10 pt-8 border-t-2 border-gray-600 pb-8 bg-gray-800/50 -mx-8 px-8 -mb-8 rounded-b-2xl">
+            <div className="flex justify-end gap-6 mt-10 pt-8 border-t-2 border-gray-600 pb-12 bg-gray-800/50 -mx-8 px-8 -mb-8 rounded-b-2xl">
               <button
                 onClick={() => setShowModal(false)}
                 className="flex items-center gap-3 px-12 py-5 bg-gray-600 hover:bg-gray-500 text-white rounded-xl transition-all font-bold shadow-2xl text-xl hover:scale-105"

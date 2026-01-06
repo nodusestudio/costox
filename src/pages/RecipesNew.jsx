@@ -145,15 +145,22 @@ export default function RecipesNew() {
           
           // Usar costoPorGramo si está disponible (recomendado)
           if (ing.costoPorGramo && ing.costoPorGramo > 0) {
-            total += ing.costoPorGramo * quantity
+            const cost = ing.costoPorGramo * quantity
+            console.log(`[RECETA CALC] ${ing.name}: ${quantity}g x $${ing.costoPorGramo.toFixed(4)}/g = $${cost.toFixed(2)}`)
+            total += cost
           } 
           // Fallback 1: Calcular usando pesoEmpaqueTotal
           else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
-            total += calcularCostoProporcional(ing.costWithWastage, ing.pesoEmpaqueTotal, quantity)
+            const costoPorGramo = ing.costWithWastage / ing.pesoEmpaqueTotal
+            const cost = costoPorGramo * quantity
+            console.log(`[RECETA CALC FALLBACK1] ${ing.name}: ${quantity}g x $${costoPorGramo.toFixed(4)}/g = $${cost.toFixed(2)}`)
+            total += cost
           } 
           // Fallback 2: Ingredientes muy antiguos
           else if (ing.costWithWastage) {
-            total += ing.costWithWastage * quantity
+            const cost = ing.costWithWastage * quantity
+            console.log(`[RECETA CALC FALLBACK2 ERROR] ${ing.name}: ${quantity} x $${ing.costWithWastage} = $${cost.toFixed(2)} (SIN DIVISOR)`)
+            total += cost
           }
         }
       } else {
@@ -410,7 +417,7 @@ export default function RecipesNew() {
               </div>
             )}
 
-            <div className="flex justify-end gap-6 mt-10 pt-8 border-t-2 border-gray-600 pb-8 bg-gray-800/50 -mx-8 px-8 -mb-8 rounded-b-2xl">
+            <div className="flex justify-end gap-6 mt-10 pt-8 border-t-2 border-gray-600 pb-12 bg-gray-800/50 -mx-8 px-8 -mb-8 rounded-b-2xl">
               <button
                 onClick={() => setShowModal(false)}
                 className="flex items-center gap-3 px-12 py-5 bg-gray-600 hover:bg-gray-500 text-white rounded-xl transition-all font-bold shadow-2xl text-xl hover:scale-105"
