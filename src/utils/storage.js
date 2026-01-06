@@ -209,13 +209,18 @@ export const calculateRecipeCost = async (ingredientsList) => {
     
     if (item.type === 'ingredient') {
       const ingredient = await getDocById(COLLECTIONS.ingredients, item.id)
-      if (ingredient && ingredient.costWithWastage && ingredient.pesoEmpaqueTotal) {
-        // Usar cálculo proporcional correcto: (precio_con_merma / peso_total) * cantidad_usada
-        totalCost += calcularCostoProporcional(
-          ingredient.costWithWastage, 
-          ingredient.pesoEmpaqueTotal, 
-          parseFloat(item.quantity || 0)
-        )
+      if (ingredient && ingredient.costWithWastage) {
+        // Si tiene pesoEmpaqueTotal, usar cálculo proporcional
+        if (ingredient.pesoEmpaqueTotal) {
+          totalCost += calcularCostoProporcional(
+            ingredient.costWithWastage, 
+            ingredient.pesoEmpaqueTotal, 
+            parseFloat(item.quantity || 0)
+          )
+        } else {
+          // Fallback para ingredientes antiguos sin pesoEmpaqueTotal
+          totalCost += ingredient.costWithWastage * parseFloat(item.quantity || 0)
+        }
       }
     } else if (item.type === 'recipe') {
       const recipe = await getDocById(COLLECTIONS.recipes, item.id)

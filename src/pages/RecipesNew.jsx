@@ -140,9 +140,14 @@ export default function RecipesNew() {
       
       if (item.type === 'ingredient') {
         const ing = ingredients.find(i => i.id === item.id)
-        if (ing && ing.costWithWastage && ing.pesoEmpaqueTotal) {
-          // Usar cálculo proporcional: (precio_con_merma / peso_total) * cantidad_usada
-          total += calcularCostoProporcional(ing.costWithWastage, ing.pesoEmpaqueTotal, parseFloat(item.quantity || 0))
+        if (ing && ing.costWithWastage) {
+          // Si tiene pesoEmpaqueTotal, usar cálculo proporcional
+          if (ing.pesoEmpaqueTotal) {
+            total += calcularCostoProporcional(ing.costWithWastage, ing.pesoEmpaqueTotal, parseFloat(item.quantity || 0))
+          } else {
+            // Fallback para ingredientes antiguos sin pesoEmpaqueTotal
+            total += ing.costWithWastage * parseFloat(item.quantity || 0)
+          }
         }
       } else {
         const rec = recipes.find(r => r.id === item.id)

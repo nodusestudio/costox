@@ -125,15 +125,21 @@ export default function PromotionsNew() {
         }
       } else {
         const ing = ingredients.find(i => i.id === item.id)
-        if (ing && ing.costWithWastage && ing.pesoEmpaqueTotal) {
-          // Usar cálculo proporcional correcto
-          const costoProporcional = calcularCostoProporcional(
-            ing.costWithWastage, 
-            ing.pesoEmpaqueTotal, 
-            quantity
-          )
+        if (ing && ing.costWithWastage) {
+          let costoProporcional
+          // Si tiene pesoEmpaqueTotal, usar cálculo proporcional
+          if (ing.pesoEmpaqueTotal) {
+            costoProporcional = calcularCostoProporcional(
+              ing.costWithWastage, 
+              ing.pesoEmpaqueTotal, 
+              quantity
+            )
+          } else {
+            // Fallback para ingredientes antiguos
+            costoProporcional = ing.costWithWastage * quantity
+          }
           totalCost += costoProporcional
-          totalSuggestedPrice += costoProporcional * 1.4 // Margen 40% para ingredientes sueltos
+          totalSuggestedPrice += costoProporcional * 1.4 // Margen 40%
         }
       }
     })
