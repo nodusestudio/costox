@@ -69,3 +69,26 @@ export const calcularCostoProporcional = (precioConMerma, pesoEmpaqueTotal, cant
   // Costo proporcional
   return precioPorUnidad * cantidadUsada
 }
+
+/**
+ * Obtiene el precio por gramo de un ingrediente
+ * Lógica: precio_con_merma = precio_compra * 1.30
+ *         precio_por_gramo = precio_con_merma / peso_empaque_total
+ * 
+ * @param {number} precioCompra - Precio de compra del empaque
+ * @param {number} pesoEmpaqueTotal - Peso total del empaque en gramos/ml
+ * @param {number} porcentajeMerma - Porcentaje de merma (default: 30)
+ * @returns {number} Precio por gramo/ml
+ */
+export const obtenerPrecioGramo = (precioCompra, pesoEmpaqueTotal, porcentajeMerma = 30) => {
+  if (!pesoEmpaqueTotal || pesoEmpaqueTotal <= 0) return 0
+  if (!precioCompra || precioCompra <= 0) return 0
+  
+  // Paso 1: Calcular precio con merma
+  const precioConMerma = precioCompra * (1 + porcentajeMerma / 100)
+  
+  // Paso 2: Dividir por peso total para obtener precio por gramo
+  const precioPorGramo = precioConMerma / pesoEmpaqueTotal
+  
+  return precioPorGramo
+}

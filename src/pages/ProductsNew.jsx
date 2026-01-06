@@ -473,16 +473,16 @@ export default function ProductsNew() {
               </div>
             )}
 
-            <div className="flex justify-end gap-3 pt-6 border-t border-gray-700">
+            <div className="flex justify-end gap-3 pt-6 pb-6 mb-5 border-t border-gray-700">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex items-center gap-2 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors font-medium shadow-md"
+                className="flex items-center gap-2 px-8 py-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors font-medium shadow-lg text-lg"
               >
                 ❌ Cancelar
               </button>
               <button
                 onClick={handleSave}
-                className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium shadow-md"
+                className="flex items-center gap-2 px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium shadow-lg text-lg"
               >
                 💾 Guardar
               </button>
