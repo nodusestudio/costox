@@ -18,11 +18,9 @@ export default function ProductsNew() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    items: [], // { type: 'ingredient' | 'recipe', id, quantity } - SIEMPRE ARRAY
-    laborCost: 0, // Mano de obra unitaria ($)
-    overheadPercent: 30, // % Gastos varios (gas, servicios, mermas)
-    markupPercent: 60, // Margen QSR - Markup % (no margin)
-    realSalePrice: 0, // Precio real de venta (editable)
+    items: [], // { type: 'ingredient' | 'recipe', id, quantity }
+    laborCost: 0, // Mano de Obra (Operario)
+    realSalePrice: 0, // Precio de Venta
   })
 
   useEffect(() => {
@@ -57,8 +55,6 @@ export default function ProductsNew() {
         description: product.description || '',
         items: Array.isArray(product.items) ? product.items : [],
         laborCost: product.laborCost || 0,
-        overheadPercent: product.overheadPercent || 30,
-        markupPercent: product.markupPercent || 60,
         realSalePrice: product.realSalePrice || 0,
       })
     } else {
@@ -68,8 +64,6 @@ export default function ProductsNew() {
         description: '',
         items: [],
         laborCost: 0,
-        overheadPercent: 30,
-        markupPercent: 60,
         realSalePrice: 0,
       })
     }
@@ -102,15 +96,15 @@ export default function ProductsNew() {
   }
 
   const calculateMetrics = () => {
-    // VALIDACIÓN CRÍTICA: Asegurar que items sea SIEMPRE un array (evita n.reduce is not a function)
+    // Asegurar que items sea SIEMPRE un array
     const items = Array.isArray(formData.items) ? formData.items : []
     
     // ==========================================
-    // FÓRMULA PROFESIONAL DE COSTEO QSR
+    // MODELO EXCEL PROFESIONAL
     // ==========================================
     
-    // PASO A: Suma_Ingredientes = Σ (Cantidad_Usada * Costo_Unitario_G_o_ML)
-    let suma_ingredientes = 0
+    // COSTO INGREDIENTES: Σ (Cantidad_Usada * Costo_por_Gramo)
+    let costoIngredientes = 0
     
     items.forEach(item => {
       if (!item || !item.id) return
@@ -118,73 +112,59 @@ export default function ProductsNew() {
       if (item.type === 'ingredient') {
         const ing = ingredients.find(i => i.id === item.id)
         if (ing) {
-          const cantidad_usada = parseFloat(item.quantity || 0)
+          const cantidadUsada = parseFloat(item.quantity || 0)
           
-          // FÓRMULA OBLIGATORIA: (Precio_Compra * 1.30 / Peso_Empaque) * Cantidad_Usada
-          // Usar costoPorGramo si está disponible (ya tiene la merma del 30% incluida)
+          // Cálculo correcto: dividir precio empaque entre peso empaque
           if (ing.costoPorGramo && ing.costoPorGramo > 0) {
-            suma_ingredientes += ing.costoPorGramo * cantidad_usada
+            costoIngredientes += ing.costoPorGramo * cantidadUsada
           } 
-          // Fallback 1: Calcular usando pesoEmpaqueTotal
           else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
-            suma_ingredientes += calcularCostoProporcional(
+            costoIngredientes += calcularCostoProporcional(
               ing.costWithWastage, 
               ing.pesoEmpaqueTotal, 
-              cantidad_usada
+              cantidadUsada
             )
           } 
-          // Fallback 2: Ingredientes antiguos
           else if (ing.costWithWastage) {
-            suma_ingredientes += ing.costWithWastage * cantidad_usada
+            costoIngredientes += ing.costWithWastage * cantidadUsada
           }
         }
       } else {
         const rec = recipes.find(r => r.id === item.id)
         if (rec) {
-          const cantidad_usada = parseFloat(item.quantity || 1)
-          
+          const cantidadUsada = parseFloat(item.quantity || 1)
           if (rec.costoPorGramo && rec.costoPorGramo > 0) {
-            suma_ingredientes += rec.costoPorGramo * cantidad_usada
+            costoIngredientes += rec.costoPorGramo * cantidadUsada
           } else if (rec.totalCost) {
-            suma_ingredientes += rec.totalCost * cantidad_usada
+            costoIngredientes += rec.totalCost * cantidadUsada
           }
         }
       }
     })
 
-    // PASO B: Subtotal_Produccion = Suma_Ingredientes + mano_de_obra_unitaria
-    const mano_de_obra_unitaria = parseFloat(formData.laborCost || 0)
-    const subtotal_produccion = suma_ingredientes + mano_de_obra_unitaria
+    // COSTO TOTAL (CT): Ingredientes + Mano de Obra
+    const manoDeObra = parseFloat(formData.laborCost || 0)
+    const costoTotal = costoIngredientes + manoDeObra
     
-    // PASO C: Gastos_Varios = Subtotal_Produccion * (porcentaje_gastos_varios / 100)
-    const porcentaje_gastos_varios = parseFloat(formData.overheadPercent || 30)
-    const gastos_varios = subtotal_produccion * (porcentaje_gastos_varios / 100)
-    
-    // PASO D: COSTO TOTAL = Subtotal_Produccion + Gastos_Varios
-    const costo_total = subtotal_produccion + gastos_varios
-    
-    // PASO E: PRECIO VENTA QSR = COSTO_TOTAL * (1 + (margen_qsr / 100))
-    const margen_qsr = parseFloat(formData.markupPercent || 60)
-    const precio_venta_sugerido = costo_total * (1 + (margen_qsr / 100))
-    
-    const precio_real_venta = parseFloat(formData.realSalePrice) || precio_venta_sugerido
+    // PRECIO DE VENTA (el usuario lo define)
+    const precioVenta = parseFloat(formData.realSalePrice) || 0
 
-    // MÉTRICAS PROFESIONALES
-    const utilidad_real = precio_real_venta - costo_total
-    const food_cost_percent = precio_real_venta > 0 ? (costo_total / precio_real_venta) * 100 : 0
+    // P-CONTRIBUCIÓN (Food Cost %): (Costo Total / Precio Venta) * 100
+    const pContribucion = precioVenta > 0 ? (costoTotal / precioVenta) * 100 : 0
+    
+    // M-CONTRIBUCIÓN (Utilidad $): Precio Venta - Costo Total
+    const mContribucion = precioVenta - costoTotal
 
     return {
-      ingredientsCost: suma_ingredientes,
-      laborCost: mano_de_obra_unitaria,
-      subtotalProduction: subtotal_produccion,
-      overheadPercent: porcentaje_gastos_varios,
-      overheadCost: gastos_varios,
-      totalCost: costo_total,
-      markupPercent: margen_qsr,
-      suggestedPrice: precio_venta_sugerido,
-      realSalePrice: precio_real_venta,
-      actualProfit: utilidad_real,
-      foodCostPercent: food_cost_percent
+      ingredientsCost: costoIngredientes,
+      laborCost: manoDeObra,
+      totalCost: costoTotal,
+      realSalePrice: precioVenta,
+      pContribucion: pContribucion, // Food Cost %
+      mContribucion: mContribucion, // Utilidad $
+      // Mantener compatibilidad con storage.js
+      foodCostPercent: pContribucion,
+      actualProfit: mContribucion
     }
   }
 
@@ -298,52 +278,20 @@ export default function ProductsNew() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                  Mano Obra
+                  Mano de Obra
                 </span>
                 <span className={`font-semibold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
                   {formatMoneyDisplay(product.laborCost || 0)}
                 </span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                  Gastos ({product.overheadPercent || 30}%)
-                </span>
-                <span className={`font-semibold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
-                  {formatMoneyDisplay(product.overheadCost || 0)}
-                </span>
-              </div>
               <div className={`flex justify-between text-sm pt-2 border-t ${
                 isDarkMode ? 'border-gray-700' : 'border-gray-300'
               }`}>
-                <span className={`font-bold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Costo Total
+                <span className={`font-bold ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                  COSTO UNIDAD (CT)
                 </span>
-                <span className={`font-bold text-lg ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                <span className={`font-bold text-xl ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                   {formatMoneyDisplay(product.totalCost || 0)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                  Markup QSR ({product.markupPercent || 60}%)
-                </span>
-                <span className={`font-semibold ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
-                  {product.markupPercent?.toFixed(0)}%
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                  Precio Sugerido
-                </span>
-                <span className={`font-semibold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                  {formatMoneyDisplay(product.suggestedPrice || 0)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                  Utilidad
-                </span>
-                <span className={`font-semibold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                  {formatMoneyDisplay(product.actualProfit || 0)}
                 </span>
               </div>
             </div>
@@ -358,9 +306,9 @@ export default function ProductsNew() {
                 </span>
               </div>
               
-              {/* Food Cost % - Indicador Clave QSR */}
+              {/* P-CONTRIBUCIÓN (Food Cost %) */}
               <div className={`mt-2 p-3 rounded-lg border-2 ${
-                (product.foodCostPercent || 0) > 45
+                (product.pContribucion || product.foodCostPercent || 0) > 45
                   ? isDarkMode ? 'bg-red-900/40 border-red-600' : 'bg-red-100 border-red-400'
                   : isDarkMode ? 'bg-green-900/40 border-green-700' : 'bg-green-100 border-green-400'
               }`}>
@@ -368,14 +316,36 @@ export default function ProductsNew() {
                   <span className={`text-xs font-bold ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Food Cost % QSR
+                    P-CONTRIBUCIÓN
                   </span>
                   <span className={`text-2xl font-black ${
-                    (product.foodCostPercent || 0) > 45
+                    (product.pContribucion || product.foodCostPercent || 0) > 45
                       ? isDarkMode ? 'text-red-400' : 'text-red-600'
                       : isDarkMode ? 'text-green-400' : 'text-green-600'
                   }`}>
-                    {(product.foodCostPercent || 0).toFixed(1)}%
+                    {(product.pContribucion || product.foodCostPercent || 0).toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+
+              {/* M-CONTRIBUCIÓN (Utilidad $) */}
+              <div className={`p-3 rounded-lg ${
+                (product.mContribucion ?? product.actualProfit ?? 0) >= 0
+                  ? isDarkMode ? 'bg-green-900/40' : 'bg-green-100'
+                  : isDarkMode ? 'bg-red-900/40' : 'bg-red-100'
+              }`}>
+                <div className="flex justify-between items-center">
+                  <span className={`text-xs font-bold ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    M-CONTRIBUCIÓN
+                  </span>
+                  <span className={`text-xl font-black ${
+                    (product.mContribucion ?? product.actualProfit ?? 0) >= 0
+                      ? isDarkMode ? 'text-green-400' : 'text-green-600'
+                      : isDarkMode ? 'text-red-400' : 'text-red-600'
+                  }`}>
+                    {formatMoneyDisplay(product.mContribucion ?? product.actualProfit ?? 0)}
                   </span>
                 </div>
               </div>
@@ -536,45 +506,45 @@ export default function ProductsNew() {
                 </div>
               </div>
 
-              {/* COLUMNA DERECHA: Cálculos Automáticos QSR */}
+              {/* COLUMNA DERECHA: Modelo Excel Profesional */}
               {(formData.items ?? []).length > 0 && (
                 <div>
                   <h4 className={`text-sm font-semibold mb-3 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    💰 Costeo Profesional QSR
+                    📊 Modelo Excel Profesional
                   </h4>
                   
-                  <div className={`p-5 rounded-xl border-2 space-y-4 ${
+                  <div className={`p-6 rounded-xl border-2 space-y-5 ${
                     isDarkMode 
-                      ? 'bg-gradient-to-br from-blue-950 to-purple-950 border-blue-700' 
-                      : 'bg-gradient-to-br from-blue-50 to-purple-50 border-blue-300'
+                      ? 'bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700' 
+                      : 'bg-gradient-to-br from-white to-gray-50 border-gray-300'
                   }`}>
                     
-                    {/* PASO 1: Costo de Ingredientes */}
-                    <div className={`p-3 rounded-lg border ${
-                      isDarkMode ? 'bg-black/30 border-gray-700' : 'bg-white/50 border-gray-300'
+                    {/* Costo Ingredientes */}
+                    <div className={`p-3 rounded-lg ${
+                      isDarkMode ? 'bg-black/20' : 'bg-gray-100'
                     }`}>
                       <div className="flex justify-between items-center">
-                        <span className={`text-xs font-medium ${
+                        <span className={`text-xs ${
                           isDarkMode ? 'text-gray-400' : 'text-gray-600'
                         }`}>
-                          1️⃣ Costo Ingredientes
+                          Costo Ingredientes
                         </span>
-                        <span className={`text-lg font-bold ${
-                          isDarkMode ? 'text-red-400' : 'text-red-600'
+                        <span className={`text-lg font-semibold ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>
                           {formatMoneyDisplay(metrics.ingredientsCost)}
                         </span>
                       </div>
                     </div>
 
-                    {/* PASO 2: Mano de Obra */}
+                    {/* Mano de Obra */}
                     <div>
                       <label className={`block text-xs font-medium mb-2 ${
                         isDarkMode ? 'text-gray-400' : 'text-gray-600'
                       }`}>
-                        2️⃣ Mano de Obra Unitaria ($)
+                        Mano de Obra (Operario)
                       </label>
                       <input
                         type="number"
@@ -582,243 +552,115 @@ export default function ProductsNew() {
                         value={formData.laborCost}
                         onChange={(e) => setFormData({ ...formData, laborCost: parseFloat(e.target.value) || 0 })}
                         onFocus={(e) => e.target.select()}
-                        className={`w-full px-4 py-2 rounded-lg border-2 font-bold text-lg ${
+                        className={`w-full px-4 py-2 rounded-lg border font-semibold ${
                           isDarkMode
-                            ? 'bg-[#1f2937] border-orange-600 text-orange-400'
-                            : 'bg-white border-orange-500 text-orange-700'
+                            ? 'bg-[#1f2937] border-gray-600 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
                         }`}
                         placeholder="0"
                       />
-                      <p className={`text-xs mt-1 ${
-                        isDarkMode ? 'text-gray-500' : 'text-gray-600'
-                      }`}>
-                        Costo del operario por unidad
-                      </p>
                     </div>
 
-                    {/* Subtotal de Producción */}
-                    <div className={`p-3 rounded-lg border-2 ${
-                      isDarkMode ? 'bg-blue-900/30 border-blue-600' : 'bg-blue-100 border-blue-400'
+                    {/* COSTO TOTAL (CT) - DESTACADO */}
+                    <div className={`p-5 rounded-xl border-3 shadow-lg ${
+                      isDarkMode ? 'bg-blue-950 border-blue-600' : 'bg-blue-50 border-blue-400'
                     }`}>
                       <div className="flex justify-between items-center">
                         <span className={`text-sm font-bold ${
                           isDarkMode ? 'text-blue-300' : 'text-blue-700'
                         }`}>
-                          = Subtotal Producción
+                          COSTO UNIDAD (CT)
                         </span>
-                        <span className={`text-xl font-black ${
+                        <span className={`text-4xl font-black ${
                           isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                        }`}>
-                          {formatMoneyDisplay(metrics.subtotalProduction)}
-                        </span>
-                      </div>
-                      <p className={`text-xs mt-1 ${
-                        isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                      }`}>
-                        Ingredientes + Mano de Obra
-                      </p>
-                    </div>
-
-                    {/* PASO 3: Gastos Varios */}
-                    <div>
-                      <label className={`block text-xs font-medium mb-2 ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        3️⃣ Gastos Varios (%)
-                      </label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={formData.overheadPercent}
-                        onChange={(e) => setFormData({ ...formData, overheadPercent: parseFloat(e.target.value) || 0 })}
-                        onFocus={(e) => e.target.select()}
-                        className={`w-full px-4 py-2 rounded-lg border-2 font-bold text-lg ${
-                          isDarkMode
-                            ? 'bg-[#1f2937] border-purple-600 text-purple-400'
-                            : 'bg-white border-purple-500 text-purple-700'
-                        }`}
-                      />
-                      <p className={`text-xs mt-1 ${
-                        isDarkMode ? 'text-gray-500' : 'text-gray-600'
-                      }`}>
-                        Gas, servicios, mermas menores (30% estándar)
-                      </p>
-                      <div className={`mt-2 p-2 rounded ${
-                        isDarkMode ? 'bg-black/30' : 'bg-white/50'
-                      }`}>
-                        <div className="flex justify-between text-xs">
-                          <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                            Costo Gastos:
-                          </span>
-                          <span className={`font-bold ${
-                            isDarkMode ? 'text-purple-400' : 'text-purple-600'
-                          }`}>
-                            {formatMoneyDisplay(metrics.overheadCost)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* COSTO TOTAL FINAL */}
-                    <div className={`p-4 rounded-lg border-2 ${
-                      isDarkMode ? 'bg-red-900/30 border-red-600' : 'bg-red-100 border-red-400'
-                    }`}>
-                      <div className="flex justify-between items-center">
-                        <span className={`text-sm font-bold ${
-                          isDarkMode ? 'text-red-300' : 'text-red-700'
-                        }`}>
-                          💲 COSTO TOTAL FINAL
-                        </span>
-                        <span className={`text-2xl font-black ${
-                          isDarkMode ? 'text-red-400' : 'text-red-600'
                         }`}>
                           {formatMoneyDisplay(metrics.totalCost)}
                         </span>
                       </div>
-                      <p className={`text-xs mt-1 ${
-                        isDarkMode ? 'text-red-400' : 'text-red-600'
-                      }`}>
-                        Subtotal + Gastos Varios
-                      </p>
-                    </div>
-
-                    {/* PASO 4: Margen QSR (Markup) */}
-                    <div>
-                      <label className={`block text-xs font-medium mb-2 ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        4️⃣ Margen QSR - Markup (%)
-                      </label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={formData.markupPercent}
-                        onChange={(e) => setFormData({ ...formData, markupPercent: parseFloat(e.target.value) || 0 })}
-                        onFocus={(e) => e.target.select()}
-                        className={`w-full px-4 py-2 rounded-lg border-2 font-bold text-lg ${
-                          isDarkMode
-                            ? 'bg-[#1f2937] border-yellow-600 text-yellow-400'
-                            : 'bg-white border-yellow-500 text-yellow-700'
-                        }`}
-                      />
-                      <p className={`text-xs mt-1 ${
-                        isDarkMode ? 'text-gray-500' : 'text-gray-600'
-                      }`}>
-                        Estándar QSR: 60% (rango: 50-80%)
-                      </p>
-                    </div>
-
-                    {/* Precio Sugerido */}
-                    <div className={`p-3 rounded-lg border-2 ${
-                      isDarkMode ? 'bg-blue-900/30 border-blue-600' : 'bg-blue-100 border-blue-400'
-                    }`}>
-                      <div className="flex justify-between items-center">
-                        <span className={`text-sm font-medium ${
-                          isDarkMode ? 'text-blue-300' : 'text-blue-700'
-                        }`}>
-                          💡 Precio Sugerido
-                        </span>
-                        <span className={`text-xl font-bold ${
-                          isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                        }`}>
-                          {formatMoneyDisplay(metrics.suggestedPrice)}
-                        </span>
-                      </div>
-                      <p className={`text-xs mt-1 ${
+                      <p className={`text-xs mt-2 ${
                         isDarkMode ? 'text-blue-400' : 'text-blue-600'
                       }`}>
-                        Costo Total × (1 + Markup/100)
+                        = Ingredientes + Mano de Obra
                       </p>
                     </div>
 
-                    {/* Precio Real de Venta */}
+                    {/* Precio de Venta */}
                     <div>
-                      <label className={`block text-xs font-bold mb-2 ${
-                        isDarkMode ? 'text-green-400' : 'text-green-600'
+                      <label className={`block text-sm font-bold mb-2 ${
+                        isDarkMode ? 'text-green-400' : 'text-green-700'
                       }`}>
-                        💵 PRECIO REAL DE VENTA
+                        💵 Precio de Venta
                       </label>
                       <input
                         type="number"
                         step="0.01"
-                        value={formData.realSalePrice || metrics.suggestedPrice}
-                        onChange={(e) => setFormData({ ...formData, realSalePrice: parseFloat(e.target.value) })}
+                        value={formData.realSalePrice}
+                        onChange={(e) => setFormData({ ...formData, realSalePrice: parseFloat(e.target.value) || 0 })}
                         onFocus={(e) => e.target.select()}
                         className={`w-full px-4 py-3 rounded-lg border-2 font-bold text-2xl ${
                           isDarkMode
                             ? 'bg-[#1f2937] border-green-600 text-green-400'
-                            : 'bg-white border-green-500 text-green-600'
+                            : 'bg-white border-green-500 text-green-700'
                         }`}
+                        placeholder="0"
                       />
                     </div>
 
-                    {/* Utilidad Real */}
-                    <div className={`p-3 rounded-lg border-2 ${
-                      metrics.actualProfit >= 0
-                        ? isDarkMode 
-                          ? 'bg-green-950/50 border-green-700' 
-                          : 'bg-green-50 border-green-300'
-                        : isDarkMode
-                          ? 'bg-red-950/50 border-red-700'
-                          : 'bg-red-50 border-red-300'
-                    }`}>
-                      <div className="flex justify-between items-center">
-                        <span className={`text-sm font-medium ${
-                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                        }`}>
-                          Utilidad Real ($)
-                        </span>
-                        <span className={`text-xl font-bold ${
-                          metrics.actualProfit >= 0
-                            ? isDarkMode ? 'text-green-400' : 'text-green-600'
-                            : isDarkMode ? 'text-red-400' : 'text-red-600'
-                        }`}>
-                          {formatMoneyDisplay(metrics.actualProfit)}
-                        </span>
-                      </div>
-                      <p className={`text-xs mt-1 ${
-                        isDarkMode ? 'text-gray-500' : 'text-gray-600'
-                      }`}>
-                        = Precio Venta - Costo Total
-                      </p>
-                    </div>
+                    <div className="h-px bg-gray-600 my-4"></div>
 
-                    {/* Food Cost % */}
-                    <div className={`p-4 rounded-lg border-2 ${
-                      metrics.foodCostPercent > 45
-                        ? isDarkMode 
-                          ? 'bg-red-950/50 border-red-600' 
-                          : 'bg-red-100 border-red-400'
-                        : isDarkMode
-                          ? 'bg-green-950/50 border-green-700'
-                          : 'bg-green-50 border-green-300'
+                    {/* P-CONTRIBUCIÓN (Food Cost %) */}
+                    <div className={`p-4 rounded-lg ${
+                      metrics.pContribucion > 45
+                        ? isDarkMode ? 'bg-red-900/40' : 'bg-red-100'
+                        : isDarkMode ? 'bg-green-900/40' : 'bg-green-100'
                     }`}>
                       <div className="flex justify-between items-center mb-1">
                         <span className={`text-sm font-bold ${
                           isDarkMode ? 'text-gray-200' : 'text-gray-800'
                         }`}>
-                          Food Cost %
+                          P-CONTRIBUCIÓN
                         </span>
                         <span className={`text-3xl font-black ${
-                          metrics.foodCostPercent > 45
+                          metrics.pContribucion > 45
                             ? isDarkMode ? 'text-red-400' : 'text-red-600'
                             : isDarkMode ? 'text-green-400' : 'text-green-600'
                         }`}>
-                          {metrics.foodCostPercent.toFixed(1)}%
+                          {metrics.pContribucion.toFixed(1)}%
                         </span>
                       </div>
                       <p className={`text-xs ${
                         isDarkMode ? 'text-gray-400' : 'text-gray-600'
                       }`}>
-                        = (Costo Total / Precio Venta) × 100
+                        Food Cost % = (CT / Precio Venta) × 100
                       </p>
-                      {metrics.foodCostPercent > 45 && (
-                        <p className="text-xs font-bold text-red-500 mt-2">
-                          ⚠️ ALERTA: Food Cost superior al 45% (incluye mano de obra)
-                        </p>
-                      )}
                     </div>
 
+                    {/* M-CONTRIBUCIÓN (Utilidad $) */}
+                    <div className={`p-4 rounded-lg ${
+                      metrics.mContribucion >= 0
+                        ? isDarkMode ? 'bg-green-900/40' : 'bg-green-100'
+                        : isDarkMode ? 'bg-red-900/40' : 'bg-red-100'
+                    }`}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className={`text-sm font-bold ${
+                          isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                        }`}>
+                          M-CONTRIBUCIÓN
+                        </span>
+                        <span className={`text-3xl font-black ${
+                          metrics.mContribucion >= 0
+                            ? isDarkMode ? 'text-green-400' : 'text-green-600'
+                            : isDarkMode ? 'text-red-400' : 'text-red-600'
+                        }`}>
+                          {formatMoneyDisplay(metrics.mContribucion)}
+                        </span>
+                      </div>
+                      <p className={`text-xs ${
+                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        Utilidad $ = Precio Venta - CT
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -831,13 +673,13 @@ export default function ProductsNew() {
                 onClick={() => setShowModal(false)}
                 className="flex items-center gap-3 px-12 py-5 bg-gray-600 hover:bg-gray-500 text-white rounded-xl transition-all font-bold shadow-2xl text-xl hover:scale-105"
               >
-                <span className="text-2xl">❌</span> Cancelar
+                Cancelar
               </button>
               <button
                 onClick={handleSave}
                 className="flex items-center gap-3 px-12 py-5 bg-green-600 hover:bg-green-500 text-white rounded-xl transition-all font-bold shadow-2xl text-xl hover:scale-105"
               >
-                <span className="text-2xl">💾</span> Guardar
+                Guardar
               </button>
             </div>
           </div>

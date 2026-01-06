@@ -276,22 +276,23 @@ export const getProducts = async () => {
 }
 
 /**
- * Calcula métricas de un producto con fórmula QSR profesional
+ * Calcula métricas de un producto con MODELO EXCEL PROFESIONAL
+ * Fórmulas:
+ * - Costo Total (CT) = Σ(Ingredientes) + Mano de Obra
+ * - P-Contribución (Food Cost %) = (CT / Precio Venta) * 100
+ * - M-Contribución (Utilidad $) = Precio Venta - CT
  */
 export const calculateProductMetrics = async (productData) => {
   if (!productData) {
     return {
       ingredientsCost: 0,
       laborCost: 0,
-      subtotalProduction: 0,
-      overheadPercent: 30,
-      overheadCost: 0,
       totalCost: 0,
-      markupPercent: 60,
-      suggestedPrice: 0,
       realSalePrice: 0,
-      actualProfit: 0,
-      foodCostPercent: 0
+      pContribucion: 0,
+      mContribucion: 0,
+      foodCostPercent: 0,
+      actualProfit: 0
     }
   }
   
@@ -299,11 +300,11 @@ export const calculateProductMetrics = async (productData) => {
   const items = Array.isArray(productData.items) ? productData.items : []
   
   // ==========================================
-  // FÓRMULA PROFESIONAL DE COSTEO QSR
+  // MODELO EXCEL PROFESIONAL
   // ==========================================
   
-  // PASO A: Suma_Ingredientes = Σ (Cantidad_Usada * Costo_Unitario_G_o_ML)
-  let suma_ingredientes = 0
+  // PASO 1: Costo de Ingredientes = Σ (Cantidad_Usada * Costo_Unitario_G_o_ML)
+  let costoIngredientes = 0
   
   for (const item of items) {
     if (!item || !item.id) continue
@@ -315,17 +316,17 @@ export const calculateProductMetrics = async (productData) => {
         
         // FÓRMULA OBLIGATORIA: (Precio_Compra * 1.30 / Peso_Empaque) * Cantidad_Usada
         if (ingredient.costoPorGramo && ingredient.costoPorGramo > 0) {
-          suma_ingredientes += ingredient.costoPorGramo * cantidad_usada
+          costoIngredientes += ingredient.costoPorGramo * cantidad_usada
         } 
         else if (ingredient.pesoEmpaqueTotal && ingredient.pesoEmpaqueTotal > 0 && ingredient.costWithWastage) {
-          suma_ingredientes += calcularCostoProporcional(
+          costoIngredientes += calcularCostoProporcional(
             ingredient.costWithWastage, 
             ingredient.pesoEmpaqueTotal, 
             cantidad_usada
           )
         } 
         else if (ingredient.costWithWastage) {
-          suma_ingredientes += ingredient.costWithWastage * cantidad_usada
+          costoIngredientes += ingredient.costWithWastage * cantidad_usada
         }
       }
     } else if (item.type === 'recipe') {
@@ -334,47 +335,39 @@ export const calculateProductMetrics = async (productData) => {
         const cantidad_usada = parseFloat(item.quantity || 1)
         
         if (recipe.costoPorGramo && recipe.costoPorGramo > 0) {
-          suma_ingredientes += recipe.costoPorGramo * cantidad_usada
+          costoIngredientes += recipe.costoPorGramo * cantidad_usada
         } else if (recipe.totalCost) {
-          suma_ingredientes += recipe.totalCost * cantidad_usada
+          costoIngredientes += recipe.totalCost * cantidad_usada
         }
       }
     }
   }
   
-  // PASO B: Subtotal_Produccion = Suma_Ingredientes + mano_de_obra_unitaria
-  const mano_de_obra_unitaria = parseFloat(productData.laborCost || 0)
-  const subtotal_produccion = suma_ingredientes + mano_de_obra_unitaria
+  // PASO 2: Mano de Obra (Operario)
+  const manoDeObra = parseFloat(productData.laborCost || 0)
   
-  // PASO C: Gastos_Varios = Subtotal_Produccion * (porcentaje_gastos_varios / 100)
-  const porcentaje_gastos_varios = parseFloat(productData.overheadPercent || 30)
-  const gastos_varios = subtotal_produccion * (porcentaje_gastos_varios / 100)
+  // PASO 3: COSTO TOTAL (CT) = Ingredientes + Mano de Obra
+  const costoTotal = costoIngredientes + manoDeObra
   
-  // PASO D: COSTO TOTAL = Subtotal_Produccion + Gastos_Varios
-  const costo_total = subtotal_produccion + gastos_varios
+  // PASO 4: Precio de Venta
+  const precioVenta = parseFloat(productData.realSalePrice || 0)
   
-  // PASO E: PRECIO VENTA QSR = COSTO_TOTAL * (1 + (margen_qsr / 100))
-  const margen_qsr = parseFloat(productData.markupPercent || 60)
-  const precio_venta_sugerido = costo_total * (1 + (margen_qsr / 100))
+  // PASO 5: P-CONTRIBUCIÓN (Food Cost %) = (CT / Precio Venta) * 100
+  const pContribucion = precioVenta > 0 ? (costoTotal / precioVenta) * 100 : 0
   
-  const precio_real_venta = parseFloat(productData.realSalePrice || precio_venta_sugerido)
-  
-  // MÉTRICAS PROFESIONALES
-  const utilidad_real = precio_real_venta - costo_total
-  const food_cost_percent = precio_real_venta > 0 ? (costo_total / precio_real_venta) * 100 : 0
+  // PASO 6: M-CONTRIBUCIÓN (Utilidad $) = Precio Venta - CT
+  const mContribucion = precioVenta - costoTotal
   
   return {
-    ingredientsCost: suma_ingredientes,
-    laborCost: mano_de_obra_unitaria,
-    subtotalProduction: subtotal_produccion,
-    overheadPercent: porcentaje_gastos_varios,
-    overheadCost: gastos_varios,
-    totalCost: costo_total,
-    markupPercent: margen_qsr,
-    suggestedPrice: precio_venta_sugerido,
-    realSalePrice: precio_real_venta,
-    actualProfit: utilidad_real,
-    foodCostPercent: food_cost_percent
+    ingredientsCost: costoIngredientes,
+    laborCost: manoDeObra,
+    totalCost: costoTotal,
+    realSalePrice: precioVenta,
+    pContribucion: pContribucion,
+    mContribucion: mContribucion,
+    // Compatibilidad con código anterior
+    foodCostPercent: pContribucion,
+    actualProfit: mContribucion
   }
 }
 
