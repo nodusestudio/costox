@@ -264,7 +264,7 @@ export default function IngredientsNew() {
             className="flex items-center gap-2 px-5 py-3 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg font-medium"
           >
             <Plus size={20} />
-            ➕ Nuevo Ingrediente
+            Nuevo Ingrediente
           </button>
         </div>
       </div>
@@ -527,6 +527,7 @@ export default function IngredientsNew() {
                   step="1"
                   value={formData.pesoEmpaqueTotal}
                   onChange={(e) => setFormData({ ...formData, pesoEmpaqueTotal: parseFloat(e.target.value) })}
+                  onFocus={(e) => e.target.select()}
                   className={`w-full px-4 py-2 rounded-lg border ${
                     isDarkMode
                       ? 'bg-[#111827] border-gray-600 text-white'
@@ -550,6 +551,7 @@ export default function IngredientsNew() {
                   step="0.01"
                   value={formData.purchaseCost}
                   onChange={(e) => setFormData({ ...formData, purchaseCost: parseFloat(e.target.value) })}
+                  onFocus={(e) => e.target.select()}
                   className={`w-full px-4 py-2 rounded-lg border ${
                     isDarkMode
                       ? 'bg-[#111827] border-gray-600 text-white'
@@ -570,6 +572,7 @@ export default function IngredientsNew() {
                 step="0.1"
                 value={formData.wastagePercent}
                 onChange={(e) => setFormData({ ...formData, wastagePercent: parseFloat(e.target.value) })}
+                onFocus={(e) => e.target.select()}
                 className={`w-full px-4 py-2 rounded-lg border ${
                   isDarkMode
                     ? 'bg-[#111827] border-gray-600 text-white'

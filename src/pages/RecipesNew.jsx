@@ -215,9 +215,8 @@ export default function RecipesNew() {
           onClick={() => handleOpenModal()}
           className="flex items-center gap-2 px-4 py-2 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md"
         >
-          <Plus size={18} />
           <Plus size={20} />
-          ➕ Nueva Receta
+          Nueva Receta
         </button>
       </div>
 
@@ -355,6 +354,7 @@ export default function RecipesNew() {
                 type="number"
                 value={formData.pesoTotal}
                 onChange={(e) => setFormData({ ...formData, pesoTotal: parseFloat(e.target.value) || 0 })}
+                onFocus={(e) => e.target.select()}
                 className={`w-full px-4 py-2 rounded-lg border ${
                   isDarkMode
                     ? 'bg-[#111827] border-gray-600 text-white'
@@ -382,14 +382,14 @@ export default function RecipesNew() {
                     className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md font-medium"
                   >
                     <Package size={18} />
-                    ➕ Ingrediente
+                    Ingrediente
                   </button>
                   <button
                     onClick={() => handleAddItem('recipe')}
                     className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors shadow-md font-medium"
                   >
                     <BookOpen size={18} />
-                    ➕ Receta
+                    Receta
                   </button>
                 </div>
               </div>
@@ -424,6 +424,7 @@ export default function RecipesNew() {
                             step="0.01"
                             value={item.quantity}
                             onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
+                            onFocus={(e) => e.target.select()}
                             className="w-32 px-4 py-2 rounded-lg border bg-[#1f2937] border-gray-600 text-white focus:border-primary-blue focus:outline-none"
                             placeholder="0.00"
                           />

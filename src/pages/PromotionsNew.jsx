@@ -236,7 +236,7 @@ export default function PromotionsNew() {
           className="flex items-center gap-2 px-5 py-3 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg font-medium"
         >
           <Plus size={20} />
-          ➕ Nuevo Combo
+          Nuevo Combo
         </button>
       </div>
 
@@ -434,13 +434,13 @@ export default function PromotionsNew() {
                     onClick={() => handleAddItem('product')}
                     className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md font-medium"
                   >
-                    ➕ Producto
+                    Producto
                   </button>
                   <button
                     onClick={() => handleAddItem('ingredient')}
                     className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-md font-medium"
                   >
-                    ➕ Ingrediente
+                    Ingrediente
                   </button>
                 </div>
               </div>
@@ -463,6 +463,7 @@ export default function PromotionsNew() {
                       step="1"
                       value={item.quantity}
                       onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value))}
+                      onFocus={(e) => e.target.select()}
                       className={`w-20 px-3 py-1 rounded border ${
                         isDarkMode
                           ? 'bg-[#1f2937] border-gray-600 text-white'
@@ -524,6 +525,7 @@ export default function PromotionsNew() {
                       step="0.01"
                       value={formData.comboPrice || metrics.totalSuggestedPrice}
                       onChange={(e) => setFormData({ ...formData, comboPrice: parseFloat(e.target.value) })}
+                      onFocus={(e) => e.target.select()}
                       className={`w-full px-3 py-2 rounded border font-bold text-lg ${
                         isDarkMode
                           ? 'bg-[#1f2937] border-blue-600 text-blue-400'

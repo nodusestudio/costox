@@ -222,7 +222,7 @@ export default function ProductsNew() {
           className="flex items-center gap-2 px-5 py-3 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg font-medium"
         >
           <Plus size={20} />
-          ➕ Nuevo Producto
+          Nuevo Producto
         </button>
       </div>
 
@@ -374,13 +374,13 @@ export default function ProductsNew() {
                     onClick={() => handleAddItem('ingredient')}
                     className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md font-medium"
                   >
-                    ➕ Ingrediente
+                    Ingrediente
                   </button>
                   <button
                     onClick={() => handleAddItem('recipe')}
                     className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors shadow-md font-medium"
                   >
-                    ➕ Receta
+                    Receta
                   </button>
                 </div>
               </div>
@@ -403,6 +403,7 @@ export default function ProductsNew() {
                       step="0.01"
                       value={item.quantity}
                       onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
+                      onFocus={(e) => e.target.select()}
                       className={`w-24 px-3 py-1 rounded border ${
                         isDarkMode
                           ? 'bg-[#1f2937] border-gray-600 text-white'
@@ -447,6 +448,7 @@ export default function ProductsNew() {
                       step="1"
                       value={formData.profitMarginPercent}
                       onChange={(e) => setFormData({ ...formData, profitMarginPercent: parseFloat(e.target.value) })}
+                      onFocus={(e) => e.target.select()}
                       className={`w-full px-3 py-1 rounded border ${
                         isDarkMode
                           ? 'bg-[#1f2937] border-gray-600 text-white'
@@ -478,6 +480,7 @@ export default function ProductsNew() {
                       step="0.01"
                       value={formData.realSalePrice || metrics.suggestedPrice}
                       onChange={(e) => setFormData({ ...formData, realSalePrice: parseFloat(e.target.value) })}
+                      onFocus={(e) => e.target.select()}
                       className={`w-full px-3 py-2 rounded border font-bold text-lg ${
                         isDarkMode
                           ? 'bg-[#1f2937] border-green-600 text-green-400'
