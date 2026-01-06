@@ -588,18 +588,18 @@ export default function PromotionsNew() {
               </div>
             )}
 
-            <div className="flex justify-end gap-3 pt-6 pb-6 mb-5 border-t border-gray-700">
+            <div className="flex justify-end gap-6 mt-10 pt-8 border-t-2 border-gray-600 pb-8 bg-gray-800/50 -mx-8 px-8 -mb-8 rounded-b-2xl">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex items-center gap-2 px-8 py-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors font-medium shadow-lg text-lg"
+                className="flex items-center gap-3 px-12 py-5 bg-gray-600 hover:bg-gray-500 text-white rounded-xl transition-all font-bold shadow-2xl text-xl hover:scale-105"
               >
-                ❌ Cancelar
+                <span className="text-2xl">❌</span> Cancelar
               </button>
               <button
                 onClick={handleSave}
-                className="flex items-center gap-2 px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium shadow-lg text-lg"
+                className="flex items-center gap-3 px-12 py-5 bg-green-600 hover:bg-green-500 text-white rounded-xl transition-all font-bold shadow-2xl text-xl hover:scale-105"
               >
-                💾 Guardar
+                <span className="text-2xl">💾</span> Guardar
               </button>
             </div>
           </div>
