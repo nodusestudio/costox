@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, TrendingUp, DollarSign } from 'lucide-react'
 import { getProducts, saveProduct, deleteProduct, getIngredients, getRecipes } from '@/utils/storage'
-import { formatMoneyDisplay } from '@/utils/formatters'
+import { formatMoneyDisplay, calcularCostoProporcional } from '@/utils/formatters'
 import Modal from '@/components/Modal'
 import SearchSelect from '@/components/SearchSelect'
 import Button from '@/components/Button'
@@ -116,8 +116,13 @@ export default function ProductsNew() {
       
       if (item.type === 'ingredient') {
         const ing = ingredients.find(i => i.id === item.id)
-        if (ing && ing.costWithWastage) {
-          totalCost += ing.costWithWastage * parseFloat(item.quantity || 0)
+        if (ing && ing.costWithWastage && ing.pesoEmpaqueTotal) {
+          // Usar cálculo proporcional correcto
+          totalCost += calcularCostoProporcional(
+            ing.costWithWastage, 
+            ing.pesoEmpaqueTotal, 
+            parseFloat(item.quantity || 0)
+          )
         }
       } else {
         const rec = recipes.find(r => r.id === item.id)

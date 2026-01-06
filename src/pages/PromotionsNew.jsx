@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
 import { getPromotions, savePromotion, deletePromotion, getProducts, getIngredients } from '@/utils/storage'
-import { formatMoneyDisplay } from '@/utils/formatters'
+import { formatMoneyDisplay, calcularCostoProporcional } from '@/utils/formatters'
 import Modal from '@/components/Modal'
 import SearchSelect from '@/components/SearchSelect'
 import Button from '@/components/Button'
@@ -125,9 +125,15 @@ export default function PromotionsNew() {
         }
       } else {
         const ing = ingredients.find(i => i.id === item.id)
-        if (ing && ing.costWithWastage) {
-          totalCost += ing.costWithWastage * quantity
-          totalSuggestedPrice += ing.costWithWastage * 1.4 * quantity // Margen 40% para ingredientes sueltos
+        if (ing && ing.costWithWastage && ing.pesoEmpaqueTotal) {
+          // Usar cálculo proporcional correcto
+          const costoProporcional = calcularCostoProporcional(
+            ing.costWithWastage, 
+            ing.pesoEmpaqueTotal, 
+            quantity
+          )
+          totalCost += costoProporcional
+          totalSuggestedPrice += costoProporcional * 1.4 // Margen 40% para ingredientes sueltos
         }
       }
     })

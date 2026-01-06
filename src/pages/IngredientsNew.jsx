@@ -21,6 +21,7 @@ export default function IngredientsNew() {
     supplierId: '',
     unit: 'kg',
     contenido: '', // Contenido/Empaque
+    pesoEmpaqueTotal: 1000, // Peso total del empaque en gramos (default 1kg)
     purchaseCost: 0,
     wastagePercent: 30, // 30% por defecto de fábrica
   })
@@ -54,6 +55,7 @@ export default function IngredientsNew() {
         supplierId: ingredient.supplierId,
         unit: ingredient.unit,
         contenido: ingredient.contenido || '',
+        pesoEmpaqueTotal: ingredient.pesoEmpaqueTotal || 1000,
         purchaseCost: ingredient.purchaseCost,
         wastagePercent: ingredient.wastagePercent,
       })
@@ -64,6 +66,7 @@ export default function IngredientsNew() {
         supplierId: '',
         unit: 'kg',
         contenido: '',
+        pesoEmpaqueTotal: 1000,
         purchaseCost: 0,
         wastagePercent: 30,
       })
@@ -472,7 +475,7 @@ export default function IngredientsNew() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className={`block text-sm font-medium mb-2 ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
@@ -494,6 +497,29 @@ export default function IngredientsNew() {
                   <option value="LITROS">LITROS</option>
                   <option value="MILILITROS">MILILITROS</option>
                 </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  Peso Empaque Total (g/ml) *
+                </label>
+                <input
+                  type="number"
+                  step="1"
+                  value={formData.pesoEmpaqueTotal}
+                  onChange={(e) => setFormData({ ...formData, pesoEmpaqueTotal: parseFloat(e.target.value) })}
+                  className={`w-full px-4 py-2 rounded-lg border ${
+                    isDarkMode
+                      ? 'bg-[#111827] border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                  placeholder="1000"
+                />
+                <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                  Ej: 1kg = 1000g, 500ml = 500
+                </p>
               </div>
 
               <div>
@@ -533,9 +559,25 @@ export default function IngredientsNew() {
                     : 'bg-white border-gray-300 text-gray-900'
                 }`}
               />
-              <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                Costo con merma: {formatMoneyDisplay(formData.purchaseCost * (1 + formData.wastagePercent / 100))}
-              </p>
+              <div className={`mt-3 p-4 rounded-lg ${isDarkMode ? 'bg-blue-900/20 border border-blue-700' : 'bg-blue-50 border border-blue-300'}`}>
+                <p className={`text-sm font-semibold mb-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
+                  📊 Resumen de Cálculo
+                </p>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Costo con merma:</span>
+                    <span className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {formatMoneyDisplay(formData.purchaseCost * (1 + formData.wastagePercent / 100))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Costo por gramo/ml:</span>
+                    <span className={`font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                      {formatMoneyDisplay((formData.purchaseCost * (1 + formData.wastagePercent / 100)) / (formData.pesoEmpaqueTotal || 1))}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-6 border-t border-gray-700">

@@ -16,6 +16,7 @@ import {
   where,
   orderBy
 } from 'firebase/firestore'
+import { calcularCostoProporcional } from './formatters'
 
 const COLLECTIONS = {
   config: 'config',
@@ -151,20 +152,27 @@ export const getIngredients = async () => {
 }
 
 /**
- * Guarda ingrediente con cálculo automático de merma
+ * Guarda ingrediente con cálculo automático de merma y costo por gramo
  */
 export const saveIngredient = async (ingredient, id = null) => {
   // Calcular costo con merma (30% por defecto)
   const purchaseCost = parseFloat(ingredient.purchaseCost || 0)
   const wastagePercent = parseFloat(ingredient.wastagePercent || 30)
+  const pesoEmpaqueTotal = parseFloat(ingredient.pesoEmpaqueTotal || 1000) // Default 1kg
+  
   // costo_real = costo_compra * 1.30 (30% de merma)
   const costWithWastage = purchaseCost * (1 + wastagePercent / 100)
+  
+  // Costo por gramo/ml para cálculos proporcionales
+  const costoPorGramo = pesoEmpaqueTotal > 0 ? costWithWastage / pesoEmpaqueTotal : 0
   
   const ingredientData = {
     ...ingredient,
     purchaseCost,
     wastagePercent,
+    pesoEmpaqueTotal,
     costWithWastage,
+    costoPorGramo,
     updatedAt: new Date().toISOString()
   }
   
@@ -201,8 +209,13 @@ export const calculateRecipeCost = async (ingredientsList) => {
     
     if (item.type === 'ingredient') {
       const ingredient = await getDocById(COLLECTIONS.ingredients, item.id)
-      if (ingredient && ingredient.costWithWastage) {
-        totalCost += ingredient.costWithWastage * parseFloat(item.quantity || 0)
+      if (ingredient && ingredient.costWithWastage && ingredient.pesoEmpaqueTotal) {
+        // Usar cálculo proporcional correcto: (precio_con_merma / peso_total) * cantidad_usada
+        totalCost += calcularCostoProporcional(
+          ingredient.costWithWastage, 
+          ingredient.pesoEmpaqueTotal, 
+          parseFloat(item.quantity || 0)
+        )
       }
     } else if (item.type === 'recipe') {
       const recipe = await getDocById(COLLECTIONS.recipes, item.id)

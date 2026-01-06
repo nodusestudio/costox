@@ -46,3 +46,26 @@ export const formatMoneyDisplay = (value, currencyCode = 'USD') => {
   
   return `${symbol}${formatted}`
 }
+
+/**
+ * Calcula el costo proporcional de un ingrediente según la cantidad usada
+ * @param {number} precioConMerma - Precio del bulto/empaque CON merma aplicada
+ * @param {number} pesoEmpaqueTotal - Peso total del empaque en gramos/ml
+ * @param {number} cantidadUsada - Cantidad usada en la receta en gramos/ml
+ * @returns {number} Costo proporcional
+ * 
+ * Ejemplo: 
+ * - Harina 1kg cuesta $2.600 con merma
+ * - Uso 250g en la receta
+ * - Costo = (2.600 / 1000) * 250 = $650
+ */
+export const calcularCostoProporcional = (precioConMerma, pesoEmpaqueTotal, cantidadUsada) => {
+  if (!pesoEmpaqueTotal || pesoEmpaqueTotal <= 0) return 0
+  if (!cantidadUsada || cantidadUsada <= 0) return 0
+  
+  // Precio por gramo/ml
+  const precioPorUnidad = precioConMerma / pesoEmpaqueTotal
+  
+  // Costo proporcional
+  return precioPorUnidad * cantidadUsada
+}
