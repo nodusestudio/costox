@@ -277,8 +277,11 @@ export default function IngredientsNew() {
 
         {filteredIngredients.length === 0 && (
           <div className="text-center py-12">
-            <p className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>
+            <p className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               No hay ingredientes registrados
+            </p>
+            <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+              Empieza por cargar tu Excel o crea uno manualmente
             </p>
           </div>
         )}

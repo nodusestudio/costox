@@ -154,9 +154,10 @@ export const getIngredients = async () => {
  * Guarda ingrediente con cálculo automático de merma
  */
 export const saveIngredient = async (ingredient, id = null) => {
-  // Calcular costo con merma
+  // Calcular costo con merma (30% por defecto)
   const purchaseCost = parseFloat(ingredient.purchaseCost || 0)
   const wastagePercent = parseFloat(ingredient.wastagePercent || 30)
+  // costo_real = costo_compra * 1.30 (30% de merma)
   const costWithWastage = purchaseCost * (1 + wastagePercent / 100)
   
   const ingredientData = {
@@ -188,17 +189,24 @@ export const getRecipes = async () => {
  * Calcula el costo total de una receta basada en sus ingredientes
  */
 export const calculateRecipeCost = async (ingredientsList) => {
+  // Validar que ingredientsList sea un array
+  if (!ingredientsList || !Array.isArray(ingredientsList) || ingredientsList.length === 0) {
+    return 0
+  }
+  
   let totalCost = 0
   
   for (const item of ingredientsList) {
+    if (!item || !item.id) continue
+    
     if (item.type === 'ingredient') {
       const ingredient = await getDocById(COLLECTIONS.ingredients, item.id)
-      if (ingredient) {
+      if (ingredient && ingredient.costWithWastage) {
         totalCost += ingredient.costWithWastage * parseFloat(item.quantity || 0)
       }
     } else if (item.type === 'recipe') {
       const recipe = await getDocById(COLLECTIONS.recipes, item.id)
-      if (recipe) {
+      if (recipe && recipe.totalCost) {
         totalCost += recipe.totalCost * parseFloat(item.quantity || 1)
       }
     }
@@ -240,18 +248,42 @@ export const getProducts = async () => {
  * Calcula métricas de un producto
  */
 export const calculateProductMetrics = async (productData) => {
+  if (!productData) {
+    return {
+      totalCost: 0,
+      profitMarginPercent: 0,
+      profitMarginAmount: 0,
+      suggestedPrice: 0,
+      realSalePrice: 0
+    }
+  }
+  
   let totalCost = 0
+  const items = productData.items || []
+  
+  // Validar que items sea un array
+  if (!Array.isArray(items)) {
+    return {
+      totalCost: 0,
+      profitMarginPercent: 0,
+      profitMarginAmount: 0,
+      suggestedPrice: 0,
+      realSalePrice: 0
+    }
+  }
   
   // Calcular costo de ingredientes y recetas
-  for (const item of productData.items || []) {
+  for (const item of items) {
+    if (!item || !item.id) continue
+    
     if (item.type === 'ingredient') {
       const ingredient = await getDocById(COLLECTIONS.ingredients, item.id)
-      if (ingredient) {
+      if (ingredient && ingredient.costWithWastage) {
         totalCost += ingredient.costWithWastage * parseFloat(item.quantity || 0)
       }
     } else if (item.type === 'recipe') {
       const recipe = await getDocById(COLLECTIONS.recipes, item.id)
-      if (recipe) {
+      if (recipe && recipe.totalCost) {
         totalCost += recipe.totalCost * parseFloat(item.quantity || 1)
       }
     }
@@ -304,22 +336,52 @@ export const getPromotions = async () => {
  * Calcula métricas inteligentes de un combo
  */
 export const calculateComboMetrics = async (comboData) => {
+  if (!comboData) {
+    return {
+      totalCost: 0,
+      totalSuggestedPrice: 0,
+      comboPrice: 0,
+      discountAmount: 0,
+      discountPercent: 0,
+      profitAmount: 0,
+      profitMarginPercent: 0,
+      isLosing: false
+    }
+  }
+  
   let totalCost = 0
   let totalSuggestedPrice = 0
+  const items = comboData.items || []
+  
+  // Validar que items sea un array
+  if (!Array.isArray(items)) {
+    return {
+      totalCost: 0,
+      totalSuggestedPrice: 0,
+      comboPrice: 0,
+      discountAmount: 0,
+      discountPercent: 0,
+      profitAmount: 0,
+      profitMarginPercent: 0,
+      isLosing: false
+    }
+  }
   
   // Calcular costos y precios de productos e ingredientes
-  for (const item of comboData.items || []) {
+  for (const item of items) {
+    if (!item || !item.id) continue
+    
     const quantity = parseFloat(item.quantity || 1)
     
     if (item.type === 'product') {
       const product = await getDocById(COLLECTIONS.products, item.id)
-      if (product) {
-        totalCost += product.totalCost * quantity
-        totalSuggestedPrice += product.realSalePrice * quantity
+      if (product && product.totalCost && product.realSalePrice) {
+        totalCost += (product.totalCost || 0) * quantity
+        totalSuggestedPrice += (product.realSalePrice || 0) * quantity
       }
     } else if (item.type === 'ingredient') {
       const ingredient = await getDocById(COLLECTIONS.ingredients, item.id)
-      if (ingredient) {
+      if (ingredient && ingredient.costWithWastage) {
         totalCost += ingredient.costWithWastage * quantity
         // Para ingredientes sueltos, aplicar margen estándar del 40%
         totalSuggestedPrice += ingredient.costWithWastage * 1.4 * quantity

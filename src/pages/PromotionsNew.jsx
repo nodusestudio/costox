@@ -65,41 +65,64 @@ export default function PromotionsNew() {
   }
 
   const handleAddItem = (type) => {
+    const currentItems = Array.isArray(formData.items) ? formData.items : []
     setFormData({
       ...formData,
-      items: [...formData.items, { type, id: '', quantity: 1 }]
+      items: [...currentItems, { type, id: '', quantity: 1 }]
     })
   }
 
   const handleRemoveItem = (index) => {
+    const currentItems = Array.isArray(formData.items) ? formData.items : []
     setFormData({
       ...formData,
-      items: formData.items.filter((_, i) => i !== index)
+      items: currentItems.filter((_, i) => i !== index)
     })
   }
 
   const handleItemChange = (index, field, value) => {
-    const updated = [...formData.items]
-    updated[index][field] = value
+    const currentItems = Array.isArray(formData.items) ? formData.items : []
+    const updated = [...currentItems]
+    if (updated[index]) {
+      updated[index][field] = value
+    }
     setFormData({ ...formData, items: updated })
   }
 
   const calculateMetrics = () => {
     let totalCost = 0
     let totalSuggestedPrice = 0
+    const items = formData.items || []
 
-    formData.items.forEach(item => {
+    // Validar que sea un array
+    if (!Array.isArray(items)) {
+      return {
+        totalCost: 0,
+        totalSuggestedPrice: 0,
+        comboPrice: 0,
+        discountAmount: 0,
+        discountPercent: 0,
+        profitAmount: 0,
+        profitMarginPercent: 0,
+        isLosing: false,
+        isLowMargin: false
+      }
+    }
+
+    items.forEach(item => {
+      if (!item || !item.id) return
+      
       const quantity = parseFloat(item.quantity || 1)
       
       if (item.type === 'product') {
         const prod = products.find(p => p.id === item.id)
-        if (prod) {
-          totalCost += prod.totalCost * quantity
-          totalSuggestedPrice += prod.realSalePrice * quantity
+        if (prod && prod.totalCost && prod.realSalePrice) {
+          totalCost += (prod.totalCost || 0) * quantity
+          totalSuggestedPrice += (prod.realSalePrice || 0) * quantity
         }
       } else {
         const ing = ingredients.find(i => i.id === item.id)
-        if (ing) {
+        if (ing && ing.costWithWastage) {
           totalCost += ing.costWithWastage * quantity
           totalSuggestedPrice += ing.costWithWastage * 1.4 * quantity // Margen 40% para ingredientes sueltos
         }
@@ -131,7 +154,7 @@ export default function PromotionsNew() {
       return
     }
 
-    if (formData.items.length === 0) {
+    if (!Array.isArray(formData.items) || formData.items.length === 0) {
       alert('Debe agregar al menos un item al combo')
       return
     }
@@ -398,7 +421,7 @@ export default function PromotionsNew() {
               </div>
 
               <div className="space-y-2">
-                {formData.items.map((item, index) => (
+                {(formData.items || []).map((item, index) => (
                   <div key={index} className={`p-3 rounded-lg flex gap-2 items-center ${
                     isDarkMode ? 'bg-[#111827] border border-gray-700' : 'bg-gray-50 border border-gray-200'
                   }`}>
@@ -446,7 +469,7 @@ export default function PromotionsNew() {
             </div>
 
             {/* Análisis Inteligente */}
-            {formData.items.length > 0 && (
+            {(formData.items || []).length > 0 && (
               <div className={`p-4 rounded-lg ${
                 metrics.isLosing
                   ? 'bg-red-900/20 border-2 border-red-500'

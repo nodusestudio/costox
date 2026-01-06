@@ -59,25 +59,30 @@ export default function RecipesNew() {
   }
 
   const handleAddItem = (type) => {
+    const currentItems = Array.isArray(formData.ingredients) ? formData.ingredients : []
     setFormData({
       ...formData,
       ingredients: [
-        ...formData.ingredients,
+        ...currentItems,
         { type, id: '', quantity: 1 }
       ]
     })
   }
 
   const handleRemoveItem = (index) => {
+    const currentItems = Array.isArray(formData.ingredients) ? formData.ingredients : []
     setFormData({
       ...formData,
-      ingredients: formData.ingredients.filter((_, i) => i !== index)
+      ingredients: currentItems.filter((_, i) => i !== index)
     })
   }
 
   const handleItemChange = (index, field, value) => {
-    const updated = [...formData.ingredients]
-    updated[index][field] = value
+    const currentItems = Array.isArray(formData.ingredients) ? formData.ingredients : []
+    const updated = [...currentItems]
+    if (updated[index]) {
+      updated[index][field] = value
+    }
     setFormData({ ...formData, ingredients: updated })
   }
 
@@ -121,13 +126,26 @@ export default function RecipesNew() {
 
   const calculatePreviewCost = () => {
     let total = 0
-    formData.ingredients.forEach(item => {
+    const items = formData.ingredients || []
+    
+    // Validar que sea un array
+    if (!Array.isArray(items)) {
+      return 0
+    }
+    
+    items.forEach(item => {
+      if (!item || !item.id) return
+      
       if (item.type === 'ingredient') {
         const ing = ingredients.find(i => i.id === item.id)
-        if (ing) total += ing.costWithWastage * parseFloat(item.quantity || 0)
+        if (ing && ing.costWithWastage) {
+          total += ing.costWithWastage * parseFloat(item.quantity || 0)
+        }
       } else {
         const rec = recipes.find(r => r.id === item.id)
-        if (rec) total += rec.totalCost * parseFloat(item.quantity || 1)
+        if (rec && rec.totalCost) {
+          total += rec.totalCost * parseFloat(item.quantity || 1)
+        }
       }
     })
     return total
@@ -306,7 +324,7 @@ export default function RecipesNew() {
               </div>
 
               <div className="space-y-2">
-                {formData.ingredients.map((item, index) => (
+                {(formData.ingredients || []).map((item, index) => (
                   <div key={index} className={`p-3 rounded-lg border ${
                     isDarkMode ? 'bg-[#111827] border-gray-700' : 'bg-gray-50 border-gray-200'
                   }`}>
@@ -367,7 +385,7 @@ export default function RecipesNew() {
                 ))}
               </div>
 
-              {formData.ingredients.length === 0 && (
+              {(formData.ingredients || []).length === 0 && (
                 <p className={`text-sm text-center py-4 ${
                   isDarkMode ? 'text-gray-500' : 'text-gray-400'
                 }`}>
@@ -377,7 +395,7 @@ export default function RecipesNew() {
             </div>
 
             {/* Preview del costo */}
-            {formData.ingredients.length > 0 && (
+            {(formData.ingredients || []).length > 0 && (
               <div className={`p-3 rounded-lg ${
                 isDarkMode ? 'bg-green-900/20 border border-green-700' : 'bg-green-50 border border-green-200'
               }`}>

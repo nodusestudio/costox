@@ -68,35 +68,59 @@ export default function ProductsNew() {
   }
 
   const handleAddItem = (type) => {
+    const currentItems = Array.isArray(formData.items) ? formData.items : []
     setFormData({
       ...formData,
-      items: [...formData.items, { type, id: '', quantity: 1 }]
+      items: [...currentItems, { type, id: '', quantity: 1 }]
     })
   }
 
   const handleRemoveItem = (index) => {
+    const currentItems = Array.isArray(formData.items) ? formData.items : []
     setFormData({
       ...formData,
-      items: formData.items.filter((_, i) => i !== index)
+      items: currentItems.filter((_, i) => i !== index)
     })
   }
 
   const handleItemChange = (index, field, value) => {
-    const updated = [...formData.items]
-    updated[index][field] = value
+    const currentItems = Array.isArray(formData.items) ? formData.items : []
+    const updated = [...currentItems]
+    if (updated[index]) {
+      updated[index][field] = value
+    }
     setFormData({ ...formData, items: updated })
   }
 
   const calculateMetrics = () => {
     let totalCost = 0
+    const items = formData.items || []
     
-    formData.items.forEach(item => {
+    // Validar que sea un array
+    if (!Array.isArray(items)) {
+      return {
+        totalCost: 0,
+        profitMarginPercent: 0,
+        profitMarginAmount: 0,
+        suggestedPrice: 0,
+        realSalePrice: 0,
+        actualMargin: 0
+      }
+    }
+    
+    items.forEach(item => {
+      if (!item || !item.id) return
+      
       if (item.type === 'ingredient') {
         const ing = ingredients.find(i => i.id === item.id)
-        if (ing) totalCost += ing.costWithWastage * parseFloat(item.quantity || 0)
+        if (ing && ing.costWithWastage) {
+          totalCost += ing.costWithWastage * parseFloat(item.quantity || 0)
+        }
       } else {
         const rec = recipes.find(r => r.id === item.id)
-        if (rec) totalCost += rec.totalCost * parseFloat(item.quantity || 1)
+        if (rec && rec.totalCost) {
+          totalCost += rec.totalCost * parseFloat(item.quantity || 1)
+        }
       }
     })
 
@@ -330,7 +354,7 @@ export default function ProductsNew() {
               </div>
 
               <div className="space-y-2">
-                {formData.items.map((item, index) => (
+                {(formData.items || []).map((item, index) => (
                   <div key={index} className={`p-3 rounded-lg flex gap-2 items-center ${
                     isDarkMode ? 'bg-[#111827] border border-gray-700' : 'bg-gray-50 border border-gray-200'
                   }`}>
@@ -378,7 +402,7 @@ export default function ProductsNew() {
             </div>
 
             {/* Cálculos Automáticos */}
-            {formData.items.length > 0 && (
+            {(formData.items || []).length > 0 && (
               <div className={`p-4 rounded-lg space-y-3 ${
                 isDarkMode ? 'bg-[#111827] border border-gray-700' : 'bg-gray-50 border border-gray-200'
               }`}>
