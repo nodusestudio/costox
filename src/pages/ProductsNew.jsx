@@ -360,7 +360,7 @@ export default function ProductsNew() {
               
               {/* Food Cost % - Indicador Clave QSR */}
               <div className={`mt-2 p-3 rounded-lg border-2 ${
-                (product.foodCostPercent || 0) > 35
+                (product.foodCostPercent || 0) > 45
                   ? isDarkMode ? 'bg-red-900/40 border-red-600' : 'bg-red-100 border-red-400'
                   : isDarkMode ? 'bg-green-900/40 border-green-700' : 'bg-green-100 border-green-400'
               }`}>
@@ -371,7 +371,7 @@ export default function ProductsNew() {
                     Food Cost % QSR
                   </span>
                   <span className={`text-2xl font-black ${
-                    (product.foodCostPercent || 0) > 35
+                    (product.foodCostPercent || 0) > 45
                       ? isDarkMode ? 'text-red-400' : 'text-red-600'
                       : isDarkMode ? 'text-green-400' : 'text-green-600'
                   }`}>
@@ -400,7 +400,7 @@ export default function ProductsNew() {
           title={editingId ? 'Editar Producto' : 'Nuevo Producto'}
           onClose={() => setShowModal(false)}
         >
-          <div className="space-y-4">
+          <div className="space-y-4 pb-6">{/* Padding inferior para evitar corte de botones */}
             {/* Información Básica */}
             <div className="grid grid-cols-1 gap-4">
               <div>
@@ -785,7 +785,7 @@ export default function ProductsNew() {
 
                     {/* Food Cost % */}
                     <div className={`p-4 rounded-lg border-2 ${
-                      metrics.foodCostPercent > 35
+                      metrics.foodCostPercent > 45
                         ? isDarkMode 
                           ? 'bg-red-950/50 border-red-600' 
                           : 'bg-red-100 border-red-400'
@@ -800,7 +800,7 @@ export default function ProductsNew() {
                           Food Cost %
                         </span>
                         <span className={`text-3xl font-black ${
-                          metrics.foodCostPercent > 35
+                          metrics.foodCostPercent > 45
                             ? isDarkMode ? 'text-red-400' : 'text-red-600'
                             : isDarkMode ? 'text-green-400' : 'text-green-600'
                         }`}>
@@ -812,9 +812,9 @@ export default function ProductsNew() {
                       }`}>
                         = (Costo Total / Precio Venta) × 100
                       </p>
-                      {metrics.foodCostPercent > 35 && (
+                      {metrics.foodCostPercent > 45 && (
                         <p className="text-xs font-bold text-red-500 mt-2">
-                          ⚠️ ALERTA: Food Cost superior al 35% ideal
+                          ⚠️ ALERTA: Food Cost superior al 45% (incluye mano de obra)
                         </p>
                       )}
                     </div>
