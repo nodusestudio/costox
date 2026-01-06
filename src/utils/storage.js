@@ -1,153 +1,387 @@
 /**
- * Sistema de almacenamiento en localStorage para CostoX
+ * Sistema de almacenamiento con Firestore para CostoX
  */
 
-const STORAGE_PREFIX = 'costox_'
-const STORAGE_VERSION = 1
+import { db } from '@/config/firebase'
+import { 
+  collection, 
+  doc, 
+  getDocs, 
+  getDoc,
+  setDoc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc,
+  query,
+  where,
+  orderBy
+} from 'firebase/firestore'
+
+const COLLECTIONS = {
+  config: 'config',
+  suppliers: 'suppliers',
+  ingredients: 'ingredients',
+  recipes: 'recipes',
+  products: 'products',
+  promotions: 'promotions'
+}
 
 /**
- * Obtiene datos del localStorage
+ * Obtiene un documento por ID
  */
-export const getFromStorage = (key, defaultValue = null) => {
+export const getDocById = async (collectionName, id) => {
   try {
-    const item = localStorage.getItem(STORAGE_PREFIX + key)
-    return item ? JSON.parse(item) : defaultValue
+    const docRef = doc(db, collectionName, id)
+    const docSnap = await getDoc(docRef)
+    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null
   } catch (error) {
-    console.error(`Error reading from storage (${key}):`, error)
-    return defaultValue
+    console.error(`Error getting document ${id} from ${collectionName}:`, error)
+    return null
   }
 }
 
 /**
- * Guarda datos en localStorage
+ * Obtiene todos los documentos de una colección
  */
-export const saveToStorage = (key, value) => {
+export const getAllDocs = async (collectionName) => {
   try {
-    localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value))
+    const querySnapshot = await getDocs(collection(db, collectionName))
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  } catch (error) {
+    console.error(`Error getting documents from ${collectionName}:`, error)
+    return []
+  }
+}
+
+/**
+ * Guarda o actualiza un documento
+ */
+export const saveDoc = async (collectionName, data, id = null) => {
+  try {
+    if (id) {
+      const docRef = doc(db, collectionName, id)
+      await setDoc(docRef, { ...data, updatedAt: new Date().toISOString() }, { merge: true })
+      return id
+    } else {
+      const docRef = await addDoc(collection(db, collectionName), {
+        ...data,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })
+      return docRef.id
+    }
+  } catch (error) {
+    console.error(`Error saving document to ${collectionName}:`, error)
+    throw error
+  }
+}
+
+/**
+ * Elimina un documento
+ */
+export const deleteDocument = async (collectionName, id) => {
+  try {
+    await deleteDoc(doc(db, collectionName, id))
     return true
   } catch (error) {
-    console.error(`Error saving to storage (${key}):`, error)
+    console.error(`Error deleting document ${id} from ${collectionName}:`, error)
     return false
   }
 }
 
-/**
- * Elimina datos del localStorage
- */
-export const removeFromStorage = (key) => {
-  try {
-    localStorage.removeItem(STORAGE_PREFIX + key)
-    return true
-  } catch (error) {
-    console.error(`Error removing from storage (${key}):`, error)
-    return false
-  }
-}
-
-/**
- * Limpia todo el almacenamiento de CostoX
- */
-export const clearAllStorage = () => {
-  try {
-    const keys = Object.keys(localStorage)
-    keys.forEach(key => {
-      if (key.startsWith(STORAGE_PREFIX)) {
-        localStorage.removeItem(key)
-      }
-    })
-    return true
-  } catch (error) {
-    console.error('Error clearing storage:', error)
-    return false
-  }
-}
 
 /**
  * Obtiene la configuración global
  */
-export const getConfig = () => {
-  return getFromStorage('config', {
-    companyName: 'Mi Empresa',
-    chefName: 'Chef',
-    currency: 'USD',
-    language: 'es',
-    globalWastagePercent: 5,
-  })
+export const getConfig = async () => {
+  try {
+    const configDoc = await getDocById(COLLECTIONS.config, 'global')
+    return configDoc || {
+      companyName: 'Mi Empresa',
+      chefName: 'Chef',
+      currency: 'USD',
+      language: 'es',
+      globalWastagePercent: 30, // Merma del 30% por defecto
+    }
+  } catch (error) {
+    console.error('Error getting config:', error)
+    return {
+      companyName: 'Mi Empresa',
+      chefName: 'Chef',
+      currency: 'USD',
+      language: 'es',
+      globalWastagePercent: 30,
+    }
+  }
 }
 
 /**
  * Guarda la configuración global
  */
-export const saveConfig = (config) => {
-  return saveToStorage('config', config)
+export const saveConfig = async (config) => {
+  return await saveDoc(COLLECTIONS.config, config, 'global')
 }
 
 /**
  * Obtiene todos los proveedores
  */
-export const getSuppliers = () => {
-  return getFromStorage('suppliers', [])
+export const getSuppliers = async () => {
+  return await getAllDocs(COLLECTIONS.suppliers)
 }
 
 /**
- * Guarda proveedores
+ * Guarda proveedor
  */
-export const saveSuppliers = (suppliers) => {
-  return saveToStorage('suppliers', suppliers)
+export const saveSupplier = async (supplier, id = null) => {
+  return await saveDoc(COLLECTIONS.suppliers, supplier, id)
+}
+
+/**
+ * Elimina proveedor
+ */
+export const deleteSupplier = async (id) => {
+  return await deleteDocument(COLLECTIONS.suppliers, id)
 }
 
 /**
  * Obtiene todos los ingredientes
  */
-export const getIngredients = () => {
-  return getFromStorage('ingredients', [])
+export const getIngredients = async () => {
+  return await getAllDocs(COLLECTIONS.ingredients)
 }
 
 /**
- * Guarda ingredientes
+ * Guarda ingrediente con cálculo automático de merma
  */
-export const saveIngredients = (ingredients) => {
-  return saveToStorage('ingredients', ingredients)
+export const saveIngredient = async (ingredient, id = null) => {
+  // Calcular costo con merma
+  const purchaseCost = parseFloat(ingredient.purchaseCost || 0)
+  const wastagePercent = parseFloat(ingredient.wastagePercent || 30)
+  const costWithWastage = purchaseCost * (1 + wastagePercent / 100)
+  
+  const ingredientData = {
+    ...ingredient,
+    purchaseCost,
+    wastagePercent,
+    costWithWastage,
+    updatedAt: new Date().toISOString()
+  }
+  
+  return await saveDoc(COLLECTIONS.ingredients, ingredientData, id)
+}
+
+/**
+ * Elimina ingrediente
+ */
+export const deleteIngredient = async (id) => {
+  return await deleteDocument(COLLECTIONS.ingredients, id)
 }
 
 /**
  * Obtiene todas las recetas
  */
-export const getRecipes = () => {
-  return getFromStorage('recipes', [])
+export const getRecipes = async () => {
+  return await getAllDocs(COLLECTIONS.recipes)
 }
 
 /**
- * Guarda recetas
+ * Calcula el costo total de una receta basada en sus ingredientes
  */
-export const saveRecipes = (recipes) => {
-  return saveToStorage('recipes', recipes)
+export const calculateRecipeCost = async (ingredientsList) => {
+  let totalCost = 0
+  
+  for (const item of ingredientsList) {
+    if (item.type === 'ingredient') {
+      const ingredient = await getDocById(COLLECTIONS.ingredients, item.id)
+      if (ingredient) {
+        totalCost += ingredient.costWithWastage * parseFloat(item.quantity || 0)
+      }
+    } else if (item.type === 'recipe') {
+      const recipe = await getDocById(COLLECTIONS.recipes, item.id)
+      if (recipe) {
+        totalCost += recipe.totalCost * parseFloat(item.quantity || 1)
+      }
+    }
+  }
+  
+  return totalCost
 }
 
 /**
- * Obtiene todos los productos finales
+ * Guarda receta
  */
-export const getProducts = () => {
-  return getFromStorage('products', [])
+export const saveRecipe = async (recipe, id = null) => {
+  const totalCost = await calculateRecipeCost(recipe.ingredients || [])
+  
+  const recipeData = {
+    ...recipe,
+    totalCost,
+    updatedAt: new Date().toISOString()
+  }
+  
+  return await saveDoc(COLLECTIONS.recipes, recipeData, id)
 }
 
 /**
- * Guarda productos
+ * Elimina receta
  */
-export const saveProducts = (products) => {
-  return saveToStorage('products', products)
+export const deleteRecipe = async (id) => {
+  return await deleteDocument(COLLECTIONS.recipes, id)
 }
 
 /**
- * Obtiene todas las promociones
+ * Obtiene todos los productos
  */
-export const getPromotions = () => {
-  return getFromStorage('promotions', [])
+export const getProducts = async () => {
+  return await getAllDocs(COLLECTIONS.products)
 }
 
 /**
- * Guarda promociones
+ * Calcula métricas de un producto
  */
+export const calculateProductMetrics = async (productData) => {
+  let totalCost = 0
+  
+  // Calcular costo de ingredientes y recetas
+  for (const item of productData.items || []) {
+    if (item.type === 'ingredient') {
+      const ingredient = await getDocById(COLLECTIONS.ingredients, item.id)
+      if (ingredient) {
+        totalCost += ingredient.costWithWastage * parseFloat(item.quantity || 0)
+      }
+    } else if (item.type === 'recipe') {
+      const recipe = await getDocById(COLLECTIONS.recipes, item.id)
+      if (recipe) {
+        totalCost += recipe.totalCost * parseFloat(item.quantity || 1)
+      }
+    }
+  }
+  
+  const profitMarginPercent = parseFloat(productData.profitMarginPercent || 0)
+  const profitMarginAmount = totalCost * (profitMarginPercent / 100)
+  const suggestedPrice = totalCost + profitMarginAmount
+  const realSalePrice = parseFloat(productData.realSalePrice || suggestedPrice)
+  
+  return {
+    totalCost,
+    profitMarginPercent,
+    profitMarginAmount,
+    suggestedPrice,
+    realSalePrice
+  }
+}
+
+/**
+ * Guarda producto
+ */
+export const saveProduct = async (product, id = null) => {
+  const metrics = await calculateProductMetrics(product)
+  
+  const productData = {
+    ...product,
+    ...metrics,
+    updatedAt: new Date().toISOString()
+  }
+  
+  return await saveDoc(COLLECTIONS.products, productData, id)
+}
+
+/**
+ * Elimina producto
+ */
+export const deleteProduct = async (id) => {
+  return await deleteDocument(COLLECTIONS.products, id)
+}
+
+/**
+ * Obtiene todas las promociones/combos
+ */
+export const getPromotions = async () => {
+  return await getAllDocs(COLLECTIONS.promotions)
+}
+
+/**
+ * Calcula métricas inteligentes de un combo
+ */
+export const calculateComboMetrics = async (comboData) => {
+  let totalCost = 0
+  let totalSuggestedPrice = 0
+  
+  // Calcular costos y precios de productos e ingredientes
+  for (const item of comboData.items || []) {
+    const quantity = parseFloat(item.quantity || 1)
+    
+    if (item.type === 'product') {
+      const product = await getDocById(COLLECTIONS.products, item.id)
+      if (product) {
+        totalCost += product.totalCost * quantity
+        totalSuggestedPrice += product.realSalePrice * quantity
+      }
+    } else if (item.type === 'ingredient') {
+      const ingredient = await getDocById(COLLECTIONS.ingredients, item.id)
+      if (ingredient) {
+        totalCost += ingredient.costWithWastage * quantity
+        // Para ingredientes sueltos, aplicar margen estándar del 40%
+        totalSuggestedPrice += ingredient.costWithWastage * 1.4 * quantity
+      }
+    }
+  }
+  
+  const comboPrice = parseFloat(comboData.comboPrice || totalSuggestedPrice)
+  const discountAmount = totalSuggestedPrice - comboPrice
+  const discountPercent = totalSuggestedPrice > 0 ? (discountAmount / totalSuggestedPrice) * 100 : 0
+  const profitAmount = comboPrice - totalCost
+  const profitMarginPercent = comboPrice > 0 ? (profitAmount / comboPrice) * 100 : 0
+  
+  return {
+    totalCost,
+    totalSuggestedPrice,
+    comboPrice,
+    discountAmount,
+    discountPercent,
+    profitAmount,
+    profitMarginPercent,
+    isLosing: profitAmount < 0
+  }
+}
+
+/**
+ * Guarda combo/promoción
+ */
+export const savePromotion = async (promotion, id = null) => {
+  const metrics = await calculateComboMetrics(promotion)
+  
+  const promotionData = {
+    ...promotion,
+    ...metrics,
+    updatedAt: new Date().toISOString()
+  }
+  
+  return await saveDoc(COLLECTIONS.promotions, promotionData, id)
+}
+
+/**
+ * Elimina promoción
+ */
+export const deletePromotion = async (id) => {
+  return await deleteDocument(COLLECTIONS.promotions, id)
+}
+
+// Mantener compatibilidad con código existente (legacy)
+export const saveSuppliers = async (suppliers) => {
+  // Deprecated: usar saveSupplier individualmente
+  console.warn('saveSuppliers is deprecated')
+}
+
+export const saveIngredients = async (ingredients) => {
+  // Deprecated: usar saveIngredient individualmente
+  console.warn('saveIngredients is deprecated')
+}
+
+export const saveRecipes = async (recipes) => {
+  // Deprecated: usar saveRecipe individualmente
+  console.warn('saveRecipes is deprecated')
+}
 export const savePromotions = (promotions) => {
   return saveToStorage('promotions', promotions)
 }

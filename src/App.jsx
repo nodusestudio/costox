@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react'
 import { BarChart3, Users, Package, BookOpen, ShoppingCart, Tags, Settings } from 'lucide-react'
 import Dashboard from '@/pages/Dashboard'
 import Suppliers from '@/pages/Suppliers'
-import Ingredients from '@/pages/Ingredients'
-import Recipes from '@/pages/Recipes'
-import Products from '@/pages/Products'
-import Promotions from '@/pages/Promotions'
+import IngredientsNew from '@/pages/IngredientsNew'
+import RecipesNew from '@/pages/RecipesNew'
+import ProductsNew from '@/pages/ProductsNew'
+import PromotionsNew from '@/pages/PromotionsNew'
 import SettingsPage from '@/pages/Settings'
 import { getConfig } from '@/utils/storage'
 import { useI18n, I18nProvider } from '@/context/I18nContext'
@@ -13,22 +13,52 @@ import { useI18n, I18nProvider } from '@/context/I18nContext'
 function AppContent() {
   const { t, isDarkMode } = useI18n()
   const [currentTab, setCurrentTab] = useState('dashboard')
-  const [config, setConfig] = useState(getConfig())
+  const [config, setConfig] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  // Actualizar config cuando cambia
+  // Cargar config de Firestore
   useEffect(() => {
-    setConfig(getConfig())
+    loadConfig()
+  }, [])
+
+  const loadConfig = async () => {
+    try {
+      const configData = await getConfig()
+      setConfig(configData)
+    } catch (error) {
+      console.error('Error loading config:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Actualizar config cuando cambia el tab
+  useEffect(() => {
+    if (currentTab === 'settings') {
+      loadConfig()
+    }
   }, [currentTab])
 
   const tabs = [
     { id: 'dashboard', label: t('panel'), icon: BarChart3, component: Dashboard },
     { id: 'suppliers', label: t('suppliers'), icon: Users, component: Suppliers },
-    { id: 'ingredients', label: t('ingredients'), icon: Package, component: Ingredients },
-    { id: 'recipes', label: t('recipes'), icon: BookOpen, component: Recipes },
-    { id: 'products', label: t('products'), icon: ShoppingCart, component: Products },
-    { id: 'promotions', label: t('promotions'), icon: Tags, component: Promotions },
+    { id: 'ingredients', label: t('ingredients'), icon: Package, component: IngredientsNew },
+    { id: 'recipes', label: t('recipes'), icon: BookOpen, component: RecipesNew },
+    { id: 'products', label: t('products'), icon: ShoppingCart, component: ProductsNew },
+    { id: 'promotions', label: t('promotions'), icon: Tags, component: PromotionsNew },
     { id: 'settings', label: t('settings'), icon: Settings, component: SettingsPage },
   ]
+
+  if (loading || !config) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[#111827]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#206DDA] mx-auto mb-4"></div>
+          <p className="text-gray-400">Cargando CostoX...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`flex flex-col h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#111827] text-white' : 'bg-white text-[#111827]'}`}>

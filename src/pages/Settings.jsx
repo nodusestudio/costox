@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Save, Moon, Sun } from 'lucide-react'
 import { getConfig, saveConfig } from '@/utils/storage'
 import Button from '@/components/Button'
@@ -6,9 +6,25 @@ import { useI18n } from '@/context/I18nContext'
 
 export default function Settings() {
   const { t, language, changeLanguage, isDarkMode, toggleTheme } = useI18n()
-  const [config, setConfig] = useState(getConfig())
+  const [config, setConfig] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(true)
   const [isSaved, setIsSaved] = useState(false)
+
+  useEffect(() => {
+    loadConfig()
+  }, [])
+
+  const loadConfig = async () => {
+    setLoading(true)
+    try {
+      const configData = await getConfig()
+      setConfig(configData)
+    } catch (error) {
+      console.error('Error loading config:', error)
+    }
+    setLoading(false)
+  }
 
   const handleChange = (field, value) => {
     setConfig({ ...config, [field]: value })
@@ -18,23 +34,33 @@ export default function Settings() {
     changeLanguage(newLang)
   }
 
-  const handleSave = () => {
-    saveConfig(config)
-    setIsSaved(true)
-    
-    // Mostrar alerta
-    alert(t('successMessage'))
-    
-    // Ocultar formulario después del éxito
-    setTimeout(() => {
-      setShowForm(false)
-      setIsSaved(false)
-    }, 500)
+  const handleSave = async () => {
+    try {
+      await saveConfig(config)
+      setIsSaved(true)
+      alert(t('successMessage'))
+      
+      setTimeout(() => {
+        setShowForm(false)
+        setIsSaved(false)
+      }, 500)
+    } catch (error) {
+      console.error('Error saving config:', error)
+      alert('Error al guardar la configuración')
+    }
   }
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     setShowForm(true)
-    setConfig(getConfig())
+    await loadConfig()
+  }
+
+  if (loading || !config) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-400">Cargando configuración...</p>
+      </div>
+    )
   }
 
   const currencies = [
