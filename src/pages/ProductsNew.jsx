@@ -34,12 +34,14 @@ export default function ProductsNew() {
         getIngredients(),
         getRecipes()
       ])
-      setProducts(productsData)
-      setIngredients(ingredientsData)
-      setRecipes(recipesData)
+      setProducts(Array.isArray(productsData) ? productsData : [])
+      setIngredients(Array.isArray(ingredientsData) ? ingredientsData : [])
+      setRecipes(Array.isArray(recipesData) ? recipesData : [])
     } catch (error) {
       console.error('Error loading data:', error)
-      alert('Error al cargar datos')
+      setProducts([])
+      setIngredients([])
+      setRecipes([])
     }
     setLoading(false)
   }

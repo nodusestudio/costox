@@ -33,12 +33,14 @@ export default function PromotionsNew() {
         getProducts(),
         getIngredients()
       ])
-      setPromotions(promotionsData)
-      setProducts(productsData)
-      setIngredients(ingredientsData)
+      setPromotions(Array.isArray(promotionsData) ? promotionsData : [])
+      setProducts(Array.isArray(productsData) ? productsData : [])
+      setIngredients(Array.isArray(ingredientsData) ? ingredientsData : [])
     } catch (error) {
       console.error('Error loading data:', error)
-      alert('Error al cargar datos')
+      setPromotions([])
+      setProducts([])
+      setIngredients([])
     }
     setLoading(false)
   }

@@ -1,14 +1,31 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2 } from 'lucide-react'
-import { getSuppliers, saveSuppliers } from '@/utils/storage'
+import { getSuppliers, saveSupplier, deleteSupplier } from '@/utils/storage'
 import Modal from '@/components/Modal'
 import Button from '@/components/Button'
 
 export default function Suppliers() {
-  const [suppliers, setSuppliers] = useState(getSuppliers())
+  const [suppliers, setSuppliers] = useState([])
+  const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState({ name: '', category: '' })
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const data = await getSuppliers()
+      setSuppliers(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Error loading suppliers:', error)
+      setSuppliers([])
+    }
+    setLoading(false)
+  }
 
   const handleOpenModal = (supplier = null) => {
     if (supplier) {
@@ -21,40 +38,40 @@ export default function Suppliers() {
     setShowModal(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name.trim()) {
       alert('El nombre del proveedor es requerido')
       return
     }
 
-    let updatedSuppliers
-    if (editingId) {
-      updatedSuppliers = suppliers.map(s =>
-        s.id === editingId ? { ...s, ...formData } : s
-      )
-    } else {
-      updatedSuppliers = [
-        ...suppliers,
-        {
-          id: Date.now(),
-          name: formData.name,
-          category: formData.category,
-          createdAt: new Date().toISOString(),
-        },
-      ]
+    try {
+      await saveSupplier(formData, editingId)
+      setShowModal(false)
+      await loadData()
+    } catch (error) {
+      console.error('Error saving supplier:', error)
+      alert('Error al guardar')
     }
-
-    setSuppliers(updatedSuppliers)
-    saveSuppliers(updatedSuppliers)
-    setShowModal(false)
   }
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('¿Eliminar este proveedor?')) {
-      const updatedSuppliers = suppliers.filter(s => s.id !== id)
-      setSuppliers(updatedSuppliers)
-      saveSuppliers(updatedSuppliers)
+      try {
+        await deleteSupplier(id)
+        await loadData()
+      } catch (error) {
+        console.error('Error deleting supplier:', error)
+        alert('Error al eliminar')
+      }
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-400">Cargando...</p>
+      </div>
+    )
   }
 
   return (
@@ -78,7 +95,7 @@ export default function Suppliers() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {suppliers.map(supplier => (
+          {(suppliers || []).map(supplier => (
             <div key={supplier.id} className="bg-dark-card rounded-lg p-5 border border-gray-700 hover:border-primary-blue transition-colors">
               <h3 className="font-semibold text-lg text-white mb-2">{supplier.name}</h3>
               {supplier.category && (

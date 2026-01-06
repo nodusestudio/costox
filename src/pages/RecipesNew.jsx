@@ -30,11 +30,12 @@ export default function RecipesNew() {
         getRecipes(),
         getIngredients()
       ])
-      setRecipes(recipesData)
-      setIngredients(ingredientsData)
+      setRecipes(Array.isArray(recipesData) ? recipesData : [])
+      setIngredients(Array.isArray(ingredientsData) ? ingredientsData : [])
     } catch (error) {
       console.error('Error loading data:', error)
-      alert('Error al cargar datos')
+      setRecipes([])
+      setIngredients([])
     }
     setLoading(false)
   }

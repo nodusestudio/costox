@@ -5,6 +5,7 @@ import { formatMoneyDisplay } from '@/utils/formatters'
 import Modal from '@/components/Modal'
 import Button from '@/components/Button'
 import { useI18n } from '@/context/I18nContext'
+import * as XLSX from 'xlsx'
 
 export default function IngredientsNew() {
   const { isDarkMode } = useI18n()
@@ -33,11 +34,12 @@ export default function IngredientsNew() {
         getIngredients(),
         getSuppliers()
       ])
-      setIngredients(ingredientsData)
-      setSuppliers(suppliersData)
+      setIngredients(Array.isArray(ingredientsData) ? ingredientsData : [])
+      setSuppliers(Array.isArray(suppliersData) ? suppliersData : [])
     } catch (error) {
       console.error('Error loading data:', error)
-      alert('Error al cargar datos')
+      setIngredients([])
+      setSuppliers([])
     }
     setLoading(false)
   }
@@ -98,44 +100,83 @@ export default function IngredientsNew() {
     input.type = 'file'
     input.accept = '.csv,.xlsx,.xls'
     input.onchange = async (e) => {
-      const file = e.target.files[0]
-      if (file) {
-        alert('Importación Excel próximamente')
-        // TODO: Implementar importación Excel
+      const file = e.target.files?.[0]
+      if (!file) return
+      
+      try {
+        const reader = new FileReader()
+        reader.onload = async (evt) => {
+          try {
+            const data = new Uint8Array(evt.target.result)
+            const workbook = XLSX.read(data, { type: 'array' })
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet)
+            
+            let imported = 0
+            for (const row of jsonData) {
+              const name = row.Nombre || row.nombre || row.Name || row.name
+              const purchaseCost = parseFloat(row['Costo Compra'] || row['Costo'] || row.Cost || 0)
+              const unit = row.Unidad || row.Unit || 'kg'
+              const wastagePercent = parseFloat(row['% Merma'] || row.Merma || 30)
+              
+              if (name && purchaseCost > 0) {
+                await saveIngredient({
+                  name: String(name).trim(),
+                  supplierId: '',
+                  unit: String(unit).trim(),
+                  purchaseCost,
+                  wastagePercent
+                })
+                imported++
+              }
+            }
+            
+            alert(`✅ ${imported} ingredientes importados con éxito`)
+            await loadData()
+          } catch (error) {
+            console.error('Error parsing Excel:', error)
+            alert('Error al procesar el archivo. Verifica el formato.')
+          }
+        }
+        reader.readAsArrayBuffer(file)
+      } catch (error) {
+        console.error('Error importing Excel:', error)
+        alert('Error al importar archivo')
       }
     }
     input.click()
   }
 
   const handleExportExcel = () => {
-    // Crear CSV simple
-    const headers = ['Nombre', 'Proveedor', 'Unidad', 'Costo Compra', '% Merma', 'Costo con Merma']
-    const rows = filteredIngredients.map(ing => [
-      ing.name,
-      getSupplierName(ing.supplierId),
-      ing.unit,
-      ing.purchaseCost,
-      ing.wastagePercent,
-      ing.costWithWastage
-    ])
-    
-    const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `ingredientes_${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
+    try {
+      const exportData = (filteredIngredients || []).map(ing => ({
+        'Nombre': ing.name || '',
+        'Proveedor': getSupplierName(ing.supplierId),
+        'Unidad': ing.unit || '',
+        'Costo Compra': ing.purchaseCost || 0,
+        '% Merma': ing.wastagePercent || 0,
+        'Costo con Merma': ing.costWithWastage || 0
+      }))
+      
+      const ws = XLSX.utils.json_to_sheet(exportData)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Ingredientes')
+      XLSX.writeFile(wb, `ingredientes_${new Date().toISOString().split('T')[0]}.xlsx`)
+    } catch (error) {
+      console.error('Error exporting Excel:', error)
+      alert('Error al exportar')
+    }
   }
 
   const getSupplierName = (supplierId) => {
-    const supplier = suppliers.find(s => s.id === supplierId)
+    if (!supplierId) return 'Sin proveedor'
+    const supplier = (suppliers || []).find(s => s.id === supplierId)
     return supplier?.name || 'Sin proveedor'
   }
 
   const filteredIngredients = filterSupplier
-    ? ingredients.filter(ing => ing.supplierId === filterSupplier)
-    : ingredients
+    ? (ingredients || []).filter(ing => ing.supplierId === filterSupplier)
+    : (ingredients || [])
 
   if (loading) {
     return (
