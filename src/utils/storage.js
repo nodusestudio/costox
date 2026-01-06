@@ -377,25 +377,6 @@ export const calculateProductMetrics = async (productData) => {
     foodCostPercent: food_cost_percent
   }
 }
-  const actualProfit = realSalePrice - totalCost
-  
-  // Food Cost %: (Costo Total / Precio Real de Venta) * 100
-  const foodCostPercent = realSalePrice > 0 ? (totalCost / realSalePrice) * 100 : 0
-
-  return {
-    ingredientsCost,
-    laborCost,
-    subtotalProduction,
-    overheadPercent,
-    overheadCost,
-    totalCost,
-    markupPercent,
-    suggestedPrice,
-    realSalePrice,
-    actualProfit,
-    foodCostPercent
-  }
-}
 
 /**
  * Guarda producto
