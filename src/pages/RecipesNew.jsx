@@ -43,9 +43,9 @@ export default function RecipesNew() {
     if (recipe) {
       setEditingId(recipe.id)
       setFormData({
-        name: recipe.name,
+        name: recipe.name || '',
         description: recipe.description || '',
-        ingredients: recipe.ingredients || [],
+        ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
       })
     } else {
       setEditingId(null)

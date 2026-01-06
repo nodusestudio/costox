@@ -219,15 +219,22 @@ export const calculateRecipeCost = async (ingredientsList) => {
  * Guarda receta
  */
 export const saveRecipe = async (recipe, id = null) => {
-  const totalCost = await calculateRecipeCost(recipe.ingredients || [])
-  
-  const recipeData = {
-    ...recipe,
-    totalCost,
-    updatedAt: new Date().toISOString()
+  try {
+    const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : []
+    const totalCost = await calculateRecipeCost(ingredients)
+    
+    const recipeData = {
+      ...recipe,
+      ingredients,
+      totalCost,
+      updatedAt: new Date().toISOString()
+    }
+    
+    return await saveDoc(COLLECTIONS.recipes, recipeData, id)
+  } catch (error) {
+    console.error('Error saving recipe:', error)
+    throw error
   }
-  
-  return await saveDoc(COLLECTIONS.recipes, recipeData, id)
 }
 
 /**
@@ -307,15 +314,22 @@ export const calculateProductMetrics = async (productData) => {
  * Guarda producto
  */
 export const saveProduct = async (product, id = null) => {
-  const metrics = await calculateProductMetrics(product)
-  
-  const productData = {
-    ...product,
-    ...metrics,
-    updatedAt: new Date().toISOString()
+  try {
+    const items = Array.isArray(product.items) ? product.items : []
+    const productWithItems = { ...product, items }
+    const metrics = await calculateProductMetrics(productWithItems)
+    
+    const productData = {
+      ...productWithItems,
+      ...metrics,
+      updatedAt: new Date().toISOString()
+    }
+    
+    return await saveDoc(COLLECTIONS.products, productData, id)
+  } catch (error) {
+    console.error('Error saving product:', error)
+    throw error
   }
-  
-  return await saveDoc(COLLECTIONS.products, productData, id)
 }
 
 /**
@@ -411,15 +425,22 @@ export const calculateComboMetrics = async (comboData) => {
  * Guarda combo/promoción
  */
 export const savePromotion = async (promotion, id = null) => {
-  const metrics = await calculateComboMetrics(promotion)
-  
-  const promotionData = {
-    ...promotion,
-    ...metrics,
-    updatedAt: new Date().toISOString()
+  try {
+    const items = Array.isArray(promotion.items) ? promotion.items : []
+    const promotionWithItems = { ...promotion, items }
+    const metrics = await calculateComboMetrics(promotionWithItems)
+    
+    const promotionData = {
+      ...promotionWithItems,
+      ...metrics,
+      updatedAt: new Date().toISOString()
+    }
+    
+    return await saveDoc(COLLECTIONS.promotions, promotionData, id)
+  } catch (error) {
+    console.error('Error saving promotion:', error)
+    throw error
   }
-  
-  return await saveDoc(COLLECTIONS.promotions, promotionData, id)
 }
 
 /**

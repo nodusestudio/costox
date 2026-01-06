@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { TrendingUp, AlertCircle } from 'lucide-react'
 import { getProducts, getPromotions } from '@/utils/storage'
 import { useI18n } from '@/context/I18nContext'
@@ -5,25 +6,55 @@ import { formatMoneyDisplay } from '@/utils/formatters'
 
 export default function Dashboard() {
   const { t, isDarkMode } = useI18n()
-  const products = getProducts()
-  const promotions = getPromotions()
+  const [products, setProducts] = useState([])
+  const [promotions, setPromotions] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    try {
+      const [productsData, promotionsData] = await Promise.all([
+        getProducts(),
+        getPromotions()
+      ])
+      setProducts(Array.isArray(productsData) ? productsData : [])
+      setPromotions(Array.isArray(promotionsData) ? promotionsData : [])
+    } catch (error) {
+      console.error('Error loading dashboard data:', error)
+      setProducts([])
+      setPromotions([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className={`p-4 md:p-6 flex items-center justify-center min-h-screen ${isDarkMode ? 'bg-[#111827] text-white' : 'bg-white text-[#111827]'}`}>
+        <p className="text-lg">Cargando...</p>
+      </div>
+    )
+  }
 
   // Calcular métricas
   const totalProducts = products.length
   const totalPromotions = promotions.length
   
-  const totalRevenue = products.reduce((sum, p) => sum + (p.salePrice * (p.quantity || 0)), 0)
-  const totalCost = products.reduce((sum, p) => sum + (p.realCost * (p.quantity || 0)), 0)
+  const totalRevenue = products.reduce((sum, p) => sum + ((p.salePrice || 0) * (p.quantity || 0)), 0)
+  const totalCost = products.reduce((sum, p) => sum + ((p.realCost || 0) * (p.quantity || 0)), 0)
   const totalProfit = totalRevenue - totalCost
   const avgMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0
 
   // Productos con margen bajo (< 30%)
   const lowMarginProducts = products.filter(p => {
-    const margin = p.salePrice > 0 ? ((p.salePrice - p.realCost) / p.salePrice) * 100 : 0
+    const margin = (p.salePrice || 0) > 0 ? (((p.salePrice || 0) - (p.realCost || 0)) / (p.salePrice || 0)) * 100 : 0
     return margin < 30
   })
 
-  const promotionsWithLowMargin = promotions.filter(p => p.margin < 30)
+  const promotionsWithLowMargin = promotions.filter(p => (p.margin || 0) < 30)
 
   return (
     <div className={`p-4 md:p-6 space-y-6 transition-colors duration-300 ${isDarkMode ? 'bg-[#111827] text-white' : 'bg-white text-[#111827]'}`}>
@@ -82,10 +113,10 @@ export default function Dashboard() {
             <p className="text-gray-400 text-sm">No hay productos registrados</p>
           ) : (
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {products.slice(0, 5).map(product => (
-                <div key={product.id} className="flex justify-between items-center text-sm p-2 bg-dark-bg rounded">
-                  <span className="text-gray-300">{product.name}</span>
-                  <span className="text-primary-blue font-semibold">{formatMoneyDisplay(product.salePrice)}</span>
+              {products.slice(0, 5).map((product, idx) => (
+                <div key={product.id || idx} className="flex justify-between items-center text-sm p-2 bg-dark-bg rounded">
+                  <span className="text-gray-300">{product.name || 'Sin nombre'}</span>
+                  <span className="text-primary-blue font-semibold">{formatMoneyDisplay(product.salePrice || 0)}</span>
                 </div>
               ))}
               {products.length > 5 && (
@@ -104,11 +135,11 @@ export default function Dashboard() {
             <p className="text-gray-400 text-sm">No hay promociones registradas</p>
           ) : (
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {promotions.slice(0, 5).map(promo => (
-                <div key={promo.id} className="flex justify-between items-center text-sm p-2 bg-dark-bg rounded">
-                  <span className="text-gray-300">{promo.name}</span>
-                  <span className={promo.margin < 30 ? 'text-red-400 font-semibold' : 'text-success-green font-semibold'}>
-                    {promo.margin.toFixed(1)}%
+              {promotions.slice(0, 5).map((promo, idx) => (
+                <div key={promo.id || idx} className="flex justify-between items-center text-sm p-2 bg-dark-bg rounded">
+                  <span className="text-gray-300">{promo.name || 'Sin nombre'}</span>
+                  <span className={(promo.margin || 0) < 30 ? 'text-red-400 font-semibold' : 'text-success-green font-semibold'}>
+                    {(promo.margin || 0).toFixed(1)}%
                   </span>
                 </div>
               ))}

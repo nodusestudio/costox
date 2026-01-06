@@ -47,9 +47,9 @@ export default function PromotionsNew() {
     if (promotion) {
       setEditingId(promotion.id)
       setFormData({
-        name: promotion.name,
+        name: promotion.name || '',
         description: promotion.description || '',
-        items: promotion.items || [],
+        items: Array.isArray(promotion.items) ? promotion.items : [],
         comboPrice: promotion.comboPrice || 0,
       })
     } else {

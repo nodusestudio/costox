@@ -48,9 +48,9 @@ export default function ProductsNew() {
     if (product) {
       setEditingId(product.id)
       setFormData({
-        name: product.name,
+        name: product.name || '',
         description: product.description || '',
-        items: product.items || [],
+        items: Array.isArray(product.items) ? product.items : [],
         profitMarginPercent: product.profitMarginPercent || 40,
         realSalePrice: product.realSalePrice || 0,
       })
