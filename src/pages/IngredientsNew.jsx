@@ -19,6 +19,7 @@ export default function IngredientsNew() {
     name: '',
     supplierId: '',
     unit: 'kg',
+    contenido: '', // Contenido/Empaque
     purchaseCost: 0,
     wastagePercent: 30, // 30% por defecto de fábrica
   })
@@ -51,6 +52,7 @@ export default function IngredientsNew() {
         name: ingredient.name,
         supplierId: ingredient.supplierId,
         unit: ingredient.unit,
+        contenido: ingredient.contenido || '',
         purchaseCost: ingredient.purchaseCost,
         wastagePercent: ingredient.wastagePercent,
       })
@@ -60,6 +62,7 @@ export default function IngredientsNew() {
         name: '',
         supplierId: '',
         unit: 'kg',
+        contenido: '',
         purchaseCost: 0,
         wastagePercent: 30,
       })
@@ -113,29 +116,45 @@ export default function IngredientsNew() {
             const jsonData = XLSX.utils.sheet_to_json(firstSheet)
             
             let imported = 0
+            let skipped = 0
+            
             for (const row of jsonData) {
               const name = row.Nombre || row.nombre || row.Name || row.name
-              const purchaseCost = parseFloat(row['Costo Compra'] || row['Costo'] || row.Cost || 0)
-              const unit = row.Unidad || row.Unit || 'kg'
-              const wastagePercent = parseFloat(row['% Merma'] || row.Merma || 30)
+              const proveedor = row.Proveedor || row.proveedor || ''
+              const unit = row.Unidad || row.unidad || row.Unit || 'UNIDADES'
+              const contenido = row['Contenido/Empaque'] || row.Contenido || row.contenido || ''
+              const purchaseCost = parseFloat(row['Costo Unitario'] || row['Costo Compra'] || row.Costo || 0)
+              const wastagePercent = parseFloat(row['Merma %'] || row['% Merma'] || row.Merma || 0)
               
               if (name && purchaseCost > 0) {
+                // Buscar o crear proveedor
+                let supplierId = ''
+                if (proveedor) {
+                  const existingSupplier = suppliers.find(s => 
+                    s.name.toLowerCase() === proveedor.toLowerCase()
+                  )
+                  supplierId = existingSupplier?.id || ''
+                }
+                
                 await saveIngredient({
                   name: String(name).trim(),
-                  supplierId: '',
+                  supplierId,
                   unit: String(unit).trim(),
+                  contenido: String(contenido).trim(),
                   purchaseCost,
                   wastagePercent
                 })
                 imported++
+              } else {
+                skipped++
               }
             }
             
-            alert(`✅ ${imported} ingredientes importados con éxito`)
+            alert(`✅ ${imported} ingredientes importados\n${skipped > 0 ? `⚠️ ${skipped} filas omitidas (datos incompletos)` : ''}`)
             await loadData()
           } catch (error) {
             console.error('Error parsing Excel:', error)
-            alert('Error al procesar el archivo. Verifica el formato.')
+            alert('Error al procesar el archivo. Verifica que tenga las columnas: Nombre, Proveedor, Unidad, Contenido/Empaque, Costo Unitario, Merma %')
           }
         }
         reader.readAsArrayBuffer(file)
@@ -149,19 +168,33 @@ export default function IngredientsNew() {
 
   const handleExportExcel = () => {
     try {
-      const exportData = (filteredIngredients || []).map(ing => ({
+      const exportData = (filteredIngredients || []).map((ing, index) => ({
+        'ID': ing.id || `ING${index + 1}`,
         'Nombre': ing.name || '',
         'Proveedor': getSupplierName(ing.supplierId),
         'Unidad': ing.unit || '',
-        'Costo Compra': ing.purchaseCost || 0,
-        '% Merma': ing.wastagePercent || 0,
-        'Costo con Merma': ing.costWithWastage || 0
+        'Contenido/Empaque': ing.contenido || '',
+        'Costo Unitario': ing.purchaseCost || 0,
+        'Merma %': ing.wastagePercent || 0
       }))
       
       const ws = XLSX.utils.json_to_sheet(exportData)
+      
+      // Ajustar anchos de columna
+      const colWidths = [
+        { wch: 25 }, // ID
+        { wch: 35 }, // Nombre
+        { wch: 30 }, // Proveedor
+        { wch: 15 }, // Unidad
+        { wch: 30 }, // Contenido/Empaque
+        { wch: 15 }, // Costo Unitario
+        { wch: 10 }  // Merma %
+      ]
+      ws['!cols'] = colWidths
+      
       const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'Ingredientes')
-      XLSX.writeFile(wb, `ingredientes_${new Date().toISOString().split('T')[0]}.xlsx`)
+      XLSX.utils.book_append_sheet(wb, ws, 'Productos')
+      XLSX.writeFile(wb, `Productos-${new Date().toISOString().split('T')[0]}.xlsx`)
     } catch (error) {
       console.error('Error exporting Excel:', error)
       alert('Error al exportar')
@@ -249,6 +282,9 @@ export default function IngredientsNew() {
                 <th className={`px-4 py-3 text-left text-xs font-semibold ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>Unidad</th>
+                <th className={`px-4 py-3 text-left text-xs font-semibold ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>Contenido/Empaque</th>
                 <th className={`px-4 py-3 text-right text-xs font-semibold ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>Costo Compra</th>
@@ -276,6 +312,9 @@ export default function IngredientsNew() {
                   </td>
                   <td className={`px-4 py-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     {ing.unit}
+                  </td>
+                  <td className={`px-4 py-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {ing.contenido || '-'}
                   </td>
                   <td className={`px-4 py-3 text-right ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     {formatMoneyDisplay(ing.purchaseCost)}
@@ -376,6 +415,25 @@ export default function IngredientsNew() {
               </select>
             </div>
 
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Contenido/Empaque
+              </label>
+              <input
+                type="text"
+                value={formData.contenido}
+                onChange={(e) => setFormData({ ...formData, contenido: e.target.value })}
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  isDarkMode
+                    ? 'bg-[#111827] border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+                placeholder="Ej: X 100GR, X 1KG, etc."
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={`block text-sm font-medium mb-2 ${
@@ -392,11 +450,11 @@ export default function IngredientsNew() {
                       : 'bg-white border-gray-300 text-gray-900'
                   }`}
                 >
-                  <option value="kg">kg</option>
-                  <option value="gr">gr</option>
-                  <option value="lt">lt</option>
-                  <option value="ml">ml</option>
-                  <option value="un">unidad</option>
+                  <option value="UNIDADES">UNIDADES</option>
+                  <option value="KILOGRAMOS">KILOGRAMOS</option>
+                  <option value="GRAMOS">GRAMOS</option>
+                  <option value="LITROS">LITROS</option>
+                  <option value="MILILITROS">MILILITROS</option>
                 </select>
               </div>
 
