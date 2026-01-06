@@ -9,6 +9,7 @@ export default function Button({ label, icon: Icon, onClick, variant = 'primary'
 
   const variantClasses = {
     primary: 'bg-primary-blue hover:bg-blue-700 text-white disabled:bg-gray-600',
+    secondary: 'bg-gray-700 hover:bg-gray-600 text-white disabled:bg-gray-600',
     success: 'bg-success-green hover:bg-green-600 text-white disabled:bg-gray-600',
     danger: 'bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-600',
     outline: 'border border-primary-blue text-primary-blue hover:bg-primary-blue/10 disabled:border-gray-600 disabled:text-gray-600',

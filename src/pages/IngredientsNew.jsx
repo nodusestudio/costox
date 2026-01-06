@@ -231,18 +231,27 @@ export default function IngredientsNew() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleImportExcel} variant="secondary">
+          <button
+            onClick={handleImportExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+          >
             <Upload size={18} />
-            Importar
-          </Button>
-          <Button onClick={handleExportExcel} variant="secondary">
+            Importar Excel
+          </button>
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+          >
             <Download size={18} />
-            Exportar
-          </Button>
-          <Button onClick={() => handleOpenModal()}>
+            Exportar Excel
+          </button>
+          <button
+            onClick={() => handleOpenModal()}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
             <Plus size={18} />
-            Nuevo
-          </Button>
+            Nuevo Ingrediente
+          </button>
         </div>
       </div>
 
