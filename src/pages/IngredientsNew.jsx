@@ -80,6 +80,11 @@ export default function IngredientsNew() {
       return
     }
 
+    if (!formData.pesoEmpaqueTotal || formData.pesoEmpaqueTotal <= 0) {
+      alert('El campo "Peso Empaque Total" debe ser mayor a 0 para calcular el costo por gramo/ml correctamente')
+      return
+    }
+
     try {
       await saveIngredient(formData, editingId)
       setShowModal(false)
@@ -336,6 +341,9 @@ export default function IngredientsNew() {
                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>Costo con Merma</th>
                 <th className={`px-4 py-3 text-right text-xs font-semibold ${
+                  isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                }`}>Costo por Gr/Ml/Ud</th>
+                <th className={`px-4 py-3 text-right text-xs font-semibold ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>Acciones</th>
               </tr>
@@ -365,6 +373,12 @@ export default function IngredientsNew() {
                   </td>
                   <td className={`px-4 py-3 text-right font-semibold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
                     {formatMoneyDisplay(ing.costWithWastage)}
+                  </td>
+                  <td className={`px-4 py-3 text-right font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                    {ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 
+                      ? formatMoneyDisplay(ing.costWithWastage / ing.pesoEmpaqueTotal)
+                      : <span className="text-red-500 text-xs">Sin dato</span>
+                    }
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">

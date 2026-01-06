@@ -116,17 +116,24 @@ export default function ProductsNew() {
       
       if (item.type === 'ingredient') {
         const ing = ingredients.find(i => i.id === item.id)
-        if (ing && ing.costWithWastage) {
-          // Si tiene pesoEmpaqueTotal, usar cálculo proporcional
-          if (ing.pesoEmpaqueTotal) {
+        if (ing) {
+          const quantity = parseFloat(item.quantity || 0)
+          
+          // Usar costoPorGramo si está disponible (recomendado)
+          if (ing.costoPorGramo && ing.costoPorGramo > 0) {
+            totalCost += ing.costoPorGramo * quantity
+          } 
+          // Fallback 1: Calcular usando pesoEmpaqueTotal
+          else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
             totalCost += calcularCostoProporcional(
               ing.costWithWastage, 
               ing.pesoEmpaqueTotal, 
-              parseFloat(item.quantity || 0)
+              quantity
             )
-          } else {
-            // Fallback para ingredientes antiguos
-            totalCost += ing.costWithWastage * parseFloat(item.quantity || 0)
+          } 
+          // Fallback 2: Ingredientes muy antiguos
+          else if (ing.costWithWastage) {
+            totalCost += ing.costWithWastage * quantity
           }
         }
       } else {
