@@ -268,7 +268,7 @@ export default function IngredientsNew() {
           }`}
         >
           <option value="">Todos los proveedores</option>
-          {suppliers.map(sup => (
+          {(suppliers || []).map(sup => (
             <option key={sup.id} value={sup.id}>{sup.name}</option>
           ))}
         </select>
@@ -309,7 +309,7 @@ export default function IngredientsNew() {
               </tr>
             </thead>
             <tbody>
-              {filteredIngredients.map(ing => (
+              {(filteredIngredients || []).map(ing => (
                 <tr key={ing.id} className={`border-t ${
                   isDarkMode ? 'border-gray-700' : 'border-gray-200'
                 }`}>
@@ -418,7 +418,7 @@ export default function IngredientsNew() {
                 }`}
               >
                 <option value="">Seleccionar proveedor</option>
-                {suppliers.map(sup => (
+                {(suppliers || []).map(sup => (
                   <option key={sup.id} value={sup.id}>{sup.name}</option>
                 ))}
               </select>

@@ -211,15 +211,18 @@ export default function PromotionsNew() {
             Análisis inteligente de descuentos y márgenes
           </p>
         </div>
-        <Button onClick={() => handleOpenModal()}>
+        <button
+          onClick={() => handleOpenModal()}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md"
+        >
           <Plus size={18} />
           Nuevo Combo
-        </Button>
+        </button>
       </div>
 
       {/* Grid de Combos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {promotions.map(promo => (
+        {(promotions || []).map(promo => (
           <div key={promo.id} className={`p-4 rounded-xl border ${
             promo.isLosing
               ? 'border-red-500 bg-red-900/10'

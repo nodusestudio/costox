@@ -171,15 +171,18 @@ export default function RecipesNew() {
             Pueden usarse como ingredientes en Productos y Combos
           </p>
         </div>
-        <Button onClick={() => handleOpenModal()}>
+        <button
+          onClick={() => handleOpenModal()}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md"
+        >
           <Plus size={18} />
           Nueva Receta
-        </Button>
+        </button>
       </div>
 
       {/* Grid de Recetas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {recipes.map(recipe => (
+        {(recipes || []).map(recipe => (
           <div key={recipe.id} className={`p-4 rounded-xl border ${
             isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
           }`}>
@@ -292,7 +295,7 @@ export default function RecipesNew() {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-3">
                 <label className={`block text-sm font-medium ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>
@@ -301,85 +304,80 @@ export default function RecipesNew() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleAddItem('ingredient')}
-                    className={`px-3 py-1 rounded text-xs flex items-center gap-1 ${
-                      isDarkMode
-                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                        : 'bg-blue-500 hover:bg-blue-600 text-white'
-                    }`}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md"
                   >
-                    <Package size={14} />
+                    <Package size={16} />
                     Ingrediente
                   </button>
                   <button
                     onClick={() => handleAddItem('recipe')}
-                    className={`px-3 py-1 rounded text-xs flex items-center gap-1 ${
-                      isDarkMode
-                        ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                        : 'bg-purple-500 hover:bg-purple-600 text-white'
-                    }`}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors shadow-md"
                   >
-                    <BookOpen size={14} />
+                    <BookOpen size={16} />
                     Receta
                   </button>
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {(formData.ingredients || []).map((item, index) => (
-                  <div key={index} className={`p-3 rounded-lg border ${
-                    isDarkMode ? 'bg-[#111827] border-gray-700' : 'bg-gray-50 border-gray-200'
+                  <div key={index} className={`p-4 rounded-lg border-2 ${
+                    isDarkMode ? 'bg-[#1f2937] border-gray-600' : 'bg-gray-50 border-gray-300'
                   }`}>
-                    <div className="flex gap-2 items-center">
-                      <div className={`px-2 py-1 rounded text-xs ${
+                    <div className="flex gap-3 items-start">
+                      <div className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
                         item.type === 'ingredient'
                           ? 'bg-blue-600 text-white'
                           : 'bg-purple-600 text-white'
                       }`}>
-                        {item.type === 'ingredient' ? <Package size={12} /> : <BookOpen size={12} />}
+                        {item.type === 'ingredient' ? <Package size={16} /> : <BookOpen size={16} />}
+                        {item.type === 'ingredient' ? 'Ingrediente' : 'Receta'}
                       </div>
                       
-                      <select
-                        value={item.id}
-                        onChange={(e) => handleItemChange(index, 'id', e.target.value)}
-                        className={`flex-1 px-3 py-1 rounded border ${
-                          isDarkMode
-                            ? 'bg-[#1f2937] border-gray-600 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                        }`}
-                      >
-                        <option value="">Seleccionar</option>
-                        {item.type === 'ingredient'
-                          ? ingredients.map(ing => (
-                              <option key={ing.id} value={ing.id}>{ing.name}</option>
-                            ))
-                          : recipes.filter(r => r.id !== editingId).map(rec => (
-                              <option key={rec.id} value={rec.id}>{rec.name}</option>
-                            ))
-                        }
-                      </select>
+                      <div className="flex-1">
+                        <select
+                          value={item.id}
+                          onChange={(e) => handleItemChange(index, 'id', e.target.value)}
+                          className={`w-full px-3 py-2 rounded-lg border mb-2 ${
+                            isDarkMode
+                              ? 'bg-[#111827] border-gray-600 text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                        >
+                          <option value="">Seleccionar {item.type === 'ingredient' ? 'ingrediente' : 'receta'}</option>
+                          {item.type === 'ingredient'
+                            ? (ingredients || []).map(ing => (
+                                <option key={ing.id} value={ing.id}>{ing.name}</option>
+                              ))
+                            : (recipes || []).filter(r => r.id !== editingId).map(rec => (
+                                <option key={rec.id} value={rec.id}>{rec.name}</option>
+                              ))
+                          }
+                        </select>
 
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={item.quantity}
-                        onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
-                        className={`w-24 px-3 py-1 rounded border ${
-                          isDarkMode
-                            ? 'bg-[#1f2937] border-gray-600 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                        }`}
-                        placeholder="Cant."
-                      />
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={item.quantity}
+                          onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
+                          className={`w-24 px-3 py-2 rounded-lg border ${
+                            isDarkMode
+                              ? 'bg-[#111827] border-gray-600 text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                          placeholder="Cantidad"
+                        />
+                      </div>
 
                       <button
                         onClick={() => handleRemoveItem(index)}
-                        className={`p-1 rounded transition-colors ${
+                        className={`p-2 rounded-lg transition-colors ${
                           isDarkMode
                             ? 'hover:bg-red-900/20 text-red-400'
                             : 'hover:bg-red-100 text-red-600'
                         }`}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </div>

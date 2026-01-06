@@ -190,15 +190,18 @@ export default function ProductsNew() {
             Cálculo automático de costos, márgenes y precios
           </p>
         </div>
-        <Button onClick={() => handleOpenModal()}>
+        <button
+          onClick={() => handleOpenModal()}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md"
+        >
           <Plus size={18} />
           Nuevo Producto
-        </Button>
+        </button>
       </div>
 
       {/* Grid de Productos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map(product => (
+        {(products || []).map(product => (
           <div key={product.id} className={`p-4 rounded-xl border ${
             isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
           }`}>
