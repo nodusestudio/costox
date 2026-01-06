@@ -138,8 +138,17 @@ export default function ProductsNew() {
         }
       } else {
         const rec = recipes.find(r => r.id === item.id)
-        if (rec && rec.totalCost) {
-          totalCost += rec.totalCost * parseFloat(item.quantity || 1)
+        if (rec) {
+          const quantity = parseFloat(item.quantity || 1)
+          
+          // Usar costoPorGramo si está disponible (recomendado para cantidades en gramos)
+          if (rec.costoPorGramo && rec.costoPorGramo > 0) {
+            totalCost += rec.costoPorGramo * quantity
+          }
+          // Fallback: Usar costo total de la receta (cantidad = unidades completas)
+          else if (rec.totalCost) {
+            totalCost += rec.totalCost * quantity
+          }
         }
       }
     })

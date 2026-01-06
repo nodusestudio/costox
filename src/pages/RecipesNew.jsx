@@ -17,6 +17,7 @@ export default function RecipesNew() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    pesoTotal: 0, // Peso total de la receta en gramos
     ingredients: [], // { type: 'ingredient' | 'recipe', id, quantity }
   })
 
@@ -47,6 +48,7 @@ export default function RecipesNew() {
       setFormData({
         name: recipe.name || '',
         description: recipe.description || '',
+        pesoTotal: recipe.pesoTotal || 0,
         ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
       })
     } else {
@@ -54,6 +56,7 @@ export default function RecipesNew() {
       setFormData({
         name: '',
         description: '',
+        pesoTotal: 0,
         ingredients: [],
       })
     }
@@ -91,6 +94,11 @@ export default function RecipesNew() {
   const handleSave = async () => {
     if (!formData.name.trim()) {
       alert('El nombre es requerido')
+      return
+    }
+
+    if (!formData.pesoTotal || formData.pesoTotal <= 0) {
+      alert('El Peso Total debe ser mayor a 0 para calcular el costo por gramo de la receta')
       return
     }
 
@@ -259,7 +267,7 @@ export default function RecipesNew() {
             </div>
 
             <div className={`pt-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mb-2">
                 <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   Costo Total
                 </span>
@@ -267,6 +275,16 @@ export default function RecipesNew() {
                   {formatMoneyDisplay(recipe.totalCost || 0)}
                 </span>
               </div>
+              {recipe.pesoTotal && recipe.pesoTotal > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Costo por Gramo
+                  </span>
+                  <span className={`font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                    {formatMoneyDisplay((recipe.totalCost || 0) / recipe.pesoTotal)}/g
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -325,6 +343,30 @@ export default function RecipesNew() {
                 rows={2}
                 placeholder="Opcional"
               />
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Peso Total (gramos) *
+              </label>
+              <input
+                type="number"
+                value={formData.pesoTotal}
+                onChange={(e) => setFormData({ ...formData, pesoTotal: parseFloat(e.target.value) || 0 })}
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  isDarkMode
+                    ? 'bg-[#111827] border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+                placeholder="Ej: 1000"
+                min="0"
+                step="1"
+              />
+              <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+                Peso total de la receta para calcular costo por gramo
+              </p>
             </div>
 
             <div>

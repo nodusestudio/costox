@@ -240,11 +240,17 @@ export const saveRecipe = async (recipe, id = null) => {
   try {
     const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : []
     const totalCost = await calculateRecipeCost(ingredients)
+    const pesoTotal = parseFloat(recipe.pesoTotal || 0)
+    
+    // Calcular costo por gramo de la receta
+    const costoPorGramo = pesoTotal > 0 ? totalCost / pesoTotal : 0
     
     const recipeData = {
       ...recipe,
       ingredients,
       totalCost,
+      pesoTotal,
+      costoPorGramo,
       updatedAt: new Date().toISOString()
     }
     
