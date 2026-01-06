@@ -62,7 +62,7 @@ export default function Ingredients() {
     }
 
     if (editingId) {
-      updatedIngredients = ingredients.map(i =>
+      updatedIngredients = (ingredients ?? []).map(i =>
         i.id === editingId ? { ...i, ...newIngredient } : i
       )
     } else {
@@ -127,7 +127,7 @@ export default function Ingredients() {
               </tr>
             </thead>
             <tbody>
-              {ingredients.map(ingredient => (
+              {(ingredients ?? []).map(ingredient => (
                 <tr key={ingredient.id} className="border-b border-gray-700 hover:bg-dark-bg/50">
                   <td className="py-3 px-4 font-medium">{ingredient.name}</td>
                   <td className="py-3 px-4 text-gray-400 text-xs">{getSupplierName(ingredient.supplierId)}</td>
@@ -191,7 +191,7 @@ export default function Ingredients() {
                 className="w-full bg-dark-bg border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-primary-blue focus:outline-none"
               >
                 <option value="">Seleccionar proveedor</option>
-                {suppliers.map(supplier => (
+                {(suppliers ?? []).map(supplier => (
                   <option key={supplier.id} value={supplier.id}>
                     {supplier.name}
                   </option>

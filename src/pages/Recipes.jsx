@@ -70,7 +70,7 @@ export default function Recipes() {
   }
 
   const calculateRecipeCost = () => {
-    return formData.ingredients.reduce((total, item) => {
+    return (formData.ingredients ?? []).reduce((total, item) => {
       const ingredient = ingredients.find(i => i.id === parseInt(item.ingredientId))
       if (ingredient) {
         return total + (ingredient.realUnitCost * parseFloat(item.quantity || 0))
@@ -89,7 +89,7 @@ export default function Recipes() {
     const recipeCost = calculateRecipeCost()
     
     if (editingId) {
-      updatedRecipes = recipes.map(r =>
+      updatedRecipes = (recipes ?? []).map(r =>
         r.id === editingId ? { ...r, ...formData, baseCost: recipeCost } : r
       )
     } else {
@@ -142,7 +142,7 @@ export default function Recipes() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {recipes.map(recipe => (
+          {(recipes ?? []).map(recipe => (
             <div key={recipe.id} className="bg-dark-card rounded-lg p-5 border border-gray-700 overflow-hidden">
               {recipe.referencePhoto && (
                 <img
@@ -235,7 +235,7 @@ export default function Recipes() {
                 Ingredientes
               </label>
               <div className="space-y-3 bg-dark-bg/50 p-3 rounded-lg max-h-48 overflow-y-auto">
-                {formData.ingredients.map((item, idx) => (
+                {(formData.ingredients ?? []).map((item, idx) => (
                   <div key={idx} className="flex gap-2 items-end">
                     <select
                       value={item.ingredientId}
@@ -243,7 +243,7 @@ export default function Recipes() {
                       className="flex-1 bg-dark-bg border border-gray-600 rounded px-2 py-1 text-white text-sm"
                     >
                       <option value="">Seleccionar</option>
-                      {ingredients.map(ing => (
+                      {(ingredients ?? []).map(ing => (
                         <option key={ing.id} value={ing.id}>{ing.name}</option>
                       ))}
                     </select>

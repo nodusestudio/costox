@@ -44,7 +44,7 @@ export default function Products() {
       const recipe = recipes.find(r => r.id === parseInt(formData.recipeId))
       baseCost = recipe?.baseCost || 0
     }
-    baseCost += formData.baseIngredients.reduce((sum, item) => {
+    baseCost += (formData.baseIngredients ?? []).reduce((sum, item) => {
       const ingredient = ingredients.find(i => i.id === parseInt(item.ingredientId))
       return sum + (ingredient?.realUnitCost * parseFloat(item.quantity || 0) || 0)
     }, 0)
@@ -91,7 +91,7 @@ export default function Products() {
     const salePrice = calculateSalePrice()
 
     if (editingId) {
-      updatedProducts = products.map(p =>
+      updatedProducts = (products ?? []).map(p =>
         p.id === editingId
           ? { ...p, ...formData, realCost, salePrice }
           : p
@@ -159,7 +159,7 @@ export default function Products() {
               </tr>
             </thead>
             <tbody>
-              {products.map(product => {
+              {(products ?? []).map(product => {
                 const productMargin = product.salePrice > 0
                   ? ((product.salePrice - product.realCost) / product.salePrice) * 100
                   : 0
@@ -224,7 +224,7 @@ export default function Products() {
                 className="w-full bg-dark-bg border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-primary-blue focus:outline-none"
               >
                 <option value="">Sin receta base</option>
-                {recipes.map(recipe => (
+                {(recipes ?? []).map(recipe => (
                   <option key={recipe.id} value={recipe.id}>{recipe.name}</option>
                 ))}
               </select>
@@ -235,7 +235,7 @@ export default function Products() {
                 Ingredientes Adicionales
               </label>
               <div className="space-y-2 bg-dark-bg/50 p-3 rounded-lg max-h-40 overflow-y-auto">
-                {formData.baseIngredients.map((item, idx) => (
+                {(formData.baseIngredients ?? []).map((item, idx) => (
                   <div key={idx} className="flex gap-2 items-end">
                     <select
                       value={item.ingredientId}
@@ -243,7 +243,7 @@ export default function Products() {
                       className="flex-1 bg-dark-bg border border-gray-600 rounded px-2 py-1 text-white text-sm"
                     >
                       <option value="">Seleccionar</option>
-                      {ingredients.map(ing => (
+                      {(ingredients ?? []).map(ing => (
                         <option key={ing.id} value={ing.id}>{ing.name}</option>
                       ))}
                     </select>

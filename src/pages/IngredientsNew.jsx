@@ -230,27 +230,27 @@ export default function IngredientsNew() {
             Merma del 30% aplicada automáticamente (editable)
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             onClick={handleImportExcel}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-5 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-lg font-medium"
           >
-            <Upload size={18} />
-            Importar Excel
+            <Upload size={20} />
+            📥 Importar Excel
           </button>
           <button
             onClick={handleExportExcel}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg font-medium"
           >
-            <Download size={18} />
-            Exportar Excel
+            <Download size={20} />
+            📤 Exportar Excel
           </button>
           <button
             onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-5 py-3 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg font-medium"
           >
-            <Plus size={18} />
-            Nuevo Ingrediente
+            <Plus size={20} />
+            ➕ Nuevo Ingrediente
           </button>
         </div>
       </div>
@@ -509,13 +509,19 @@ export default function IngredientsNew() {
               </p>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Button onClick={() => setShowModal(false)} variant="secondary">
-                Cancelar
-              </Button>
-              <Button onClick={handleSave}>
-                Guardar
-              </Button>
+            <div className="flex justify-end gap-3 pt-6 border-t border-gray-700">
+              <button
+                onClick={() => setShowModal(false)}
+                className="flex items-center gap-2 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors font-medium shadow-md"
+              >
+                ❌ Cancelar
+              </button>
+              <button
+                onClick={handleSave}
+                className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium shadow-md"
+              >
+                💾 Guardar
+              </button>
             </div>
           </div>
         </Modal>

@@ -93,7 +93,7 @@ export default function Promotions() {
     const metrics = calculatePromoMetrics()
 
     if (editingId) {
-      updatedPromotions = promotions.map(p =>
+      updatedPromotions = (promotions ?? []).map(p =>
         p.id === editingId
           ? { ...p, ...formData, margin: metrics.margin }
           : p
@@ -150,8 +150,8 @@ export default function Promotions() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {promotions.map(promo => {
-            const promoMetrics = promo.products.reduce((acc, item) => {
+          {(promotions ?? []).map(promo => {
+            const promoMetrics = (promo.products ?? []).reduce((acc, item) => {
               const product = products.find(p => p.id === parseInt(item.productId))
               if (product) {
                 acc.cost += product.realCost * (item.quantity || 1)
@@ -256,7 +256,7 @@ export default function Promotions() {
                 Productos en el Combo
               </label>
               <div className="space-y-2 bg-dark-bg/50 p-3 rounded-lg max-h-40 overflow-y-auto">
-                {formData.products.map((item, idx) => (
+                {(formData.products ?? []).map((item, idx) => (
                   <div key={idx} className="flex gap-2 items-end">
                     <select
                       value={item.productId}
@@ -264,7 +264,7 @@ export default function Promotions() {
                       className="flex-1 bg-dark-bg border border-gray-600 rounded px-2 py-1 text-white text-sm"
                     >
                       <option value="">Seleccionar</option>
-                      {products.map(prod => (
+                      {(products ?? []).map(prod => (
                         <option key={prod.id} value={prod.id}>{prod.name}</option>
                       ))}
                     </select>
