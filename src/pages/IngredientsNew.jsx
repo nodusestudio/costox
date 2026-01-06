@@ -15,6 +15,7 @@ export default function IngredientsNew() {
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [filterSupplier, setFilterSupplier] = useState('')
+  const [searchName, setSearchName] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     supplierId: '',
@@ -207,9 +208,14 @@ export default function IngredientsNew() {
     return supplier?.name || 'Sin proveedor'
   }
 
-  const filteredIngredients = filterSupplier
-    ? (ingredients || []).filter(ing => ing.supplierId === filterSupplier)
-    : (ingredients || [])
+  const filteredIngredients = (ingredients || [])
+    .filter(ing => {
+      // Filtrar por proveedor
+      if (filterSupplier && ing.supplierId !== filterSupplier) return false
+      // Filtrar por nombre
+      if (searchName && !ing.name.toLowerCase().includes(searchName.toLowerCase())) return false
+      return true
+    })
 
   if (loading) {
     return (
@@ -255,23 +261,46 @@ export default function IngredientsNew() {
         </div>
       </div>
 
-      {/* Filtro por Proveedor */}
-      <div className="flex items-center gap-3">
-        <Filter size={18} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
-        <select
-          value={filterSupplier}
-          onChange={(e) => setFilterSupplier(e.target.value)}
-          className={`px-4 py-2 rounded-lg border ${
-            isDarkMode
-              ? 'bg-[#1f2937] border-gray-600 text-white'
-              : 'bg-white border-gray-300 text-gray-900'
-          }`}
-        >
-          <option value="">Todos los proveedores</option>
-          {(suppliers || []).map(sup => (
-            <option key={sup.id} value={sup.id}>{sup.name}</option>
-          ))}
-        </select>
+      {/* Filtros */}
+      <div className="flex items-center gap-4">
+        {/* Buscador por Nombre */}
+        <div className="flex-1 max-w-md">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              placeholder="🔍 Buscar ingrediente por nombre..."
+              className={`w-full px-4 py-2.5 pl-10 rounded-lg border ${
+                isDarkMode
+                  ? 'bg-[#1f2937] border-gray-600 text-white placeholder-gray-500'
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+              } focus:border-blue-500 focus:outline-none transition-colors`}
+            />
+            <Filter size={18} className={`absolute left-3 top-3 ${
+              isDarkMode ? 'text-gray-500' : 'text-gray-400'
+            }`} />
+          </div>
+        </div>
+
+        {/* Filtro por Proveedor */}
+        <div className="flex items-center gap-3">
+          <Filter size={18} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
+          <select
+            value={filterSupplier}
+            onChange={(e) => setFilterSupplier(e.target.value)}
+            className={`px-4 py-2.5 rounded-lg border ${
+              isDarkMode
+                ? 'bg-[#1f2937] border-gray-600 text-white'
+                : 'bg-white border-gray-300 text-gray-900'
+            }`}
+          >
+            <option value="">Todos los proveedores</option>
+            {(suppliers || []).map(sup => (
+              <option key={sup.id} value={sup.id}>{sup.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Tabla de Ingredientes */}
