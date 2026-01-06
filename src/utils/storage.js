@@ -309,28 +309,66 @@ export const calculateProductMetrics = async (productData) => {
     
     if (item.type === 'ingredient') {
       const ingredient = await getDocById(COLLECTIONS.ingredients, item.id)
-      if (ingredient && ingredient.costWithWastage) {
-        totalCost += ingredient.costWithWastage * parseFloat(item.quantity || 0)
+      if (ingredient) {
+        const quantity = parseFloat(item.quantity || 0)
+        
+        // Usar costoPorGramo si está disponible (recomendado)
+        if (ingredient.costoPorGramo && ingredient.costoPorGramo > 0) {
+          totalCost += ingredient.costoPorGramo * quantity
+        } 
+        // Fallback 1: Calcular usando pesoEmpaqueTotal
+        else if (ingredient.pesoEmpaqueTotal && ingredient.pesoEmpaqueTotal > 0 && ingredient.costWithWastage) {
+          totalCost += calcularCostoProporcional(
+            ingredient.costWithWastage, 
+            ingredient.pesoEmpaqueTotal, 
+            quantity
+          )
+        } 
+        // Fallback 2: Ingredientes muy antiguos
+        else if (ingredient.costWithWastage) {
+          totalCost += ingredient.costWithWastage * quantity
+        }
       }
     } else if (item.type === 'recipe') {
       const recipe = await getDocById(COLLECTIONS.recipes, item.id)
-      if (recipe && recipe.totalCost) {
-        totalCost += recipe.totalCost * parseFloat(item.quantity || 1)
+      if (recipe) {
+        const quantity = parseFloat(item.quantity || 1)
+        
+        // Usar costoPorGramo si está disponible (recomendado para cantidades en gramos)
+        if (recipe.costoPorGramo && recipe.costoPorGramo > 0) {
+          totalCost += recipe.costoPorGramo * quantity
+        }
+        // Fallback: Usar costo total de la receta (cantidad = unidades completas)
+        else if (recipe.totalCost) {
+          totalCost += recipe.totalCost * quantity
+        }
       }
     }
   }
   
-  const profitMarginPercent = parseFloat(productData.profitMarginPercent || 0)
-  const profitMarginAmount = totalCost * (profitMarginPercent / 100)
-  const suggestedPrice = totalCost + profitMarginAmount
+  const profitMarginPercent = parseFloat(productData.profitMarginPercent || 40)
+  
+  // FÓRMULA PROFESIONAL: Precio Sugerido = Costo Total / (1 - (Margen Deseado / 100))
+  const suggestedPrice = profitMarginPercent >= 100 
+    ? totalCost * 2 
+    : totalCost / (1 - (profitMarginPercent / 100))
+  
   const realSalePrice = parseFloat(productData.realSalePrice || suggestedPrice)
   
+  // FÓRMULAS PROFESIONALES
+  // Utilidad ($): Precio Real de Venta - Costo Total
+  const actualProfit = realSalePrice - totalCost
+  
+  // Food Cost %: (Costo Total / Precio Real de Venta) * 100
+  const foodCostPercent = realSalePrice > 0 ? (totalCost / realSalePrice) * 100 : 0
+
   return {
     totalCost,
     profitMarginPercent,
-    profitMarginAmount,
     suggestedPrice,
-    realSalePrice
+    realSalePrice,
+    actualProfit,
+    foodCostPercent
   }
 }
 
