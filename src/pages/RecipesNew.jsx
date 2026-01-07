@@ -134,6 +134,31 @@ export default function RecipesNew() {
     }
   }
 
+  const calculateItemCost = (item) => {
+    if (!item || !item.id) return 0
+    
+    if (item.type === 'ingredient') {
+      const ing = ingredients.find(i => i.id === item.id)
+      if (ing) {
+        const quantity = parseFloat(item.quantity || 0)
+        
+        if (ing.costoPorGramo && ing.costoPorGramo > 0) {
+          return ing.costoPorGramo * quantity
+        } else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
+          return calcularCostoProporcional(ing.costWithWastage, ing.pesoEmpaqueTotal, quantity)
+        } else if (ing.costWithWastage) {
+          return ing.costWithWastage * quantity
+        }
+      }
+    } else {
+      const rec = recipes.find(r => r.id === item.id)
+      if (rec && rec.totalCost) {
+        return rec.totalCost * parseFloat(item.quantity || 1)
+      }
+    }
+    return 0
+  }
+
   const calculatePreviewCost = () => {
     let total = 0
     const items = formData.ingredients || []
@@ -340,61 +365,78 @@ export default function RecipesNew() {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                {(formData.ingredients ?? []).map((item, index) => (
-                  <div key={index} className="p-6 rounded-xl border-2 bg-[#111827] border-gray-600 shadow-lg">
-                    <div className="flex gap-4 items-start">
-                      <div className={`px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-2 shadow-md ${
-                        item.type === 'ingredient'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-purple-600 text-white'
-                      }`}>
-                        {item.type === 'ingredient' ? <Package size={18} /> : <BookOpen size={18} />}
-                        {item.type === 'ingredient' ? 'Ingrediente' : 'Receta'}
-                      </div>
-                      
-                      <div className="flex-1 space-y-3">
-                        <SearchSelect
-                          options={item.type === 'ingredient' ? ingredients : (recipes ?? []).filter(r => r.id !== editingId)}
-                          value={item.id}
-                          onChange={(value) => handleItemChange(index, 'id', value)}
-                          placeholder={`Buscar ${item.type === 'ingredient' ? 'ingrediente' : 'receta'}...`}
-                          displayKey="name"
-                          valueKey="id"
-                        />
+              <div className={`rounded-lg border ${
+                isDarkMode ? 'bg-[#0a0e1a] border-gray-700' : 'bg-gray-50 border-gray-300'
+              }`}>
+                {/* Cabecera de Tabla */}
+                <div className={`grid grid-cols-12 gap-2 p-3 border-b font-bold text-xs ${
+                  isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
+                }`}>
+                  <div className="col-span-6">NOMBRE</div>
+                  <div className="col-span-3 text-center">CANTIDAD</div>
+                  <div className="col-span-3 text-right">COSTO</div>
+                </div>
 
-                        <div className="flex gap-3 items-center">
-                          <label className="text-gray-400 text-sm font-medium">Cantidad:</label>
+                {/* Lista de Ingredientes/Recetas */}
+                <div className="max-h-[300px] overflow-y-auto">
+                  {(formData.ingredients ?? []).map((item, index) => {
+                    const costoProporcional = calculateItemCost(item)
+
+                    return (
+                      <div key={index} className={`flex gap-2 p-3 border-b text-sm ${
+                        isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
+                      }`}>
+                        <div style={{ width: '75%' }} className={`flex items-center ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          <SearchSelect
+                            options={item.type === 'ingredient' ? ingredients : (recipes ?? []).filter(r => r.id !== editingId)}
+                            value={item.id}
+                            onChange={(value) => handleItemChange(index, 'id', value)}
+                            displayKey="name"
+                            placeholder={`Seleccionar ${item.type === 'ingredient' ? 'ingrediente' : 'receta'}...`}
+                            className="w-full"
+                          />
+                        </div>
+                        <div style={{ width: '12.5%' }} className="flex items-center">
                           <input
                             type="number"
                             step="0.01"
                             value={item.quantity}
                             onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
                             onFocus={(e) => e.target.select()}
-                            className="w-32 px-4 py-2 rounded-lg border bg-[#1f2937] border-gray-600 text-white focus:border-primary-blue focus:outline-none"
-                            placeholder="0.00"
+                            className={`w-full px-2 py-1 rounded border text-center text-xs ${
+                              isDarkMode
+                                ? 'bg-[#111827] border-gray-600 text-white'
+                                : 'bg-white border-gray-300 text-gray-900'
+                            }`}
+                            placeholder="0"
                           />
                         </div>
+                        <div style={{ width: '12.5%' }} className={`flex items-center justify-end gap-1 ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          <span className="font-semibold text-xs truncate">{formatMoneyDisplay(costoProporcional)}</span>
+                          <button
+                            onClick={() => handleRemoveItem(index)}
+                            className="p-1 text-red-500 hover:bg-red-500/10 rounded flex-shrink-0"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                       </div>
+                    )
+                  })}
 
-                      <button
-                        onClick={() => handleRemoveItem(index)}
-                        className="p-3 rounded-lg hover:bg-red-900/30 text-red-400 transition-colors"
-                      >
-                        <Trash2 size={20} />
-                      </button>
+                  {(formData.ingredients || []).length === 0 && (
+                    <div className={`text-center py-8 ${
+                      isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                    }`}>
+                      <p className="text-xs">Sin componentes</p>
                     </div>
-                  </div>
-                ))}
+                  )}
+                </div>
               </div>
-
-              {(formData.ingredients || []).length === 0 && (
-                <p className={`text-sm text-center py-4 ${
-                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                }`}>
-                  Agrega ingredientes o recetas
-                </p>
-              )}
             </div>
 
             {/* Dashboard Excel - Recetas */}
