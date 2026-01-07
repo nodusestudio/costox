@@ -13,29 +13,39 @@ export const useCategories = () => {
 }
 
 export const CategoriesProvider = ({ children }) => {
-  const [categories, setCategories] = useState([])
+  const [categoriesRecipes, setCategoriesRecipes] = useState([])
+  const [categoriesProducts, setCategoriesProducts] = useState([])
+  const [categoriesPromotions, setCategoriesPromotions] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadCategories()
+    loadAllCategories()
   }, [])
 
-  const loadCategories = async () => {
+  const loadAllCategories = async () => {
     try {
-      const data = await getCategories()
-      setCategories(Array.isArray(data) ? data : [])
+      const [recipes, products, promotions] = await Promise.all([
+        getCategories('recipes'),
+        getCategories('products'),
+        getCategories('promotions')
+      ])
+      setCategoriesRecipes(Array.isArray(recipes) ? recipes : [])
+      setCategoriesProducts(Array.isArray(products) ? products : [])
+      setCategoriesPromotions(Array.isArray(promotions) ? promotions : [])
     } catch (error) {
       console.error('Error loading categories:', error)
-      setCategories([])
+      setCategoriesRecipes([])
+      setCategoriesProducts([])
+      setCategoriesPromotions([])
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSaveCategory = async (category, id = null) => {
+  const handleSaveCategory = async (category, id = null, type = 'recipes') => {
     try {
-      await saveCategory(category, id)
-      await loadCategories()
+      await saveCategory(category, id, type)
+      await loadAllCategories()
       showToast('✅ Categoría guardada', 'success')
       return true
     } catch (error) {
@@ -45,10 +55,10 @@ export const CategoriesProvider = ({ children }) => {
     }
   }
 
-  const handleDeleteCategory = async (id) => {
+  const handleDeleteCategory = async (id, type = 'recipes') => {
     try {
-      await deleteCategory(id)
-      await loadCategories()
+      await deleteCategory(id, type)
+      await loadAllCategories()
       showToast('🗑️ Categoría eliminada', 'success')
       return true
     } catch (error) {
@@ -61,11 +71,13 @@ export const CategoriesProvider = ({ children }) => {
   return (
     <CategoriesContext.Provider
       value={{
-        categories,
+        categoriesRecipes,
+        categoriesProducts,
+        categoriesPromotions,
         loading,
         saveCategory: handleSaveCategory,
         deleteCategory: handleDeleteCategory,
-        refreshCategories: loadCategories
+        refreshCategories: loadAllCategories
       }}
     >
       {children}

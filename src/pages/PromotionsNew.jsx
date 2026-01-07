@@ -10,7 +10,7 @@ import { useCategories } from '@/context/CategoriesContext'
 
 export default function PromotionsNew() {
   const { isDarkMode } = useI18n()
-  const { categories, saveCategory, deleteCategory } = useCategories()
+  const { categoriesPromotions: categories, saveCategory, deleteCategory } = useCategories()
   const [promotions, setPromotions] = useState([])
   const [products, setProducts] = useState([])
   const [ingredients, setIngredients] = useState([])
@@ -345,7 +345,7 @@ export default function PromotionsNew() {
                 onClick={(e) => {
                   e.stopPropagation()
                   if (window.confirm(`¿Eliminar la categoría "${cat.name}"?`)) {
-                    deleteCategory(cat.id)
+                    deleteCategory(cat.id, 'promotions')
                     setSelectedCategoryFilter(null)
                   }
                 }}
@@ -825,7 +825,7 @@ export default function PromotionsNew() {
                 onChange={(e) => setCategoryName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && categoryName.trim()) {
-                    saveCategory({ name: categoryName.trim() }, editingCategory?.id)
+                    saveCategory({ name: categoryName.trim() }, editingCategory?.id, 'promotions')
                     setShowCategoryModal(false)
                   }
                 }}
@@ -848,7 +848,7 @@ export default function PromotionsNew() {
               <button
                 onClick={() => {
                   if (categoryName.trim()) {
-                    saveCategory({ name: categoryName.trim() }, editingCategory?.id)
+                    saveCategory({ name: categoryName.trim() }, editingCategory?.id, 'promotions')
                     setShowCategoryModal(false)
                   }
                 }}

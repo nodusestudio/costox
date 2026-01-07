@@ -11,7 +11,7 @@ import { useCategories } from '@/context/CategoriesContext'
 
 export default function RecipesNew() {
   const { isDarkMode } = useI18n()
-  const { categories, saveCategory, deleteCategory } = useCategories()
+  const { categoriesRecipes: categories, saveCategory, deleteCategory } = useCategories()
   const [recipes, setRecipes] = useState([])
   const [ingredients, setIngredients] = useState([])
   const [loading, setLoading] = useState(true)
@@ -368,7 +368,7 @@ export default function RecipesNew() {
                 onClick={(e) => {
                   e.stopPropagation()
                   if (window.confirm(`¿Eliminar la categoría "${cat.name}"?`)) {
-                    deleteCategory(cat.id)
+                    deleteCategory(cat.id, 'recipes')
                     setSelectedCategoryFilter(null)
                   }
                 }}
@@ -810,7 +810,7 @@ export default function RecipesNew() {
                 onChange={(e) => setCategoryName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && categoryName.trim()) {
-                    saveCategory({ name: categoryName.trim() }, editingCategory?.id)
+                    saveCategory({ name: categoryName.trim() }, editingCategory?.id, 'recipes')
                     setShowCategoryModal(false)
                   }
                 }}
@@ -833,7 +833,7 @@ export default function RecipesNew() {
               <button
                 onClick={() => {
                   if (categoryName.trim()) {
-                    saveCategory({ name: categoryName.trim() }, editingCategory?.id)
+                    saveCategory({ name: categoryName.trim() }, editingCategory?.id, 'recipes')
                     setShowCategoryModal(false)
                   }
                 }}

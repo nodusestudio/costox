@@ -25,7 +25,9 @@ const COLLECTIONS = {
   recipes: 'recipes',
   products: 'products',
   promotions: 'promotions',
-  categories: 'categories'
+  categoriesRecipes: 'categoriesRecipes',
+  categoriesProducts: 'categoriesProducts',
+  categoriesPromotions: 'categoriesPromotions'
 }
 
 /**
@@ -148,24 +150,39 @@ export const deleteSupplier = async (id) => {
 }
 
 /**
- * Obtiene todas las categorías
+ * Obtiene todas las categorías por tipo (recipes, products, promotions)
  */
-export const getCategories = async () => {
-  return await getAllDocs(COLLECTIONS.categories)
+export const getCategories = async (type = 'recipes') => {
+  const collectionMap = {
+    recipes: COLLECTIONS.categoriesRecipes,
+    products: COLLECTIONS.categoriesProducts,
+    promotions: COLLECTIONS.categoriesPromotions
+  }
+  return await getAllDocs(collectionMap[type] || COLLECTIONS.categoriesRecipes)
 }
 
 /**
- * Guarda categoría
+ * Guarda categoría por tipo (recipes, products, promotions)
  */
-export const saveCategory = async (category, id = null) => {
-  return await saveDoc(COLLECTIONS.categories, category, id)
+export const saveCategory = async (category, id = null, type = 'recipes') => {
+  const collectionMap = {
+    recipes: COLLECTIONS.categoriesRecipes,
+    products: COLLECTIONS.categoriesProducts,
+    promotions: COLLECTIONS.categoriesPromotions
+  }
+  return await saveDoc(collectionMap[type] || COLLECTIONS.categoriesRecipes, category, id)
 }
 
 /**
- * Elimina categoría
+ * Elimina categoría por tipo (recipes, products, promotions)
  */
-export const deleteCategory = async (id) => {
-  return await deleteDocument(COLLECTIONS.categories, id)
+export const deleteCategory = async (id, type = 'recipes') => {
+  const collectionMap = {
+    recipes: COLLECTIONS.categoriesRecipes,
+    products: COLLECTIONS.categoriesProducts,
+    promotions: COLLECTIONS.categoriesPromotions
+  }
+  return await deleteDocument(collectionMap[type] || COLLECTIONS.categoriesRecipes, id)
 }
 
 /**
