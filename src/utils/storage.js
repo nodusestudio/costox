@@ -198,64 +198,72 @@ export const getRecipes = async () => {
 
 /**
  * Calcula el costo total de una receta basada en sus ingredientes
+ * Usa .reduce() limpio para evitar acumuladores globales
  */
 export const calculateRecipeCost = async (ingredientsList) => {
-  // Validar que ingredientsList sea un array
   if (!ingredientsList || !Array.isArray(ingredientsList) || ingredientsList.length === 0) {
     return 0
   }
 
-  // Reset de sumatoria: el acumulador SIEMPRE inicia en 0 por ejecución.
-  let totalCost = 0
-  
-  for (const item of ingredientsList) {
-    if (!item || !item.id) continue
-    
-    if (item.type === 'ingredient') {
-      const ingredient = await getDocById(COLLECTIONS.ingredients, item.id)
-      if (!ingredient) continue
+  // Reducción limpia: cada ítem calcula su costo y se suma al acumulador
+  const costos = await Promise.all(
+    ingredientsList.map(async (item) => {
+      if (!item || !item.id) return 0
 
-      const cantidadUsada = parseFloat(item.quantity || 0)
-      if (!Number.isFinite(cantidadUsada) || cantidadUsada <= 0) continue
+      if (item.type === 'ingredient') {
+        const ingredient = await getDocById(COLLECTIONS.ingredients, item.id)
+        if (!ingredient) return 0
 
-      // Regla: en recetas, la cantidad se interpreta en gramos/ml.
-      // Por lo tanto, el costo debe ser SIEMPRE costoPorGramo * cantidad.
-      const costoPorGramo = parseFloat(ingredient.costoPorGramo || 0)
-      if (Number.isFinite(costoPorGramo) && costoPorGramo > 0) {
-        totalCost += costoPorGramo * cantidadUsada
-        continue
-      }
+        const cantidadUsada = parseFloat(item.quantity || 0)
+        if (!Number.isFinite(cantidadUsada) || cantidadUsada <= 0) return 0
 
-      // Fallback seguro: si por datos antiguos no existe costoPorGramo,
-      // intentamos calcularlo desde costWithWastage / pesoEmpaqueTotal.
-      const costWithWastage = parseFloat(ingredient.costWithWastage || 0)
-      const pesoEmpaqueTotal = parseFloat(ingredient.pesoEmpaqueTotal || 0)
-
-      if (Number.isFinite(costWithWastage) && costWithWastage > 0) {
-        const divisor = Number.isFinite(pesoEmpaqueTotal) && pesoEmpaqueTotal > 0 ? pesoEmpaqueTotal : 1000
-        totalCost += calcularCostoProporcional(costWithWastage, divisor, cantidadUsada)
-      }
-    } else if (item.type === 'recipe') {
-      const recipe = await getDocById(COLLECTIONS.recipes, item.id)
-      if (recipe) {
-        const cantidad_usada = parseFloat(item.quantity || 0)
-        
-        // CORREGIDO: Usar costo proporcional por gramo
-        if (recipe.costoPorGramo && recipe.costoPorGramo > 0) {
-          totalCost += recipe.costoPorGramo * cantidad_usada
-        } else if (recipe.totalCost && recipe.pesoTotal && recipe.pesoTotal > 0) {
-          // Calcular costo por gramo si no está precalculado
-          const costoPorGramo = recipe.totalCost / recipe.pesoTotal
-          totalCost += costoPorGramo * cantidad_usada
-        } else if (recipe.totalCost && (!recipe.pesoTotal || recipe.pesoTotal === 0)) {
-          // Si no hay peso, NO es seguro convertir a costo/gramo (evita costos millonarios).
-          console.warn(`⚠️ Receta ${recipe.name || 'sin nombre'} tiene pesoTotal inválido; se omite del costo.`)
+        // Regla: cantidad en gramos/ml → usar costoPorGramo
+        const costoPorGramo = parseFloat(ingredient.costoPorGramo || 0)
+        if (Number.isFinite(costoPorGramo) && costoPorGramo > 0) {
+          return costoPorGramo * cantidadUsada
         }
+
+        // Fallback: calcular desde costWithWastage / pesoEmpaqueTotal
+        const costWithWastage = parseFloat(ingredient.costWithWastage || 0)
+        const pesoEmpaqueTotal = parseFloat(ingredient.pesoEmpaqueTotal || 0)
+        if (Number.isFinite(costWithWastage) && costWithWastage > 0) {
+          const divisor = Number.isFinite(pesoEmpaqueTotal) && pesoEmpaqueTotal > 0 ? pesoEmpaqueTotal : 1000
+          return calcularCostoProporcional(costWithWastage, divisor, cantidadUsada)
+        }
+        return 0
       }
-    }
-  }
-  
-  return totalCost
+
+      if (item.type === 'recipe') {
+        const recipe = await getDocById(COLLECTIONS.recipes, item.id)
+        if (!recipe) return 0
+
+        const cantidadUsada = parseFloat(item.quantity || 0)
+        if (!Number.isFinite(cantidadUsada) || cantidadUsada <= 0) return 0
+
+        // Usar costoPorGramo de la sub-receta (esto evita millones)
+        const costoPorGramo = parseFloat(recipe.costoPorGramo || 0)
+        if (Number.isFinite(costoPorGramo) && costoPorGramo > 0) {
+          return costoPorGramo * cantidadUsada
+        }
+
+        // Fallback: calcular desde totalCost / pesoTotal (SOLO si pesoTotal > 0)
+        const totalCost = parseFloat(recipe.totalCost || 0)
+        const pesoTotal = parseFloat(recipe.pesoTotal || 0)
+        if (Number.isFinite(totalCost) && totalCost > 0 && Number.isFinite(pesoTotal) && pesoTotal > 0) {
+          return (totalCost / pesoTotal) * cantidadUsada
+        }
+
+        // Sin datos válidos → omitir
+        console.warn(`⚠️ Receta ${recipe.name || 'sin nombre'} sin datos válidos de costo/gramo; se omite.`)
+        return 0
+      }
+
+      return 0
+    })
+  )
+
+  // Suma limpia con .reduce()
+  return costos.reduce((acc, costo) => acc + costo, 0)
 }
 
 /**
@@ -359,52 +367,64 @@ export const calculateProductMetrics = async (productData) => {
   // MODELO EXCEL PROFESIONAL
   // ==========================================
   
-  // PASO 1: Costo de Ingredientes = Σ (Cantidad_Usada * Costo_Unitario_G_o_ML)
-  let costoIngredientes = 0
-  
-  for (const item of items) {
-    if (!item || !item.id) continue
-    
-    if (item.type === 'ingredient') {
-      const ingredient = await getDocById(COLLECTIONS.ingredients, item.id)
-      if (ingredient) {
-        const cantidad_usada = parseFloat(item.quantity || 0)
-        
-        // FÓRMULA OBLIGATORIA: (Precio_Compra * 1.30 / Peso_Empaque) * Cantidad_Usada
-        if (ingredient.costoPorGramo && ingredient.costoPorGramo > 0) {
-          costoIngredientes += ingredient.costoPorGramo * cantidad_usada
-        } 
-        else if (ingredient.pesoEmpaqueTotal && ingredient.pesoEmpaqueTotal > 0 && ingredient.costWithWastage) {
-          costoIngredientes += calcularCostoProporcional(
-            ingredient.costWithWastage, 
-            ingredient.pesoEmpaqueTotal, 
-            cantidad_usada
-          )
-        } 
-        else if (ingredient.costWithWastage) {
-          costoIngredientes += ingredient.costWithWastage * cantidad_usada
+  // PASO 1: Costo de Ingredientes usando .reduce() limpio
+  const costos = await Promise.all(
+    items.map(async (item) => {
+      if (!item || !item.id) return 0
+
+      if (item.type === 'ingredient') {
+        const ingredient = await getDocById(COLLECTIONS.ingredients, item.id)
+        if (!ingredient) return 0
+
+        const cantidadUsada = parseFloat(item.quantity || 0)
+        if (!Number.isFinite(cantidadUsada) || cantidadUsada <= 0) return 0
+
+        // FÓRMULA: costoPorGramo * cantidad
+        const costoPorGramo = parseFloat(ingredient.costoPorGramo || 0)
+        if (Number.isFinite(costoPorGramo) && costoPorGramo > 0) {
+          return costoPorGramo * cantidadUsada
         }
-      }
-    } else if (item.type === 'recipe') {
-      const recipe = await getDocById(COLLECTIONS.recipes, item.id)
-      if (recipe) {
-        const cantidad_usada = parseFloat(item.quantity || 0)
-        
-        // CORREGIDO: Usar costo proporcional por gramo (igual que ingredientes)
-        if (recipe.costoPorGramo && recipe.costoPorGramo > 0) {
-          costoIngredientes += recipe.costoPorGramo * cantidad_usada
-        } else if (recipe.totalCost && recipe.pesoTotal && recipe.pesoTotal > 0) {
-          // Calcular costo por gramo si no está precalculado
-          const costoPorGramo = recipe.totalCost / recipe.pesoTotal
-          costoIngredientes += costoPorGramo * cantidad_usada
-        } else if (recipe.totalCost && (!recipe.pesoTotal || recipe.pesoTotal === 0)) {
-          // Validación: Si pesoTotal es 0 o nulo, usar valor por defecto 1g
-          console.warn(`⚠️ Receta ${recipe.name || 'sin nombre'} tiene pesoTotal=0, usando valor por defecto 1g`)
-          costoIngredientes += recipe.totalCost * cantidad_usada
+
+        // Fallback: calcular proporcional
+        const costWithWastage = parseFloat(ingredient.costWithWastage || 0)
+        const pesoEmpaqueTotal = parseFloat(ingredient.pesoEmpaqueTotal || 0)
+        if (Number.isFinite(costWithWastage) && costWithWastage > 0) {
+          const divisor = Number.isFinite(pesoEmpaqueTotal) && pesoEmpaqueTotal > 0 ? pesoEmpaqueTotal : 1000
+          return calcularCostoProporcional(costWithWastage, divisor, cantidadUsada)
         }
+        return 0
       }
-    }
-  }
+
+      if (item.type === 'recipe') {
+        const recipe = await getDocById(COLLECTIONS.recipes, item.id)
+        if (!recipe) return 0
+
+        const cantidadUsada = parseFloat(item.quantity || 0)
+        if (!Number.isFinite(cantidadUsada) || cantidadUsada <= 0) return 0
+
+        // CRÍTICO: usar costoPorGramo de la receta (evita millones)
+        const costoPorGramo = parseFloat(recipe.costoPorGramo || 0)
+        if (Number.isFinite(costoPorGramo) && costoPorGramo > 0) {
+          return costoPorGramo * cantidadUsada
+        }
+
+        // Fallback seguro: calcular desde totalCost/pesoTotal (SOLO si pesoTotal > 0)
+        const totalCost = parseFloat(recipe.totalCost || 0)
+        const pesoTotal = parseFloat(recipe.pesoTotal || 0)
+        if (Number.isFinite(totalCost) && totalCost > 0 && Number.isFinite(pesoTotal) && pesoTotal > 0) {
+          return (totalCost / pesoTotal) * cantidadUsada
+        }
+
+        // Sin datos válidos → omitir (NO multiplicar totalCost directamente)
+        console.warn(`⚠️ Receta ${recipe.name || 'sin nombre'} sin costo/gramo válido; se omite del cálculo.`)
+        return 0
+      }
+
+      return 0
+    })
+  )
+
+  const costoIngredientes = costos.reduce((acc, costo) => acc + costo, 0)
   
   // PASO 2: Mano de Obra (Operario)
   const manoDeObra = parseFloat(productData.laborCost || 0)
