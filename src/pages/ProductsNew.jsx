@@ -412,56 +412,54 @@ export default function ProductsNew() {
               </div>
             </div>
 
-            {/* HEADER ESTILO EXCEL: Precio de Venta + Métricas */}
-            <div className={`p-6 rounded-xl border-2 ${
+            {/* HEADER COMPACTO: Nombre + Precio en línea horizontal */}
+            <div className={`p-4 rounded-xl border-2 ${
               isDarkMode 
                 ? 'bg-gradient-to-br from-green-950 to-gray-900 border-green-700' 
                 : 'bg-gradient-to-br from-green-50 to-white border-green-300'
             }`}>
-              {/* Nombre del Producto - Superior Izquierda */}
-              <div className="mb-4">
-                <h3 className={`text-xl font-bold ${
+              {/* Cabecera: Nombre + Precio en MISMA LÍNEA */}
+              <div className="flex items-center justify-between gap-4 mb-3">
+                <h3 className={`text-lg font-bold ${
                   isDarkMode ? 'text-white' : 'text-gray-900'
                 }`}>
                   {formData.name || 'Nuevo Producto'}
                 </h3>
+                <div className="flex items-center gap-2">
+                  <label className={`text-xs font-bold whitespace-nowrap ${
+                    isDarkMode ? 'text-green-300' : 'text-green-700'
+                  }`}>
+                    💵 PRECIO:
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.realSalePrice}
+                    onChange={(e) => setFormData({ ...formData, realSalePrice: parseFloat(e.target.value) || 0 })}
+                    onFocus={(e) => e.target.select()}
+                    className={`w-32 px-3 py-1 rounded-lg border-2 font-black text-center ${
+                      isDarkMode
+                        ? 'bg-[#0a2818] border-green-500 text-green-300'
+                        : 'bg-white border-green-500 text-green-700'
+                    }`}
+                    style={{ fontSize: '2rem' }}
+                    placeholder="$ 0"
+                  />
+                </div>
               </div>
 
-              {/* Precio de Venta - EXTRA GRANDE */}
-              <div className="text-center mb-6">
-                <label className={`block text-sm font-bold mb-2 ${
-                  isDarkMode ? 'text-green-300' : 'text-green-700'
-                }`}>
-                  💵 PRECIO DE VENTA
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.realSalePrice}
-                  onChange={(e) => setFormData({ ...formData, realSalePrice: parseFloat(e.target.value) || 0 })}
-                  onFocus={(e) => e.target.select()}
-                  className={`w-full px-6 py-4 rounded-xl border-3 font-black text-center ${
-                    isDarkMode
-                      ? 'bg-[#0a2818] border-green-500 text-green-300'
-                      : 'bg-white border-green-500 text-green-700'
-                  }`}
-                  style={{ fontSize: '48px' }}
-                  placeholder="$ 0"
-                />
-              </div>
-
-              {/* Tres Cajas de Métricas */}
-              <div className="grid grid-cols-3 gap-4">
+              {/* Tres Cajas de Métricas - MÁS COMPACTAS */}
+              <div className="grid grid-cols-3 gap-2">
                 {/* Costo Unidad */}
-                <div className={`p-4 rounded-lg text-center ${
+                <div className={`p-2 rounded-lg text-center ${
                   isDarkMode ? 'bg-blue-950/50 border border-blue-700' : 'bg-blue-50 border border-blue-300'
                 }`}>
-                  <div className={`text-xs font-bold mb-2 ${
+                  <div className={`text-xs font-bold mb-1 ${
                     isDarkMode ? 'text-blue-300' : 'text-blue-700'
                   }`}>
-                    COSTO UNIDAD
+                    COSTO
                   </div>
-                  <div className={`text-2xl font-black ${
+                  <div className={`text-lg font-black ${
                     isDarkMode ? 'text-blue-400' : 'text-blue-600'
                   }`}>
                     {formatMoneyDisplay(metrics.totalCost)}
@@ -469,15 +467,15 @@ export default function ProductsNew() {
                 </div>
 
                 {/* P-Contribución (Food Cost %) - SIN ALERTAS ROJAS */}
-                <div className={`p-4 rounded-lg text-center ${
+                <div className={`p-2 rounded-lg text-center ${
                   isDarkMode ? 'bg-gray-800/50 border border-gray-600' : 'bg-gray-100 border border-gray-300'
                 }`}>
-                  <div className={`text-xs font-bold mb-2 ${
+                  <div className={`text-xs font-bold mb-1 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    P-CONTRIBUCIÓN
+                    P-CONTRIB.
                   </div>
-                  <div className={`text-2xl font-black ${
+                  <div className={`text-lg font-black ${
                     isDarkMode ? 'text-white' : 'text-gray-900'
                   }`}>
                     {metrics.pContribucion.toFixed(1)}%
@@ -485,15 +483,15 @@ export default function ProductsNew() {
                 </div>
 
                 {/* M-Contribución (Utilidad $) */}
-                <div className={`p-4 rounded-lg text-center ${
+                <div className={`p-2 rounded-lg text-center ${
                   isDarkMode ? 'bg-purple-950/50 border border-purple-700' : 'bg-purple-50 border border-purple-300'
                 }`}>
-                  <div className={`text-xs font-bold mb-2 ${
+                  <div className={`text-xs font-bold mb-1 ${
                     isDarkMode ? 'text-purple-300' : 'text-purple-700'
                   }`}>
-                    M-CONTRIBUCIÓN
+                    M-CONTRIB.
                   </div>
-                  <div className={`text-2xl font-black ${
+                  <div className={`text-lg font-black ${
                     isDarkMode ? 'text-purple-400' : 'text-purple-600'
                   }`}>
                     {formatMoneyDisplay(metrics.mContribucion)}

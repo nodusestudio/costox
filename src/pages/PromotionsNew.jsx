@@ -482,43 +482,29 @@ export default function PromotionsNew() {
               </div>
             </div>
 
-            {/* Análisis Inteligente */}
+            {/* Dashboard Compacto */}
             {(formData.items ?? []).length > 0 && (
-              <div className={`p-4 rounded-lg ${
+              <div className={`p-4 rounded-xl border-2 ${
                 metrics.isLosing
-                  ? 'bg-red-900/20 border-2 border-red-500'
+                  ? 'bg-red-900/20 border-red-500'
                   : metrics.isLowMargin
-                  ? 'bg-yellow-900/20 border-2 border-yellow-500'
+                  ? 'bg-yellow-900/20 border-yellow-500'
                   : isDarkMode
-                  ? 'bg-[#111827] border border-gray-700'
-                  : 'bg-gray-50 border border-gray-200'
+                  ? 'bg-gradient-to-br from-green-950 to-gray-900 border-green-700'
+                  : 'bg-gradient-to-br from-green-50 to-white border-green-300'
               }`}>
-                <h4 className={`font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  📊 Análisis Inteligente
-                </h4>
-
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                      Costo Total
-                    </span>
-                    <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>
-                      {formatMoneyDisplay(metrics.totalCost)}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                      Precio Normal (sin combo)
-                    </span>
-                    <span className="line-through">
-                      {formatMoneyDisplay(metrics.totalSuggestedPrice)}
-                    </span>
-                  </div>
-
-                  <div>
-                    <label className={`block text-xs mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Precio del Combo (Editable)
+                {/* Cabecera: Nombre + Precio en MISMA LÍNEA */}
+                <div className="flex items-center justify-between gap-4 mb-3">
+                  <h3 className={`text-lg font-bold ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    {formData.name || 'Nuevo Combo'}
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <label className={`text-xs font-bold whitespace-nowrap ${
+                      isDarkMode ? 'text-green-300' : 'text-green-700'
+                    }`}>
+                      💵 PRECIO:
                     </label>
                     <input
                       type="number"
@@ -526,57 +512,85 @@ export default function PromotionsNew() {
                       value={formData.comboPrice || metrics.totalSuggestedPrice}
                       onChange={(e) => setFormData({ ...formData, comboPrice: parseFloat(e.target.value) })}
                       onFocus={(e) => e.target.select()}
-                      className={`w-full px-3 py-2 rounded border font-bold text-lg ${
+                      className={`w-32 px-3 py-1 rounded-lg border-2 font-black text-center ${
                         isDarkMode
-                          ? 'bg-[#1f2937] border-blue-600 text-blue-400'
-                          : 'bg-white border-blue-500 text-blue-600'
+                          ? 'bg-[#0a2818] border-green-500 text-green-300'
+                          : 'bg-white border-green-500 text-green-700'
                       }`}
+                      style={{ fontSize: '2rem' }}
+                      placeholder="$ 0"
                     />
                   </div>
+                </div>
 
-                  {metrics.discountAmount > 0 && (
-                    <div className="flex justify-between items-center p-2 bg-yellow-900/20 rounded">
-                      <span className="text-yellow-400 font-semibold">Descuento aplicado</span>
-                      <span className="text-yellow-400 font-bold">
-                        -{formatMoneyDisplay(metrics.discountAmount)} ({metrics.discountPercent.toFixed(1)}%)
-                      </span>
-                    </div>
-                  )}
-
-                  <div className={`mt-3 p-3 rounded ${
-                    metrics.isLosing
-                      ? 'bg-red-900/40'
-                      : metrics.isLowMargin
-                      ? 'bg-yellow-900/40'
-                      : 'bg-green-900/40'
+                {/* Tres Cajas de Métricas - MÁS COMPACTAS */}
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Costo Total */}
+                  <div className={`p-2 rounded-lg text-center ${
+                    isDarkMode ? 'bg-blue-950/50 border border-blue-700' : 'bg-blue-50 border border-blue-300'
                   }`}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-semibold flex items-center gap-1">
-                        {metrics.isLosing ? (
-                          <><AlertTriangle size={16} className="text-red-500" /> PÉRDIDA</>
-                        ) : (
-                          <>Margen de Ganancia</>
-                        )}
-                      </span>
-                      <span className={`font-bold text-lg ${
-                        metrics.isLosing
-                          ? 'text-red-400'
-                          : metrics.isLowMargin
-                          ? 'text-yellow-400'
-                          : 'text-green-400'
-                      }`}>
-                        {metrics.profitMarginPercent.toFixed(1)}%
-                      </span>
+                    <div className={`text-xs font-bold mb-1 ${
+                      isDarkMode ? 'text-blue-300' : 'text-blue-700'
+                    }`}>
+                      COSTO
                     </div>
+                    <div className={`text-lg font-black ${
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                    }`}>
+                      {formatMoneyDisplay(metrics.totalCost)}
+                    </div>
+                  </div>
+
+                  {/* P-Contribución */}
+                  <div className={`p-2 rounded-lg text-center ${
+                    isDarkMode ? 'bg-gray-800/50 border border-gray-600' : 'bg-gray-100 border border-gray-300'
+                  }`}>
+                    <div className={`text-xs font-bold mb-1 ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      P-CONTRIB.
+                    </div>
+                    <div className={`text-lg font-black ${
+                      metrics.isLosing
+                        ? 'text-red-400'
+                        : metrics.isLowMargin
+                        ? 'text-yellow-400'
+                        : isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      {metrics.profitMarginPercent.toFixed(1)}%
+                    </div>
+                  </div>
+
+                  {/* M-Contribución (Ganancia $) */}
+                  <div className={`p-2 rounded-lg text-center ${
+                    isDarkMode ? 'bg-purple-950/50 border border-purple-700' : 'bg-purple-50 border border-purple-300'
+                  }`}>
+                    <div className={`text-xs font-bold mb-1 ${
+                      isDarkMode ? 'text-purple-300' : 'text-purple-700'
+                    }`}>
+                      M-CONTRIB.
+                    </div>
+                    <div className={`text-lg font-black ${
+                      metrics.isLosing ? 'text-red-400' : isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                    }`}>
+                      {formatMoneyDisplay(metrics.profitAmount)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info adicional: Precio Normal y Descuento */}
+                {metrics.discountAmount > 0 && (
+                  <div className="mt-3 pt-2 border-t border-gray-600">
                     <div className="flex justify-between text-xs">
                       <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                        Ganancia en $
+                        Precio Normal: <span className="line-through">{formatMoneyDisplay(metrics.totalSuggestedPrice)}</span>
                       </span>
-                      <span className={metrics.isLosing ? 'text-red-400' : 'text-green-400'}>
-                        {formatMoneyDisplay(metrics.profitAmount)}
+                      <span className="text-yellow-400 font-semibold">
+                        Descuento: {metrics.discountPercent.toFixed(1)}%
                       </span>
                     </div>
                   </div>
+                )}
 
                   {metrics.isLosing && (
                     <div className="mt-2 p-2 bg-red-900/40 border border-red-700 rounded">

@@ -72,7 +72,7 @@ export default function SearchSelect({
           className="fixed w-full mt-2 rounded-lg shadow-2xl max-h-64 overflow-hidden"
           style={{
             position: 'absolute',
-            zIndex: 9999,
+            zIndex: '10000 !important',
             backgroundColor: '#1a1a1a',
             border: '1px solid #4b5563',
             left: 0,
