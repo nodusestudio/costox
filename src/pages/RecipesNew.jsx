@@ -198,6 +198,33 @@ export default function RecipesNew() {
     }
   }
 
+  const handleDragStart = (e, recipe) => {
+    e.dataTransfer.setData('recipeId', recipe.id)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDrop = async (e, categoryId) => {
+    e.preventDefault()
+    const recipeId = e.dataTransfer.getData('recipeId')
+    const recipe = recipes.find(r => r.id === recipeId)
+    
+    if (recipe && recipe.categoryId !== categoryId) {
+      try {
+        await saveRecipe({ ...recipe, categoryId: categoryId || '' }, recipeId)
+        showToast('✅ Receta movida a categoría', 'success')
+        await loadData()
+      } catch (error) {
+        console.error('Error moving recipe:', error)
+        showToast('Error al mover', 'error')
+      }
+    }
+  }
+
   const getItemName = (item) => {
     if (item.type === 'ingredient') {
       const ing = ingredients.find(i => i.id === item.id)
@@ -300,6 +327,8 @@ export default function RecipesNew() {
       }`}>
         <button
           onClick={() => setSelectedCategoryFilter(null)}
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, null)}
           className={`px-6 py-2 font-semibold transition-all border-b-4 ${
             selectedCategoryFilter === null
               ? 'border-primary-blue text-primary-blue'
@@ -312,6 +341,8 @@ export default function RecipesNew() {
           <div key={cat.id} className="relative group">
             <button
               onClick={() => setSelectedCategoryFilter(cat.id)}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, cat.id)}
               className={`px-6 py-2 font-semibold transition-all border-b-4 ${
                 selectedCategoryFilter === cat.id
                   ? 'border-primary-blue text-primary-blue'
@@ -366,9 +397,14 @@ export default function RecipesNew() {
       {/* Grid de Recetas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {(filteredRecipes || []).map(recipe => (
-          <div key={recipe.id} className={`p-4 rounded-xl border ${
-            isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
-          }`}>
+          <div 
+            key={recipe.id} 
+            draggable
+            onDragStart={(e) => handleDragStart(e, recipe)}
+            className={`p-4 rounded-xl border cursor-move ${
+              isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
+            }`}
+          >
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
                 <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>

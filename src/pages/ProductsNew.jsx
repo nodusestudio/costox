@@ -318,6 +318,33 @@ export default function ProductsNew() {
     }
   }
 
+  const handleDragStart = (e, product) => {
+    e.dataTransfer.setData('productId', product.id)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDrop = async (e, categoryId) => {
+    e.preventDefault()
+    const productId = e.dataTransfer.getData('productId')
+    const product = products.find(p => p.id === productId)
+    
+    if (product && product.categoryId !== categoryId) {
+      try {
+        await saveProduct({ ...product, categoryId: categoryId || '' }, productId)
+        showToast('✅ Producto movido a categoría', 'success')
+        await loadData()
+      } catch (error) {
+        console.error('Error moving product:', error)
+        showToast('Error al mover', 'error')
+      }
+    }
+  }
+
   const metrics = calculateMetrics()
 
   // Filtrar productos por categoría
@@ -359,6 +386,8 @@ export default function ProductsNew() {
       }`}>
         <button
           onClick={() => setSelectedCategoryFilter(null)}
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, null)}
           className={`px-6 py-2 font-semibold transition-all border-b-4 ${
             selectedCategoryFilter === null
               ? 'border-primary-blue text-primary-blue'
@@ -371,6 +400,8 @@ export default function ProductsNew() {
           <div key={cat.id} className="relative group">
             <button
               onClick={() => setSelectedCategoryFilter(cat.id)}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, cat.id)}
               className={`px-6 py-2 font-semibold transition-all border-b-4 ${
                 selectedCategoryFilter === cat.id
                   ? 'border-primary-blue text-primary-blue'
@@ -427,9 +458,14 @@ export default function ProductsNew() {
         {(filteredProducts ?? []).map(product => {
           const recalculated = recalculateProductMetrics(product)
           return (
-          <div key={product.id} className={`p-4 rounded-xl border ${
-            isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
-          }`}>
+          <div 
+            key={product.id} 
+            draggable
+            onDragStart={(e) => handleDragStart(e, product)}
+            className={`p-4 rounded-xl border cursor-move ${
+              isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
+            }`}
+          >
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
                 <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>

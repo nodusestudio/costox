@@ -236,6 +236,33 @@ export default function PromotionsNew() {
     }
   }
 
+  const handleDragStart = (e, promotion) => {
+    e.dataTransfer.setData('promotionId', promotion.id)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDrop = async (e, categoryId) => {
+    e.preventDefault()
+    const promotionId = e.dataTransfer.getData('promotionId')
+    const promotion = promotions.find(p => p.id === promotionId)
+    
+    if (promotion && promotion.categoryId !== categoryId) {
+      try {
+        await savePromotion({ ...promotion, categoryId: categoryId || '' }, promotionId)
+        showToast('✅ Combo movido a categoría', 'success')
+        await loadData()
+      } catch (error) {
+        console.error('Error moving promotion:', error)
+        showToast('Error al mover', 'error')
+      }
+    }
+  }
+
   const metrics = calculateMetrics()
 
   // Filtrar promociones por categoría
@@ -277,6 +304,8 @@ export default function PromotionsNew() {
       }`}>
         <button
           onClick={() => setSelectedCategoryFilter(null)}
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, null)}
           className={`px-6 py-2 font-semibold transition-all border-b-4 ${
             selectedCategoryFilter === null
               ? 'border-primary-blue text-primary-blue'
@@ -289,6 +318,8 @@ export default function PromotionsNew() {
           <div key={cat.id} className="relative group">
             <button
               onClick={() => setSelectedCategoryFilter(cat.id)}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, cat.id)}
               className={`px-6 py-2 font-semibold transition-all border-b-4 ${
                 selectedCategoryFilter === cat.id
                   ? 'border-primary-blue text-primary-blue'
@@ -343,15 +374,20 @@ export default function PromotionsNew() {
       {/* Grid de Combos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {(filteredPromotions || []).map(promo => (
-          <div key={promo.id} className={`p-4 rounded-xl border ${
-            promo.isLosing
-              ? 'border-red-500 bg-red-900/10'
-              : promo.profitMarginPercent < 20
-              ? 'border-yellow-500 bg-yellow-900/10'
-              : isDarkMode
-              ? 'bg-[#1f2937] border-gray-700'
-              : 'bg-white border-gray-200'
-          }`}>
+          <div 
+            key={promo.id} 
+            draggable
+            onDragStart={(e) => handleDragStart(e, promo)}
+            className={`p-4 rounded-xl border cursor-move ${
+              promo.isLosing
+                ? 'border-red-500 bg-red-900/10'
+                : promo.profitMarginPercent < 20
+                ? 'border-yellow-500 bg-yellow-900/10'
+                : isDarkMode
+                ? 'bg-[#1f2937] border-gray-700'
+                : 'bg-white border-gray-200'
+            }`}
+          >
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2">
