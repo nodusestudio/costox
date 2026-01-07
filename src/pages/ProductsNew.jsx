@@ -109,7 +109,7 @@ export default function ProductsNew() {
     items.forEach(item => {
       if (!item || !item.id) return
       
-      if (item.type === 'ingredient') {
+      if (item.type === 'ingredient-embalaje' || item.type === 'ingredient-receta') {
         const ing = ingredients.find(i => i.id === item.id)
         if (ing) {
           const cantidadUsada = parseFloat(item.quantity || 0)
@@ -129,7 +129,7 @@ export default function ProductsNew() {
             costoIngredientes += ing.costWithWastage * cantidadUsada
           }
         }
-      } else {
+      } else if (item.type === 'recipe') {
         const rec = recipes.find(r => r.id === item.id)
         if (rec) {
           const cantidadUsada = parseFloat(item.quantity || 1)
@@ -413,13 +413,13 @@ export default function ProductsNew() {
             </div>
 
             {/* HEADER COMPACTO: Nombre + Precio en línea horizontal */}
-            <div className={`p-4 rounded-xl border-2 ${
+            <div className={`p-2 rounded-xl border-2 ${
               isDarkMode 
                 ? 'bg-gradient-to-br from-green-950 to-gray-900 border-green-700' 
                 : 'bg-gradient-to-br from-green-50 to-white border-green-300'
             }`}>
               {/* Cabecera: Nombre + Precio en MISMA LÍNEA */}
-              <div className="flex items-center justify-between gap-4 mb-3">
+              <div className="flex items-center justify-between gap-4 mb-2">
                 <h3 className={`text-lg font-bold ${
                   isDarkMode ? 'text-white' : 'text-gray-900'
                 }`}>
@@ -512,7 +512,11 @@ export default function ProductsNew() {
                     📦 EMBALAJE
                   </h4>
                   <button
-                    onClick={() => handleAddItem('ingredient')}
+                    onClick={() => {
+                      const updatedItems = [...(formData.items || [])]
+                      updatedItems.push({ type: 'ingredient-embalaje', id: '', quantity: 0 })
+                      setFormData({ ...formData, items: updatedItems })
+                    }}
                     className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium"
                   >
                     + Ingrediente
@@ -534,7 +538,7 @@ export default function ProductsNew() {
                   {/* Lista de Ingredientes */}
                   <div className="max-h-[300px] overflow-y-auto">
                     {(formData.items ?? [])
-                      .filter(item => item.type === 'ingredient')
+                      .filter(item => item.type === 'ingredient-embalaje')
                       .map((item, index) => {
                         const ing = ingredients.find(i => i.id === item.id)
                         const cantidadUsada = parseFloat(item.quantity || 0)
@@ -608,7 +612,7 @@ export default function ProductsNew() {
                         )
                       })}
 
-                    {(formData.items ?? []).filter(item => item.type === 'ingredient').length === 0 && (
+                    {(formData.items ?? []).filter(item => item.type === 'ingredient-embalaje').length === 0 && (
                       <div className={`text-center py-8 ${
                         isDarkMode ? 'text-gray-500' : 'text-gray-400'
                       }`}>
@@ -629,7 +633,11 @@ export default function ProductsNew() {
                   </h4>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleAddItem('ingredient')}
+                      onClick={() => {
+                        const updatedItems = [...(formData.items || [])]
+                        updatedItems.push({ type: 'ingredient-receta', id: '', quantity: 0 })
+                        setFormData({ ...formData, items: updatedItems })
+                      }}
                       className="px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium"
                     >
                       + Ing
@@ -658,12 +666,12 @@ export default function ProductsNew() {
                   {/* Lista de Ingredientes y Recetas */}
                   <div className="max-h-[300px] overflow-y-auto">
                     {(formData.items ?? [])
-                      .filter(item => item.type === 'recipe' || item.type === 'ingredient')
+                      .filter(item => item.type === 'recipe' || item.type === 'ingredient-receta')
                       .map((item, index) => {
                         let itemData, costoProporcional = 0
                         const cantidadUsada = parseFloat(item.quantity || 1)
 
-                        if (item.type === 'ingredient') {
+                        if (item.type === 'ingredient-receta') {
                           itemData = ingredients.find(i => i.id === item.id)
                           if (itemData) {
                             if (itemData.costoPorGramo && itemData.costoPorGramo > 0) {
@@ -697,7 +705,7 @@ export default function ProductsNew() {
                               isDarkMode ? 'text-gray-300' : 'text-gray-700'
                             }`}>
                               <SearchSelect
-                                options={item.type === 'ingredient' ? ingredients : recipes}
+                                options={item.type === 'ingredient-receta' ? ingredients : recipes}
                                 value={item.id}
                                 onChange={(value) => handleItemChange(
                                   (formData.items ?? []).indexOf(item),
@@ -743,7 +751,7 @@ export default function ProductsNew() {
                         )
                       })}
 
-                    {(formData.items ?? []).filter(item => item.type === 'recipe' || item.type === 'ingredient').length === 0 && (
+                    {(formData.items ?? []).filter(item => item.type === 'recipe' || item.type === 'ingredient-receta').length === 0 && (
                       <div className={`text-center py-8 ${
                         isDarkMode ? 'text-gray-500' : 'text-gray-400'
                       }`}>

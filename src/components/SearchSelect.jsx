@@ -71,7 +71,7 @@ export default function SearchSelect({
         <div 
           style={{
             position: 'fixed',
-            zIndex: 999999,
+            zIndex: 100000,
             backgroundColor: '#1a1a1a',
             border: '1px solid #4b5563',
             top: containerRef.current?.getBoundingClientRect().bottom + window.scrollY + 8 + 'px',
