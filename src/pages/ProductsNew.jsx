@@ -418,6 +418,15 @@ export default function ProductsNew() {
                 ? 'bg-gradient-to-br from-green-950 to-gray-900 border-green-700' 
                 : 'bg-gradient-to-br from-green-50 to-white border-green-300'
             }`}>
+              {/* Nombre del Producto - Superior Izquierda */}
+              <div className="mb-4">
+                <h3 className={`text-xl font-bold ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>
+                  {formData.name || 'Nuevo Producto'}
+                </h3>
+              </div>
+
               {/* Precio de Venta - EXTRA GRANDE */}
               <div className="text-center mb-6">
                 <label className={`block text-sm font-bold mb-2 ${

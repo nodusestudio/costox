@@ -68,7 +68,17 @@ export default function SearchSelect({
       </div>
 
       {isOpen && (
-        <div className="absolute z-[9999] w-full mt-2 bg-[#111827] border border-gray-600 rounded-lg shadow-xl max-h-64 overflow-hidden">
+        <div 
+          className="fixed w-full mt-2 rounded-lg shadow-2xl max-h-64 overflow-hidden"
+          style={{
+            position: 'absolute',
+            zIndex: 9999,
+            backgroundColor: '#1a1a1a',
+            border: '1px solid #4b5563',
+            left: 0,
+            right: 0
+          }}
+        >
           <div className="p-2 border-b border-gray-600">
             <input
               type="text"

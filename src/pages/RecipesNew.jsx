@@ -345,31 +345,6 @@ export default function RecipesNew() {
             </div>
 
             <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                Peso Total (gramos) *
-              </label>
-              <input
-                type="number"
-                value={formData.pesoTotal}
-                onChange={(e) => setFormData({ ...formData, pesoTotal: parseFloat(e.target.value) || 0 })}
-                onFocus={(e) => e.target.select()}
-                className={`w-full px-4 py-2 rounded-lg border ${
-                  isDarkMode
-                    ? 'bg-[#111827] border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-                placeholder="Ej: 1000"
-                min="0"
-                step="1"
-              />
-              <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
-                Peso total de la receta para calcular costo por gramo
-              </p>
-            </div>
-
-            <div>
               <div className="flex items-center justify-between mb-3">
                 <label className={`block text-sm font-medium ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
@@ -453,20 +428,83 @@ export default function RecipesNew() {
 
             {/* Preview del costo */}
             {(formData.ingredients || []).length > 0 && (
-              <div className={`p-3 rounded-lg ${
-                isDarkMode ? 'bg-green-900/20 border border-green-700' : 'bg-green-50 border border-green-200'
+              <div className={`p-6 rounded-xl border-2 ${
+                isDarkMode 
+                  ? 'bg-gradient-to-br from-blue-950 to-gray-900 border-blue-700' 
+                  : 'bg-gradient-to-br from-blue-50 to-white border-blue-300'
               }`}>
-                <div className="flex justify-between items-center">
-                  <span className={`text-sm font-medium ${
-                    isDarkMode ? 'text-green-300' : 'text-green-700'
+                {/* Nombre de la Receta - Superior */}
+                <div className="mb-4">
+                  <h3 className={`text-xl font-bold ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
                   }`}>
-                    Costo Total Estimado
-                  </span>
-                  <span className={`font-bold ${
-                    isDarkMode ? 'text-green-400' : 'text-green-600'
+                    {formData.name || 'Nueva Receta'}
+                  </h3>
+                </div>
+
+                {/* Peso Total - GRANDE */}
+                <div className="text-center mb-6">
+                  <label className={`block text-sm font-bold mb-2 ${
+                    isDarkMode ? 'text-blue-300' : 'text-blue-700'
                   }`}>
-                    {formatMoneyDisplay(calculatePreviewCost())}
-                  </span>
+                    ⚖️ PESO TOTAL (GRAMOS)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.pesoTotal}
+                    onChange={(e) => setFormData({ ...formData, pesoTotal: parseFloat(e.target.value) || 0 })}
+                    onFocus={(e) => e.target.select()}
+                    className={`w-full px-6 py-4 rounded-xl border-3 font-black text-center ${
+                      isDarkMode
+                        ? 'bg-[#0a1828] border-blue-500 text-blue-300'
+                        : 'bg-white border-blue-500 text-blue-700'
+                    }`}
+                    style={{ fontSize: '48px' }}
+                    placeholder="1000"
+                    min="0"
+                    step="1"
+                  />
+                  <p className={`text-xs mt-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                    Para calcular costo por gramo
+                  </p>
+                </div>
+
+                {/* Dos Cajas de Métricas */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Costo Total */}
+                  <div className={`p-4 rounded-lg text-center ${
+                    isDarkMode ? 'bg-green-950/50 border border-green-700' : 'bg-green-50 border border-green-300'
+                  }`}>
+                    <div className={`text-xs font-bold mb-2 ${
+                      isDarkMode ? 'text-green-300' : 'text-green-700'
+                    }`}>
+                      COSTO TOTAL
+                    </div>
+                    <div className={`text-2xl font-black ${
+                      isDarkMode ? 'text-green-400' : 'text-green-600'
+                    }`}>
+                      {formatMoneyDisplay(calculatePreviewCost())}
+                    </div>
+                  </div>
+
+                  {/* Costo por Gramo */}
+                  <div className={`p-4 rounded-lg text-center ${
+                    isDarkMode ? 'bg-purple-950/50 border border-purple-700' : 'bg-purple-50 border border-purple-300'
+                  }`}>
+                    <div className={`text-xs font-bold mb-2 ${
+                      isDarkMode ? 'text-purple-300' : 'text-purple-700'
+                    }`}>
+                      COSTO/GRAMO
+                    </div>
+                    <div className={`text-2xl font-black ${
+                      isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                    }`}>
+                      {formData.pesoTotal > 0 
+                        ? formatMoneyDisplay(calculatePreviewCost() / formData.pesoTotal) + '/g'
+                        : '$ 0/g'
+                      }
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
