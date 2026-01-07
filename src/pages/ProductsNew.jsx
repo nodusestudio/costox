@@ -11,7 +11,7 @@ import { useCategories } from '@/context/CategoriesContext'
 
 export default function ProductsNew() {
   const { isDarkMode } = useI18n()
-  const { categories } = useCategories()
+  const { categories, saveCategory, deleteCategory } = useCategories()
   const [products, setProducts] = useState([])
   const [ingredients, setIngredients] = useState([])
   const [recipes, setRecipes] = useState([])
@@ -19,6 +19,9 @@ export default function ProductsNew() {
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(null)
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [editingCategory, setEditingCategory] = useState(null)
+  const [categoryName, setCategoryName] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -299,6 +302,22 @@ export default function ProductsNew() {
     }
   }
 
+  const handleDuplicate = async (product) => {
+    try {
+      const duplicated = {
+        ...product,
+        name: `${product.name} (Copia)`,
+      }
+      delete duplicated.id
+      await saveProduct(duplicated)
+      showToast('✅ Producto duplicado exitosamente', 'success')
+      await loadData()
+    } catch (error) {
+      console.error('Error duplicating product:', error)
+      showToast('Error al duplicar', 'error')
+    }
+  }
+
   const metrics = calculateMetrics()
 
   // Filtrar productos por categoría
@@ -334,36 +353,73 @@ export default function ProductsNew() {
         </button>
       </div>
 
-      {/* Filtros de Categoría */}
-      <div className="flex gap-2 flex-wrap items-center">
+      {/* Pestañas de Categoría */}
+      <div className={`flex gap-2 items-center border-b-2 pb-3 ${
+        isDarkMode ? 'border-gray-700' : 'border-gray-200'
+      }`}>
         <button
           onClick={() => setSelectedCategoryFilter(null)}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+          className={`px-6 py-2 font-semibold transition-all border-b-4 ${
             selectedCategoryFilter === null
-              ? 'bg-primary-blue text-white'
-              : isDarkMode
-              ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              ? 'border-primary-blue text-primary-blue'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
-          Todas
+          📋 Todas
         </button>
         {categories.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setSelectedCategoryFilter(cat.id)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              selectedCategoryFilter === cat.id
-                ? `bg-${cat.color}-600 text-white`
-                : isDarkMode
-                ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-            style={selectedCategoryFilter === cat.id ? { backgroundColor: cat.color } : {}}
-          >
-            {cat.name}
-          </button>
+          <div key={cat.id} className="relative group">
+            <button
+              onClick={() => setSelectedCategoryFilter(cat.id)}
+              className={`px-6 py-2 font-semibold transition-all border-b-4 ${
+                selectedCategoryFilter === cat.id
+                  ? 'border-primary-blue text-primary-blue'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {cat.name}
+            </button>
+            {selectedCategoryFilter === cat.id && (
+              <div className="absolute -top-1 -right-1 flex gap-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setEditingCategory(cat)
+                    setCategoryName(cat.name)
+                    setShowCategoryModal(true)
+                  }}
+                  className="p-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg"
+                  title="Editar categoría"
+                >
+                  <Edit2 size={12} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (window.confirm(`¿Eliminar la categoría "${cat.name}"?`)) {
+                      deleteCategory(cat.id)
+                      setSelectedCategoryFilter(null)
+                    }
+                  }}
+                  className="p-1 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg"
+                  title="Eliminar categoría"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            )}
+          </div>
         ))}
+        <button
+          onClick={() => {
+            setEditingCategory(null)
+            setCategoryName('')
+            setShowCategoryModal(true)
+          }}
+          className="ml-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors text-sm"
+        >
+          + Categoría
+        </button>
       </div>
 
       {/* Grid de Productos */}
@@ -386,6 +442,17 @@ export default function ProductsNew() {
                 )}
               </div>
               <div className="flex gap-1">
+                <button
+                  onClick={() => handleDuplicate(product)}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDarkMode
+                      ? 'hover:bg-[#111827] text-green-400'
+                      : 'hover:bg-gray-100 text-green-600'
+                  }`}
+                  title="Duplicar producto"
+                >
+                  <Plus size={16} />
+                </button>
                 <button
                   onClick={() => handleOpenModal(product)}
                   className={`p-2 rounded-lg transition-colors ${
@@ -981,6 +1048,61 @@ export default function ProductsNew() {
                 className="px-6 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors font-medium"
               >
                 Guardar
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal de Categoría */}
+      {showCategoryModal && (
+        <Modal
+          title={editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
+          onClose={() => setShowCategoryModal(false)}
+        >
+          <div className="space-y-4">
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Nombre de la Categoría
+              </label>
+              <input
+                type="text"
+                value={categoryName}
+                onChange={(e) => setCategoryName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && categoryName.trim()) {
+                    saveCategory({ name: categoryName.trim() }, editingCategory?.id)
+                    setShowCategoryModal(false)
+                  }
+                }}
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  isDarkMode
+                    ? 'bg-[#111827] border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+                placeholder="Ej: Bebidas, Postres, Principales..."
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowCategoryModal(false)}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  if (categoryName.trim()) {
+                    saveCategory({ name: categoryName.trim() }, editingCategory?.id)
+                    setShowCategoryModal(false)
+                  }
+                }}
+                className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors"
+              >
+                {editingCategory ? 'Actualizar' : 'Crear'}
               </button>
             </div>
           </div>
