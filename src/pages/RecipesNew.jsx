@@ -573,7 +573,7 @@ export default function RecipesNew() {
                         <div style={{ width: '12.5%' }} className="flex items-center">
                           <input
                             type="number"
-                            step="0.01"
+                            step="1"
                             value={item.quantity}
                             onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
                             onFocus={(e) => e.target.select()}

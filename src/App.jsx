@@ -48,7 +48,6 @@ function AppContent() {
     { id: 'recipes', label: t('recipes'), icon: BookOpen, component: RecipesNew },
     { id: 'products', label: t('products'), icon: ShoppingCart, component: ProductsNew },
     { id: 'promotions', label: t('promotions'), icon: Tags, component: PromotionsNew },
-    { id: 'categories', label: 'Categorías', icon: Folder, component: CategoriesManager },
     { id: 'settings', label: t('settings'), icon: Settings, component: SettingsPage },
   ]
 

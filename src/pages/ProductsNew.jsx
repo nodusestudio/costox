@@ -794,7 +794,7 @@ export default function ProductsNew() {
                             <div style={{ width: '12.5%' }} className="flex items-center">
                               <input
                                 type="number"
-                                step="0.01"
+                                step="1"
                                 value={item.quantity}
                                 onChange={(e) => handleItemChange(
                                   (formData.items ?? []).indexOf(item),
@@ -947,7 +947,7 @@ export default function ProductsNew() {
                             <div style={{ width: '12.5%' }} className="flex items-center">
                               <input
                                 type="number"
-                                step="0.01"
+                                step="1"
                                 value={item.quantity}
                                 onChange={(e) => handleItemChange(
                                   (formData.items ?? []).indexOf(item),
