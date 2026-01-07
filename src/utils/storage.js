@@ -271,7 +271,37 @@ export const saveRecipe = async (recipe, id = null) => {
     }
     
     console.log(`🍳 Guardando receta: ${recipe.name} - Costo Total: $${totalCost.toFixed(2)}`)
-    return await saveDoc(COLLECTIONS.recipes, recipeData, id)
+
+    const savedRecipeId = await saveDoc(COLLECTIONS.recipes, recipeData, id)
+
+    // Sincronización con Productos: recalcular el costo de productos que usan esta receta
+    try {
+      const allProducts = await getAllDocs(COLLECTIONS.products)
+      const productsToUpdate = (allProducts || []).filter(p => {
+        const items = Array.isArray(p.items) ? p.items : []
+        return items.some(it => it && it.type === 'recipe' && it.id === savedRecipeId)
+      })
+
+      for (const product of productsToUpdate) {
+        const items = Array.isArray(product.items) ? product.items : []
+        const productWithItems = { ...product, items }
+        const metrics = await calculateProductMetrics(productWithItems)
+
+        await saveDoc(
+          COLLECTIONS.products,
+          {
+            ...productWithItems,
+            ...metrics,
+            updatedAt: new Date().toISOString()
+          },
+          product.id
+        )
+      }
+    } catch (syncError) {
+      console.error('Error syncing products after recipe save:', syncError)
+    }
+
+    return savedRecipeId
   } catch (error) {
     console.error('Error saving recipe:', error)
     throw error

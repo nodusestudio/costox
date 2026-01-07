@@ -44,13 +44,17 @@ export default function Dashboard() {
   const totalPromotions = promotions.length
   
   const totalRevenue = (products ?? []).reduce((sum, p) => sum + ((p.salePrice || 0) * (p.quantity || 0)), 0)
-  const totalCost = (products ?? []).reduce((sum, p) => sum + ((p.realCost || 0) * (p.quantity || 0)), 0)
+  const totalCost = (products ?? []).reduce(
+    (sum, p) => sum + (((p.totalCost ?? p.realCost) || 0) * (p.quantity || 0)),
+    0
+  )
   const totalProfit = totalRevenue - totalCost
   const avgMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0
 
   // Productos con margen bajo (< 30%)
   const lowMarginProducts = (products ?? []).filter(p => {
-    const margin = (p.salePrice || 0) > 0 ? (((p.salePrice || 0) - (p.realCost || 0)) / (p.salePrice || 0)) * 100 : 0
+    const cost = (p.totalCost ?? p.realCost) || 0
+    const margin = (p.salePrice || 0) > 0 ? (((p.salePrice || 0) - cost) / (p.salePrice || 0)) * 100 : 0
     return margin < 30
   })
 

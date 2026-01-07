@@ -128,10 +128,14 @@ export default function ProductsNew() {
         } else if (item.type === 'recipe') {
           const rec = recipes.find(r => r.id === item.id)
           if (rec) {
-            const cantidadUsada = parseFloat(item.quantity || 1)
+            const cantidadUsada = parseFloat(item.quantity || 0)
             if (rec.costoPorGramo && rec.costoPorGramo > 0) {
               costoIngredientes += rec.costoPorGramo * cantidadUsada
-            } else if (rec.totalCost) {
+            } else if (rec.totalCost && rec.pesoTotal && rec.pesoTotal > 0) {
+              const costoPorGramo = rec.totalCost / rec.pesoTotal
+              costoIngredientes += costoPorGramo * cantidadUsada
+            } else if (rec.totalCost && (!rec.pesoTotal || rec.pesoTotal === 0)) {
+              // Fallback: si no hay peso, asumimos 1g para evitar división por cero
               costoIngredientes += rec.totalCost * cantidadUsada
             }
           }

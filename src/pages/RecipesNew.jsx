@@ -191,61 +191,15 @@ export default function RecipesNew() {
   }
 
   const calculatePreviewCost = () => {
-    let total = 0
-    const items = formData.ingredients || []
-    
-    // Validar que sea un array
-    if (!Array.isArray(items)) {
-      return 0
+    const items = Array.isArray(formData.ingredients) ? formData.ingredients : []
+
+    // Suma simple: el total es estrictamente la suma de cada fila visible
+    // (sin acumular sobre ejecuciones anteriores).
+    let totalCosto = 0
+    for (const item of items) {
+      totalCosto += calculateItemCost(item)
     }
-    
-    items.forEach(item => {
-      if (!item || !item.id) return
-      
-      if (item.type === 'ingredient') {
-        const ing = ingredients.find(i => i.id === item.id)
-        if (ing) {
-          const quantity = parseFloat(item.quantity || 0)
-          
-          // DEBUG: Mostrar TODOS los datos del ingrediente
-          console.log('═══════════════════════════════════════')
-          console.log(`📦 INGREDIENTE: ${ing.name}`)
-          console.log(`   Cantidad usada: ${quantity}`)
-          console.log(`   costoPorGramo: ${ing.costoPorGramo}`)
-          console.log(`   pesoEmpaqueTotal: ${ing.pesoEmpaqueTotal}`)
-          console.log(`   costWithWastage: ${ing.costWithWastage}`)
-          console.log(`   purchaseCost: ${ing.purchaseCost}`)
-          console.log('═══════════════════════════════════════')
-          
-          // Usar costoPorGramo si está disponible (recomendado)
-          if (ing.costoPorGramo && ing.costoPorGramo > 0) {
-            const cost = ing.costoPorGramo * quantity
-            console.log(`✅ USANDO costoPorGramo: ${quantity}g × $${ing.costoPorGramo.toFixed(4)}/g = $${cost.toFixed(2)}`)
-            total += cost
-          } 
-          // Fallback 1: Calcular usando pesoEmpaqueTotal
-          else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
-            const costoPorGramo = ing.costWithWastage / ing.pesoEmpaqueTotal
-            const cost = costoPorGramo * quantity
-            console.log(`⚠️ FALLBACK1 (Calculando): ${quantity}g × $${costoPorGramo.toFixed(4)}/g = $${cost.toFixed(2)}`)
-            total += cost
-          } 
-          // Fallback 2: Ingredientes muy antiguos
-          else if (ing.costWithWastage) {
-            const cost = ing.costWithWastage * quantity
-            console.log(`❌ ERROR FALLBACK2 (Sin divisor): ${quantity} × $${ing.costWithWastage} = $${cost.toFixed(2)}`)
-            console.log(`   ⚠️ ESTE INGREDIENTE NECESITA EDICIÓN: Falta pesoEmpaqueTotal`)
-            total += cost
-          }
-        }
-      } else {
-        const rec = recipes.find(r => r.id === item.id)
-        if (rec && rec.totalCost) {
-          total += rec.totalCost * parseFloat(item.quantity || 1)
-        }
-      }
-    })
-    return total
+    return totalCosto
   }
 
   if (loading) {
