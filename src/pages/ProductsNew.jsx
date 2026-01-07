@@ -95,6 +95,72 @@ export default function ProductsNew() {
     setFormData({ ...formData, items: updated })
   }
 
+  // Recalcular métricas de un producto guardado (sincronización con Excel)
+  const recalculateProductMetrics = (product) => {
+    try {
+      const items = Array.isArray(product.items) ? product.items : []
+      let costoIngredientes = 0
+
+      items.forEach(item => {
+        if (!item || !item.id) return
+        
+        if (item.type === 'ingredient-embalaje' || item.type === 'ingredient-receta' || item.type === 'ingredient') {
+          const ing = ingredients.find(i => i.id === item.id)
+          if (ing) {
+            const cantidadUsada = parseFloat(item.quantity || 0)
+            
+            if (ing.costoPorGramo && ing.costoPorGramo > 0) {
+              costoIngredientes += ing.costoPorGramo * cantidadUsada
+            } 
+            else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
+              costoIngredientes += calcularCostoProporcional(
+                ing.costWithWastage, 
+                ing.pesoEmpaqueTotal, 
+                cantidadUsada
+              )
+            } 
+            else if (ing.costWithWastage) {
+              costoIngredientes += ing.costWithWastage * cantidadUsada
+            }
+          }
+        } else if (item.type === 'recipe') {
+          const rec = recipes.find(r => r.id === item.id)
+          if (rec) {
+            const cantidadUsada = parseFloat(item.quantity || 1)
+            if (rec.costoPorGramo && rec.costoPorGramo > 0) {
+              costoIngredientes += rec.costoPorGramo * cantidadUsada
+            } else if (rec.totalCost) {
+              costoIngredientes += rec.totalCost * cantidadUsada
+            }
+          }
+        }
+      })
+
+      const manoDeObra = parseFloat(product.laborCost || 0)
+      const costoTotal = costoIngredientes + manoDeObra
+      const precioVenta = parseFloat(product.realSalePrice) || 0
+
+      // Fórmula Excel: P-CONTRIBUCIÓN = (1 - Costo/Venta) * 100
+      const pContribucion = precioVenta > 0 ? (1 - (costoTotal / precioVenta)) * 100 : 0
+      const mContribucion = precioVenta - costoTotal
+
+      return {
+        ingredientsCost: costoIngredientes,
+        totalCost: costoTotal,
+        pContribucion: pContribucion,
+        mContribucion: mContribucion
+      }
+    } catch (error) {
+      console.error('Error calculando métricas:', error)
+      return {
+        ingredientsCost: 0,
+        totalCost: 0,
+        pContribucion: 0,
+        mContribucion: 0
+      }
+    }
+  }
+
   const calculateMetrics = () => {
     // Asegurar que items sea SIEMPRE un array
     const items = Array.isArray(formData.items) ? formData.items : []
@@ -228,7 +294,9 @@ export default function ProductsNew() {
 
       {/* Grid de Productos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(products ?? []).map(product => (
+        {(products ?? []).map(product => {
+          const recalculated = recalculateProductMetrics(product)
+          return (
           <div key={product.id} className={`p-4 rounded-xl border ${
             isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
           }`}>
@@ -273,7 +341,7 @@ export default function ProductsNew() {
                   Ingredientes
                 </span>
                 <span className={`font-semibold ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
-                  {formatMoneyDisplay(product.ingredientsCost || 0)}
+                  {formatMoneyDisplay(recalculated.ingredientsCost)}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
@@ -291,7 +359,7 @@ export default function ProductsNew() {
                   COSTO UNIDAD (CT)
                 </span>
                 <span className={`font-bold text-xl ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                  {formatMoneyDisplay(product.totalCost || 0)}
+                  {formatMoneyDisplay(recalculated.totalCost)}
                 </span>
               </div>
             </div>
@@ -308,7 +376,7 @@ export default function ProductsNew() {
               
               {/* P-CONTRIBUCIÓN (% Utilidad) */}
               <div className={`mt-2 p-3 rounded-lg border-2 ${
-                (product.pContribucion || product.foodCostPercent || 0) < 30
+                recalculated.pContribucion < 30
                   ? isDarkMode ? 'bg-red-900/40 border-red-600' : 'bg-red-100 border-red-400'
                   : isDarkMode ? 'bg-green-900/40 border-green-700' : 'bg-green-100 border-green-400'
               }`}>
@@ -319,18 +387,18 @@ export default function ProductsNew() {
                     P-CONTRIBUCIÓN
                   </span>
                   <span className={`text-2xl font-black ${
-                    (product.pContribucion || product.foodCostPercent || 0) < 30
+                    recalculated.pContribucion < 30
                       ? isDarkMode ? 'text-red-400' : 'text-red-600'
                       : isDarkMode ? 'text-green-400' : 'text-green-600'
                   }`}>
-                    {(product.pContribucion || product.foodCostPercent || 0).toFixed(1)}%
+                    {recalculated.pContribucion.toFixed(1)}%
                   </span>
                 </div>
               </div>
 
               {/* M-CONTRIBUCIÓN (Utilidad $) */}
               <div className={`p-3 rounded-lg ${
-                (product.mContribucion ?? product.actualProfit ?? 0) >= 0
+                recalculated.mContribucion >= 0
                   ? isDarkMode ? 'bg-green-900/40' : 'bg-green-100'
                   : isDarkMode ? 'bg-red-900/40' : 'bg-red-100'
               }`}>
@@ -341,17 +409,18 @@ export default function ProductsNew() {
                     M-CONTRIBUCIÓN
                   </span>
                   <span className={`text-xl font-black ${
-                    (product.mContribucion ?? product.actualProfit ?? 0) >= 0
+                    recalculated.mContribucion >= 0
                       ? isDarkMode ? 'text-green-400' : 'text-green-600'
                       : isDarkMode ? 'text-red-400' : 'text-red-600'
                   }`}>
-                    {formatMoneyDisplay(product.mContribucion ?? product.actualProfit ?? 0)}
+                    {formatMoneyDisplay(recalculated.mContribucion)}
                   </span>
                 </div>
               </div>
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {products.length === 0 && (
