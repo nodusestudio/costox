@@ -69,14 +69,18 @@ export default function SearchSelect({
 
       {isOpen && (
         <div 
-          className="fixed w-full mt-2 rounded-lg shadow-2xl max-h-64 overflow-hidden"
           style={{
-            position: 'absolute',
-            zIndex: '10000 !important',
+            position: 'fixed',
+            zIndex: 999999,
             backgroundColor: '#1a1a1a',
             border: '1px solid #4b5563',
-            left: 0,
-            right: 0
+            top: containerRef.current?.getBoundingClientRect().bottom + window.scrollY + 8 + 'px',
+            left: containerRef.current?.getBoundingClientRect().left + 'px',
+            width: containerRef.current?.getBoundingClientRect().width + 'px',
+            maxHeight: '16rem',
+            borderRadius: '0.5rem',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            overflow: 'hidden'
           }}
         >
           <div className="p-2 border-b border-gray-600">
