@@ -190,11 +190,12 @@ export default function PromotionsNew() {
 
     try {
       await savePromotion(formData, editingId)
+      showToast('✅ Guardado satisfactoriamente', 'success')
       setShowModal(false)
       await loadData()
     } catch (error) {
       console.error('Error saving promotion:', error)
-      alert('Error al guardar')
+      showToast('Error al guardar', 'error')
     }
   }
 

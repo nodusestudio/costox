@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Plus, Edit2, Trash2, Package, BookOpen } from 'lucide-react'
 import { getRecipes, saveRecipe, deleteRecipe, getIngredients } from '@/utils/storage'
 import { formatMoneyDisplay, calcularCostoProporcional } from '@/utils/formatters'
+import { showToast } from '@/utils/toast'
 import Modal from '@/components/Modal'
 import Button from '@/components/Button'
 import SearchSelect from '@/components/SearchSelect'
@@ -20,6 +21,7 @@ export default function RecipesNew() {
     pesoTotal: 0, // Peso total de la receta en gramos
     ingredients: [], // { type: 'ingredient' | 'recipe', id, quantity }
   })
+  const searchSelectRefs = useRef({})
 
   useEffect(() => {
     loadData()
@@ -104,12 +106,28 @@ export default function RecipesNew() {
 
     try {
       await saveRecipe(formData, editingId)
+      showToast('✅ Guardado satisfactoriamente', 'success')
       setShowModal(false)
       await loadData()
     } catch (error) {
       console.error('Error saving recipe:', error)
-      alert('Error al guardar')
+      showToast('Error al guardar', 'error')
     }
+  }
+
+  const handleEnterAddRow = (type) => {
+    const currentItems = Array.isArray(formData.ingredients) ? formData.ingredients : []
+    const newIndex = currentItems.length
+    setFormData({
+      ...formData,
+      ingredients: [...currentItems, { type, id: '', quantity: 1 }]
+    })
+    setTimeout(() => {
+      const ref = searchSelectRefs.current[`${type}-${newIndex}`]
+      if (ref?.focus) {
+        ref.focus()
+      }
+    }, 100)
   }
 
   const handleDelete = async (id) => {
@@ -390,6 +408,7 @@ export default function RecipesNew() {
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>
                           <SearchSelect
+                            ref={(el) => searchSelectRefs.current[`${item.type}-${index}`] = el}
                             options={item.type === 'ingredient' ? ingredients : (recipes ?? []).filter(r => r.id !== editingId)}
                             value={item.id}
                             onChange={(value) => handleItemChange(index, 'id', value)}
@@ -405,6 +424,12 @@ export default function RecipesNew() {
                             value={item.quantity}
                             onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
                             onFocus={(e) => e.target.select()}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleEnterAddRow(item.type)
+                              }
+                            }}
                             className={`w-full px-2 py-1 rounded border text-center text-xs ${
                               isDarkMode
                                 ? 'bg-[#111827] border-gray-600 text-white'

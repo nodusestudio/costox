@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { Search, X } from 'lucide-react'
 
-export default function SearchSelect({ 
+const SearchSelect = forwardRef(({ 
   options = [], 
   value, 
   onChange, 
@@ -9,10 +9,20 @@ export default function SearchSelect({
   displayKey = 'name',
   valueKey = 'id',
   className = ''
-}) {
+}, ref) => {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const containerRef = useRef(null)
+  const inputRef = useRef(null)
+
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      setIsOpen(true)
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 50)
+    }
+  }))
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -85,6 +95,7 @@ export default function SearchSelect({
         >
           <div className="p-2 border-b border-gray-600">
             <input
+              ref={inputRef}
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -116,4 +127,8 @@ export default function SearchSelect({
       )}
     </div>
   )
-}
+})
+
+SearchSelect.displayName = 'SearchSelect'
+
+export default SearchSelect

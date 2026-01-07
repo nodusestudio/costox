@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Plus, Edit2, Trash2, TrendingUp, DollarSign } from 'lucide-react'
 import { getProducts, saveProduct, deleteProduct, getIngredients, getRecipes } from '@/utils/storage'
 import { formatMoneyDisplay, calcularCostoProporcional } from '@/utils/formatters'
+import { showToast } from '@/utils/toast'
 import Modal from '@/components/Modal'
 import SearchSelect from '@/components/SearchSelect'
 import Button from '@/components/Button'
@@ -22,6 +23,7 @@ export default function ProductsNew() {
     laborCost: 0, // Mano de Obra (Operario)
     realSalePrice: 0, // Precio de Venta
   })
+  const searchSelectRefs = useRef({})
 
   useEffect(() => {
     loadData()
@@ -242,12 +244,29 @@ export default function ProductsNew() {
 
     try {
       await saveProduct(formData, editingId)
+      showToast('✅ Guardado satisfactoriamente', 'success')
       setShowModal(false)
       await loadData()
     } catch (error) {
       console.error('Error saving product:', error)
-      alert('Error al guardar')
+      showToast('Error al guardar', 'error')
     }
+  }
+
+  const handleEnterAddRow = (type) => {
+    const currentItems = Array.isArray(formData.items) ? formData.items : []
+    const newIndex = currentItems.length
+    setFormData({
+      ...formData,
+      items: [...currentItems, { type, id: '', quantity: 1 }]
+    })
+    // Focus en el nuevo SearchSelect después del render
+    setTimeout(() => {
+      const ref = searchSelectRefs.current[`${type}-${newIndex}`]
+      if (ref?.focus) {
+        ref.focus()
+      }
+    }, 100)
   }
 
   const handleDelete = async (id) => {
@@ -595,6 +614,7 @@ export default function ProductsNew() {
                               isDarkMode ? 'text-gray-300' : 'text-gray-700'
                             }`}>
                               <SearchSelect
+                                ref={(el) => searchSelectRefs.current[`ingredient-embalaje-${index}`] = el}
                                 options={ingredients}
                                 value={item.id}
                                 onChange={(value) => handleItemChange(
@@ -618,6 +638,12 @@ export default function ProductsNew() {
                                   parseFloat(e.target.value)
                                 )}
                                 onFocus={(e) => e.target.select()}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    handleEnterAddRow('ingredient-embalaje')
+                                  }
+                                }}
                                 className={`w-full px-2 py-1 rounded border text-center text-xs ${
                                   isDarkMode
                                     ? 'bg-[#111827] border-gray-600 text-white'
@@ -734,6 +760,7 @@ export default function ProductsNew() {
                               isDarkMode ? 'text-gray-300' : 'text-gray-700'
                             }`}>
                               <SearchSelect
+                                ref={(el) => searchSelectRefs.current[`${item.type}-${index}`] = el}
                                 options={item.type === 'ingredient-receta' ? ingredients : recipes}
                                 value={item.id}
                                 onChange={(value) => handleItemChange(
@@ -757,6 +784,12 @@ export default function ProductsNew() {
                                   parseFloat(e.target.value)
                                 )}
                                 onFocus={(e) => e.target.select()}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    handleEnterAddRow(item.type)
+                                  }
+                                }}
                                 className={`w-full px-2 py-1 rounded border text-center text-xs ${
                                   isDarkMode
                                     ? 'bg-[#111827] border-gray-600 text-white'

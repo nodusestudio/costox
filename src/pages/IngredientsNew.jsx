@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Upload, Download, Filter } from 'lucide-react'
 import { getIngredients, saveIngredient, deleteIngredient, getSuppliers } from '@/utils/storage'
 import { formatMoneyDisplay } from '@/utils/formatters'
+import { showToast } from '@/utils/toast'
 import Modal from '@/components/Modal'
 import Button from '@/components/Button'
 import { useI18n } from '@/context/I18nContext'
@@ -87,11 +88,12 @@ export default function IngredientsNew() {
 
     try {
       await saveIngredient(formData, editingId)
+      showToast('✅ Guardado satisfactoriamente', 'success')
       setShowModal(false)
       await loadData()
     } catch (error) {
       console.error('Error saving ingredient:', error)
-      alert('Error al guardar')
+      showToast('Error al guardar', 'error')
     }
   }
 
