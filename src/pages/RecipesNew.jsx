@@ -278,17 +278,34 @@ export default function RecipesNew() {
 
   const handleExportExcel = () => {
     try {
-      const exportData = recipes.map(recipe => {
-        const categoryName = categories.find(c => c.id === recipe.categoryId)?.name || 'Sin categoría'
-        
-        return {
-          'Nombre': recipe.name,
-          'Descripción': recipe.description || '',
-          'Categoría': categoryName,
-          'Peso Total (g)': recipe.pesoTotal || 0,
-          '% Merma': recipe.wastagePercent || 30,
-          'Costo Total': (recipe.totalCost || 0).toFixed(2),
-          'Costo por Gramo': (recipe.costoPorGramo || 0).toFixed(4)
+      const exportData = recipes.map((recipe, index) => {
+        try {
+          const categoryName = categories.find(c => c.id === recipe.categoryId)?.name || 'Sin categoría'
+          const pesoTotal = parseFloat(recipe.pesoTotal) || 0
+          const wastagePercent = parseFloat(recipe.wastagePercent) || 30
+          const totalCost = parseFloat(recipe.totalCost) || 0
+          const costoPorGramo = parseFloat(recipe.costoPorGramo) || 0
+          
+          return {
+            'Nombre': recipe.name || 'Sin nombre',
+            'Descripción': recipe.description || '',
+            'Categoría': categoryName,
+            'Peso Total (g)': pesoTotal.toFixed(0),
+            '% Merma': wastagePercent.toFixed(1),
+            'Costo Total': totalCost.toFixed(2),
+            'Costo por Gramo': costoPorGramo.toFixed(4)
+          }
+        } catch (itemError) {
+          console.error(`Error exportando receta en índice ${index}:`, recipe.name, itemError)
+          return {
+            'Nombre': recipe.name || 'Sin nombre',
+            'Descripción': 'Error al exportar',
+            'Categoría': '',
+            'Peso Total (g)': '0',
+            '% Merma': '30',
+            'Costo Total': '0.00',
+            'Costo por Gramo': '0.0000'
+          }
         }
       })
 
@@ -301,8 +318,8 @@ export default function RecipesNew() {
       
       showToast('✅ Recetas exportadas exitosamente', 'success')
     } catch (error) {
-      console.error('Error exporting recipes:', error)
-      showToast('❌ Error al exportar', 'error')
+      console.error('Error crítico al exportar recetas:', error)
+      showToast('❌ Error al exportar recetas', 'error')
     }
   }
 

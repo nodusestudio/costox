@@ -316,19 +316,38 @@ export default function PromotionsNew() {
 
   const handleExportExcel = () => {
     try {
-      const exportData = promotions.map(promo => {
-        const categoryName = categories.find(c => c.id === promo.categoryId)?.name || 'Sin categoría'
-        const metrics = calculatePromotionMetrics(promo)
-        
-        return {
-          'Nombre': promo.name,
-          'Descripción': promo.description || '',
-          'Categoría': categoryName,
-          'Costo Total': metrics.totalCost.toFixed(2),
-          'Precio Combo': (promo.comboPrice || metrics.totalSuggestedPrice).toFixed(2),
-          'Margen %': metrics.profitMarginPercent.toFixed(2),
-          'Utilidad $': metrics.profitMarginValue.toFixed(2),
-          'Estado': promo.isLosing ? 'Perdiendo' : metrics.profitMarginPercent < 20 ? 'Margen bajo' : 'Normal'
+      const exportData = promotions.map((promo, index) => {
+        try {
+          const categoryName = categories.find(c => c.id === promo.categoryId)?.name || 'Sin categoría'
+          const metrics = calculatePromotionMetrics(promo)
+          
+          const totalCost = parseFloat(metrics.totalCost) || 0
+          const comboPrice = parseFloat(promo.comboPrice || metrics.totalSuggestedPrice) || 0
+          const profitMarginPercent = parseFloat(metrics.profitMarginPercent) || 0
+          const profitMarginValue = parseFloat(metrics.profitMarginValue) || 0
+          
+          return {
+            'Nombre': promo.name || 'Sin nombre',
+            'Descripción': promo.description || '',
+            'Categoría': categoryName,
+            'Costo Total': totalCost.toFixed(2),
+            'Precio Combo': comboPrice.toFixed(2),
+            'Margen %': profitMarginPercent.toFixed(2),
+            'Utilidad $': profitMarginValue.toFixed(2),
+            'Estado': promo.isLosing ? 'Perdiendo' : profitMarginPercent < 20 ? 'Margen bajo' : 'Normal'
+          }
+        } catch (itemError) {
+          console.error(`Error exportando promoción en índice ${index}:`, promo.name, itemError)
+          return {
+            'Nombre': promo.name || 'Sin nombre',
+            'Descripción': 'Error al exportar',
+            'Categoría': '',
+            'Costo Total': '0.00',
+            'Precio Combo': '0.00',
+            'Margen %': '0.00',
+            'Utilidad $': '0.00',
+            'Estado': 'Error'
+          }
         }
       })
 
@@ -341,8 +360,8 @@ export default function PromotionsNew() {
       
       showToast('✅ Promociones exportadas exitosamente', 'success')
     } catch (error) {
-      console.error('Error exporting promotions:', error)
-      showToast('❌ Error al exportar', 'error')
+      console.error('Error crítico al exportar promociones:', error)
+      showToast('❌ Error al exportar promociones', 'error')
     }
   }
 

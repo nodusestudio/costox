@@ -398,20 +398,35 @@ export default function ProductsNew() {
 
   const handleExportExcel = () => {
     try {
-      const exportData = products.map(product => {
-        const metrics = recalculateProductMetrics(product)
-        const categoryName = categories.find(c => c.id === product.categoryId)?.name || 'Sin categoría'
-        
-        return {
-          'Nombre': product.name,
-          'Descripción': product.description || '',
-          'Categoría': categoryName,
-          'Costo Ingredientes': metrics.ingredientsCost.toFixed(2),
-          'Mano de Obra': metrics.laborCost.toFixed(2),
-          'Costo Total': metrics.totalCost.toFixed(2),
-          'Precio Venta': metrics.realSalePrice.toFixed(2),
-          'Margen %': metrics.pContribucion.toFixed(2),
-          'Utilidad $': metrics.mContribucion.toFixed(2)
+      const exportData = products.map((product, index) => {
+        try {
+          const metrics = recalculateProductMetrics(product)
+          const categoryName = categories.find(c => c.id === product.categoryId)?.name || 'Sin categoría'
+          
+          return {
+            'Nombre': product.name || 'Sin nombre',
+            'Descripción': product.description || '',
+            'Categoría': categoryName,
+            'Costo Ingredientes': (metrics.ingredientsCost || 0).toFixed(2),
+            'Mano de Obra': (metrics.laborCost || 0).toFixed(2),
+            'Costo Total': (metrics.totalCost || 0).toFixed(2),
+            'Precio Venta': (metrics.realSalePrice || 0).toFixed(2),
+            'Margen %': (metrics.pContribucion || 0).toFixed(2),
+            'Utilidad $': (metrics.mContribucion || 0).toFixed(2)
+          }
+        } catch (itemError) {
+          console.error(`Error exportando producto en índice ${index}:`, product.name, itemError)
+          return {
+            'Nombre': product.name || 'Sin nombre',
+            'Descripción': 'Error al exportar',
+            'Categoría': '',
+            'Costo Ingredientes': '0.00',
+            'Mano de Obra': '0.00',
+            'Costo Total': '0.00',
+            'Precio Venta': '0.00',
+            'Margen %': '0.00',
+            'Utilidad $': '0.00'
+          }
         }
       })
 
@@ -424,8 +439,8 @@ export default function ProductsNew() {
       
       showToast('✅ Productos exportados exitosamente', 'success')
     } catch (error) {
-      console.error('Error exporting products:', error)
-      showToast('❌ Error al exportar', 'error')
+      console.error('Error crítico al exportar productos:', error)
+      showToast('❌ Error al exportar productos', 'error')
     }
   }
 
