@@ -592,22 +592,21 @@ export default function PromotionsNew() {
                   </div>
                 )}
 
-                  {metrics.isLosing && (
-                    <div className="mt-2 p-2 bg-red-900/40 border border-red-700 rounded">
-                      <p className="text-red-400 text-xs font-semibold">
-                        ⚠️ Este combo generará PÉRDIDAS. Ajusta el precio o revisa los componentes.
-                      </p>
-                    </div>
-                  )}
+                {metrics.isLosing && (
+                  <div className="mt-2 p-2 bg-red-900/40 border border-red-700 rounded">
+                    <p className="text-red-400 text-xs font-semibold">
+                      ⚠️ Este combo generará PÉRDIDAS. Ajusta el precio o revisa los componentes.
+                    </p>
+                  </div>
+                )}
 
-                  {metrics.isLowMargin && !metrics.isLosing && (
-                    <div className="mt-2 p-2 bg-yellow-900/40 border border-yellow-700 rounded">
-                      <p className="text-yellow-400 text-xs font-semibold">
-                        ⚠️ Margen bajo. Considera aumentar el precio para mejorar rentabilidad.
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {metrics.isLowMargin && !metrics.isLosing && (
+                  <div className="mt-2 p-2 bg-yellow-900/40 border border-yellow-700 rounded">
+                    <p className="text-yellow-400 text-xs font-semibold">
+                      ⚠️ Margen bajo. Considera aumentar el precio para mejorar rentabilidad.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
