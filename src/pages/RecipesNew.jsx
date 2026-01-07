@@ -275,6 +275,105 @@ export default function RecipesNew() {
     setDraggedItem(null)
   }
 
+  const handleExportExcel = () => {
+    try {
+      const exportData = recipes.map(recipe => {
+        const categoryName = categories.find(c => c.id === recipe.categoryId)?.name || 'Sin categoría'
+        
+        return {
+          'Nombre': recipe.name,
+          'Descripción': recipe.description || '',
+          'Categoría': categoryName,
+          'Peso Total (g)': recipe.pesoTotal || 0,
+          '% Merma': recipe.wastagePercent || 30,
+          'Costo Total': (recipe.totalCost || 0).toFixed(2),
+          'Costo por Gramo': (recipe.costoPorGramo || 0).toFixed(4)
+        }
+      })
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Recetas')
+      
+      const fileName = `Recetas_${new Date().toISOString().split('T')[0]}.xlsx`
+      XLSX.writeFile(workbook, fileName)
+      
+      showToast('✅ Recetas exportadas exitosamente', 'success')
+    } catch (error) {
+      console.error('Error exporting recipes:', error)
+      showToast('❌ Error al exportar', 'error')
+    }
+  }
+
+  const handleImportExcel = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      try {
+        const data = new Uint8Array(event.target.result)
+        const workbook = XLSX.read(data, { type: 'array' })
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        const jsonData = XLSX.utils.sheet_to_json(worksheet)
+
+        if (!jsonData.length) {
+          showToast('❌ Archivo vacío', 'error')
+          return
+        }
+
+        // Validar formato
+        const firstRow = jsonData[0]
+        if (!firstRow['Nombre']) {
+          showToast('❌ Formato de archivo no válido', 'error')
+          return
+        }
+
+        let imported = 0
+        for (const row of jsonData) {
+          const categoryName = row['Categoría'] || ''
+          let categoryId = ''
+          
+          if (categoryName && categoryName !== 'Sin categoría') {
+            const existingCategory = categories.find(c => c.name === categoryName)
+            if (existingCategory) {
+              categoryId = existingCategory.id
+            } else {
+              const newCategory = { name: categoryName }
+              const result = await saveCategory(newCategory, null, 'recipes')
+              if (result) {
+                categoryId = result.id || ''
+              }
+            }
+          }
+
+          const newRecipe = {
+            name: row['Nombre'] || 'Receta sin nombre',
+            description: row['Descripción'] || '',
+            categoryId: categoryId,
+            pesoTotal: parseFloat(row['Peso Total (g)']) || 0,
+            wastagePercent: parseFloat(row['% Merma']) || 30,
+            ingredients: [],
+            order: recipes.length + imported
+          }
+
+          await saveRecipe(newRecipe)
+          imported++
+        }
+
+        showToast(`✅ ${imported} recetas importadas`, 'success')
+        await loadData()
+      } catch (error) {
+        console.error('Error importing recipes:', error)
+        showToast('❌ Formato de archivo no válido', 'error')
+      }
+    }
+
+    reader.readAsArrayBuffer(file)
+    e.target.value = ''
+  }
+
   const getItemName = (item) => {
     if (item.type === 'ingredient') {
       const ing = ingredients.find(i => i.id === item.id)
@@ -362,13 +461,32 @@ export default function RecipesNew() {
             Pueden usarse como ingredientes en Productos y Combos
           </p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md"
-        >
-          <Plus size={20} />
-          Nueva Receta
-        </button>
+        <div className="flex gap-2">
+          <label className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors cursor-pointer font-medium">
+            <Upload size={18} />
+            📥 Importar Excel
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleImportExcel}
+              className="hidden"
+            />
+          </label>
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+          >
+            <Download size={18} />
+            📤 Exportar Excel
+          </button>
+          <button
+            onClick={() => handleOpenModal()}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md"
+          >
+            <Plus size={20} />
+            Nueva Receta
+          </button>
+        </div>
       </div>
 
       {/* Pestañas de Categoría */}

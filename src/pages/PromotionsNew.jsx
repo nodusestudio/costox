@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
+import { Plus, Edit2, Trash2, AlertTriangle, TrendingUp, TrendingDown, Upload, Download } from 'lucide-react'
 import { getPromotions, savePromotion, deletePromotion, getProducts, getIngredients } from '@/utils/storage'
 import { formatMoneyDisplay, calcularCostoProporcional } from '@/utils/formatters'
+import { showToast } from '@/utils/toast'
 import Modal from '@/components/Modal'
 import SearchSelect from '@/components/SearchSelect'
 import Button from '@/components/Button'
 import { useI18n } from '@/context/I18nContext'
 import { useCategories } from '@/context/CategoriesContext'
+import * as XLSX from 'xlsx'
 
 export default function PromotionsNew() {
   const { isDarkMode } = useI18n()
@@ -312,6 +314,145 @@ export default function PromotionsNew() {
     setDraggedItem(null)
   }
 
+  const handleExportExcel = () => {
+    try {
+      const exportData = promotions.map(promo => {
+        const categoryName = categories.find(c => c.id === promo.categoryId)?.name || 'Sin categoría'
+        const metrics = calculatePromotionMetrics(promo)
+        
+        return {
+          'Nombre': promo.name,
+          'Descripción': promo.description || '',
+          'Categoría': categoryName,
+          'Costo Total': metrics.totalCost.toFixed(2),
+          'Precio Combo': (promo.comboPrice || metrics.totalSuggestedPrice).toFixed(2),
+          'Margen %': metrics.profitMarginPercent.toFixed(2),
+          'Utilidad $': metrics.profitMarginValue.toFixed(2),
+          'Estado': promo.isLosing ? 'Perdiendo' : metrics.profitMarginPercent < 20 ? 'Margen bajo' : 'Normal'
+        }
+      })
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Promociones')
+      
+      const fileName = `Promociones_${new Date().toISOString().split('T')[0]}.xlsx`
+      XLSX.writeFile(workbook, fileName)
+      
+      showToast('✅ Promociones exportadas exitosamente', 'success')
+    } catch (error) {
+      console.error('Error exporting promotions:', error)
+      showToast('❌ Error al exportar', 'error')
+    }
+  }
+
+  const handleImportExcel = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      try {
+        const data = new Uint8Array(event.target.result)
+        const workbook = XLSX.read(data, { type: 'array' })
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        const jsonData = XLSX.utils.sheet_to_json(worksheet)
+
+        if (!jsonData.length) {
+          showToast('❌ Archivo vacío', 'error')
+          return
+        }
+
+        // Validar formato
+        const firstRow = jsonData[0]
+        if (!firstRow['Nombre']) {
+          showToast('❌ Formato de archivo no válido', 'error')
+          return
+        }
+
+        let imported = 0
+        for (const row of jsonData) {
+          const categoryName = row['Categoría'] || ''
+          let categoryId = ''
+          
+          if (categoryName && categoryName !== 'Sin categoría') {
+            const existingCategory = categories.find(c => c.name === categoryName)
+            if (existingCategory) {
+              categoryId = existingCategory.id
+            } else {
+              const newCategory = { name: categoryName }
+              const result = await saveCategory(newCategory, null, 'promotions')
+              if (result) {
+                categoryId = result.id || ''
+              }
+            }
+          }
+
+          const newPromotion = {
+            name: row['Nombre'] || 'Promoción sin nombre',
+            description: row['Descripción'] || '',
+            categoryId: categoryId,
+            items: [],
+            comboPrice: parseFloat(row['Precio Combo']) || 0,
+            order: promotions.length + imported
+          }
+
+          await savePromotion(newPromotion)
+          imported++
+        }
+
+        showToast(`✅ ${imported} promociones importadas`, 'success')
+        await loadData()
+      } catch (error) {
+        console.error('Error importing promotions:', error)
+        showToast('❌ Formato de archivo no válido', 'error')
+      }
+    }
+
+    reader.readAsArrayBuffer(file)
+    e.target.value = ''
+  }
+
+  const calculatePromotionMetrics = (promo) => {
+    let totalCost = 0
+    let totalSuggestedPrice = 0
+
+    const items = Array.isArray(promo.items) ? promo.items : []
+    items.forEach(item => {
+      if (item.type === 'product') {
+        const product = products.find(p => p.id === item.id)
+        if (product) {
+          const quantity = parseInt(item.quantity) || 1
+          totalCost += (product.totalCost || 0) * quantity
+          totalSuggestedPrice += (product.realSalePrice || 0) * quantity
+        }
+      } else if (item.type === 'ingredient') {
+        const ing = ingredients.find(i => i.id === item.id)
+        if (ing) {
+          const quantity = parseInt(item.quantity) || 1
+          const costWithWastage = ing.costWithWastage || 0
+          totalCost += costWithWastage * quantity
+          totalSuggestedPrice += costWithWastage * quantity * 1.3
+        }
+      }
+    })
+
+    const comboPrice = promo.comboPrice || totalSuggestedPrice
+    const profitMarginValue = comboPrice - totalCost
+    const profitMarginPercent = comboPrice > 0 ? (profitMarginValue / comboPrice) * 100 : 0
+    const isLosing = profitMarginValue < 0
+
+    return {
+      totalCost,
+      totalSuggestedPrice,
+      comboPrice,
+      profitMarginValue,
+      profitMarginPercent,
+      isLosing
+    }
+  }
+
   const metrics = calculateMetrics()
 
   // Filtrar promociones por categoría
@@ -338,13 +479,32 @@ export default function PromotionsNew() {
             Análisis inteligente de descuentos y márgenes
           </p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-5 py-3 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg font-medium"
-        >
-          <Plus size={20} />
-          Nuevo Combo
-        </button>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 px-5 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-lg font-medium cursor-pointer">
+            <Upload size={20} />
+            📥 Importar Excel
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={handleImportExcel}
+              className="hidden"
+            />
+          </label>
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg font-medium"
+          >
+            <Download size={20} />
+            📤 Exportar Excel
+          </button>
+          <button
+            onClick={() => handleOpenModal()}
+            className="flex items-center gap-2 px-5 py-3 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg font-medium"
+          >
+            <Plus size={20} />
+            Nuevo Combo
+          </button>
+        </div>
       </div>
 
       {/* Pestañas de Categoría */}

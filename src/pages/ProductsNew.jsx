@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Edit2, Trash2, TrendingUp, DollarSign } from 'lucide-react'
+import { Plus, Edit2, Trash2, TrendingUp, DollarSign, Upload, Download } from 'lucide-react'
 import { getProducts, saveProduct, deleteProduct, getIngredients, getRecipes } from '@/utils/storage'
 import { formatMoneyDisplay, calcularCostoProporcional } from '@/utils/formatters'
 import { showToast } from '@/utils/toast'
@@ -8,6 +8,7 @@ import SearchSelect from '@/components/SearchSelect'
 import Button from '@/components/Button'
 import { useI18n } from '@/context/I18nContext'
 import { useCategories } from '@/context/CategoriesContext'
+import * as XLSX from 'xlsx'
 
 export default function ProductsNew() {
   const { isDarkMode } = useI18n()
@@ -395,6 +396,109 @@ export default function ProductsNew() {
     setDraggedItem(null)
   }
 
+  const handleExportExcel = () => {
+    try {
+      const exportData = products.map(product => {
+        const metrics = recalculateProductMetrics(product)
+        const categoryName = categories.find(c => c.id === product.categoryId)?.name || 'Sin categoría'
+        
+        return {
+          'Nombre': product.name,
+          'Descripción': product.description || '',
+          'Categoría': categoryName,
+          'Costo Ingredientes': metrics.ingredientsCost.toFixed(2),
+          'Mano de Obra': metrics.laborCost.toFixed(2),
+          'Costo Total': metrics.totalCost.toFixed(2),
+          'Precio Venta': metrics.realSalePrice.toFixed(2),
+          'Margen %': metrics.pContribucion.toFixed(2),
+          'Utilidad $': metrics.mContribucion.toFixed(2)
+        }
+      })
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Productos')
+      
+      const fileName = `Productos_${new Date().toISOString().split('T')[0]}.xlsx`
+      XLSX.writeFile(workbook, fileName)
+      
+      showToast('✅ Productos exportados exitosamente', 'success')
+    } catch (error) {
+      console.error('Error exporting products:', error)
+      showToast('❌ Error al exportar', 'error')
+    }
+  }
+
+  const handleImportExcel = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      try {
+        const data = new Uint8Array(event.target.result)
+        const workbook = XLSX.read(data, { type: 'array' })
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        const jsonData = XLSX.utils.sheet_to_json(worksheet)
+
+        if (!jsonData.length) {
+          showToast('❌ Archivo vacío', 'error')
+          return
+        }
+
+        // Validar formato
+        const firstRow = jsonData[0]
+        if (!firstRow['Nombre']) {
+          showToast('❌ Formato de archivo no válido', 'error')
+          return
+        }
+
+        let imported = 0
+        for (const row of jsonData) {
+          const categoryName = row['Categoría'] || ''
+          let categoryId = ''
+          
+          if (categoryName && categoryName !== 'Sin categoría') {
+            const existingCategory = categories.find(c => c.name === categoryName)
+            if (existingCategory) {
+              categoryId = existingCategory.id
+            } else {
+              // Crear nueva categoría
+              const newCategory = { name: categoryName }
+              const result = await saveCategory(newCategory, null, 'products')
+              if (result) {
+                categoryId = result.id || ''
+              }
+            }
+          }
+
+          const newProduct = {
+            name: row['Nombre'] || 'Producto sin nombre',
+            description: row['Descripción'] || '',
+            categoryId: categoryId,
+            items: [],
+            laborCost: parseFloat(row['Mano de Obra']) || 0,
+            realSalePrice: parseFloat(row['Precio Venta']) || 0,
+            order: products.length + imported
+          }
+
+          await saveProduct(newProduct)
+          imported++
+        }
+
+        showToast(`✅ ${imported} productos importados`, 'success')
+        await loadData()
+      } catch (error) {
+        console.error('Error importing products:', error)
+        showToast('❌ Formato de archivo no válido', 'error')
+      }
+    }
+
+    reader.readAsArrayBuffer(file)
+    e.target.value = ''
+  }
+
   const metrics = calculateMetrics()
 
   // Filtrar productos por categoría
@@ -421,13 +525,32 @@ export default function ProductsNew() {
             Cálculo automático de costos, márgenes y precios
           </p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-5 py-3 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg font-medium"
-        >
-          <Plus size={20} />
-          Nuevo Producto
-        </button>
+        <div className="flex gap-2">
+          <label className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors cursor-pointer font-medium">
+            <Upload size={18} />
+            📥 Importar Excel
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleImportExcel}
+              className="hidden"
+            />
+          </label>
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+          >
+            <Download size={18} />
+            📤 Exportar Excel
+          </button>
+          <button
+            onClick={() => handleOpenModal()}
+            className="flex items-center gap-2 px-5 py-3 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg font-medium"
+          >
+            <Plus size={20} />
+            Nuevo Producto
+          </button>
+        </div>
       </div>
 
       {/* Pestañas de Categoría */}
