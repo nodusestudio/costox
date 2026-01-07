@@ -149,8 +149,8 @@ export default function ProductsNew() {
     // PRECIO DE VENTA (el usuario lo define)
     const precioVenta = parseFloat(formData.realSalePrice) || 0
 
-    // P-CONTRIBUCIÓN (Food Cost %): (Costo Total / Precio Venta) * 100
-    const pContribucion = precioVenta > 0 ? (costoTotal / precioVenta) * 100 : 0
+    // P-CONTRIBUCIÓN (% Utilidad): (1 - Costo/Venta) * 100
+    const pContribucion = precioVenta > 0 ? (1 - (costoTotal / precioVenta)) * 100 : 0
     
     // M-CONTRIBUCIÓN (Utilidad $): Precio Venta - Costo Total
     const mContribucion = precioVenta - costoTotal
@@ -306,9 +306,9 @@ export default function ProductsNew() {
                 </span>
               </div>
               
-              {/* P-CONTRIBUCIÓN (Food Cost %) */}
+              {/* P-CONTRIBUCIÓN (% Utilidad) */}
               <div className={`mt-2 p-3 rounded-lg border-2 ${
-                (product.pContribucion || product.foodCostPercent || 0) > 45
+                (product.pContribucion || product.foodCostPercent || 0) < 30
                   ? isDarkMode ? 'bg-red-900/40 border-red-600' : 'bg-red-100 border-red-400'
                   : isDarkMode ? 'bg-green-900/40 border-green-700' : 'bg-green-100 border-green-400'
               }`}>
@@ -319,7 +319,7 @@ export default function ProductsNew() {
                     P-CONTRIBUCIÓN
                   </span>
                   <span className={`text-2xl font-black ${
-                    (product.pContribucion || product.foodCostPercent || 0) > 45
+                    (product.pContribucion || product.foodCostPercent || 0) < 30
                       ? isDarkMode ? 'text-red-400' : 'text-red-600'
                       : isDarkMode ? 'text-green-400' : 'text-green-600'
                   }`}>
@@ -496,13 +496,13 @@ export default function ProductsNew() {
             {/* DOBLE BLOQUE DE INSUMOS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
-              {/* Bloque 1: INSUMOS/EMBALAJE */}
+              {/* Bloque 1: EMBALAJE */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className={`text-sm font-bold ${
                     isDarkMode ? 'text-blue-300' : 'text-blue-700'
                   }`}>
-                    📦 INSUMOS / EMBALAJE
+                    📦 EMBALAJE
                   </h4>
                   <button
                     onClick={() => handleAddItem('ingredient')}
@@ -548,10 +548,10 @@ export default function ProductsNew() {
                         }
 
                         return (
-                          <div key={index} className={`grid grid-cols-12 gap-2 p-3 border-b text-sm ${
+                          <div key={index} className={`flex gap-2 p-3 border-b text-sm ${
                             isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                           }`}>
-                            <div className={`col-span-6 flex items-center gap-2 ${
+                            <div className={`flex-grow flex items-center ${
                               isDarkMode ? 'text-gray-300' : 'text-gray-700'
                             }`}>
                               <SearchSelect
@@ -566,7 +566,7 @@ export default function ProductsNew() {
                                 placeholder="Seleccionar..."
                               />
                             </div>
-                            <div className="col-span-3 flex items-center">
+                            <div className="w-20 flex items-center">
                               <input
                                 type="number"
                                 step="0.01"
@@ -577,7 +577,7 @@ export default function ProductsNew() {
                                   parseFloat(e.target.value)
                                 )}
                                 onFocus={(e) => e.target.select()}
-                                className={`w-full px-2 py-1 rounded border text-center ${
+                                className={`w-full px-2 py-1 rounded border text-center text-xs ${
                                   isDarkMode
                                     ? 'bg-[#111827] border-gray-600 text-white'
                                     : 'bg-white border-gray-300 text-gray-900'
@@ -585,15 +585,15 @@ export default function ProductsNew() {
                                 placeholder="0"
                               />
                             </div>
-                            <div className={`col-span-3 flex items-center justify-between ${
+                            <div className={`w-24 flex items-center justify-between ${
                               isDarkMode ? 'text-gray-300' : 'text-gray-700'
                             }`}>
-                              <span className="font-semibold">{formatMoneyDisplay(costoProporcional)}</span>
+                              <span className="font-semibold text-xs">{formatMoneyDisplay(costoProporcional)}</span>
                               <button
                                 onClick={() => handleRemoveItem((formData.items ?? []).indexOf(item))}
                                 className="p-1 text-red-500 hover:bg-red-500/10 rounded"
                               >
-                                <Trash2 size={14} />
+                                <Trash2 size={12} />
                               </button>
                             </div>
                           </div>
@@ -611,60 +611,85 @@ export default function ProductsNew() {
                 </div>
               </div>
 
-              {/* Bloque 2: RECETA/PROTEÍNAS */}
+              {/* Bloque 2: INSUMOS */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className={`text-sm font-bold ${
                     isDarkMode ? 'text-purple-300' : 'text-purple-700'
                   }`}>
-                    🍖 RECETA / PROTEÍNAS
+                    🍖 INSUMOS
                   </h4>
-                  <button
-                    onClick={() => handleAddItem('recipe')}
-                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-xs font-medium"
-                  >
-                    + Receta
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleAddItem('ingredient')}
+                      className="px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium"
+                    >
+                      + Ing
+                    </button>
+                    <button
+                      onClick={() => handleAddItem('recipe')}
+                      className="px-2 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-xs font-medium"
+                    >
+                      + Receta
+                    </button>
+                  </div>
                 </div>
 
                 <div className={`rounded-lg border ${
                   isDarkMode ? 'bg-[#0a0e1a] border-gray-700' : 'bg-gray-50 border-gray-300'
                 }`}>
                   {/* Cabecera de Tabla */}
-                  <div className={`grid grid-cols-12 gap-2 p-3 border-b font-bold text-xs ${
+                  <div className={`flex gap-2 p-3 border-b font-bold text-xs ${
                     isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
                   }`}>
-                    <div className="col-span-6">NOMBRE</div>
-                    <div className="col-span-3 text-center">CANTIDAD</div>
-                    <div className="col-span-3 text-right">COSTO</div>
+                    <div className="flex-grow">NOMBRE</div>
+                    <div className="w-20 text-center">CANT</div>
+                    <div className="w-24 text-right">COSTO</div>
                   </div>
 
-                  {/* Lista de Recetas */}
+                  {/* Lista de Ingredientes y Recetas */}
                   <div className="max-h-[300px] overflow-y-auto">
                     {(formData.items ?? [])
-                      .filter(item => item.type === 'recipe')
+                      .filter(item => item.type === 'recipe' || item.type === 'ingredient')
                       .map((item, index) => {
-                        const rec = recipes.find(r => r.id === item.id)
+                        let itemData, costoProporcional = 0
                         const cantidadUsada = parseFloat(item.quantity || 1)
-                        let costoProporcional = 0
 
-                        if (rec) {
-                          if (rec.costoPorGramo && rec.costoPorGramo > 0) {
-                            costoProporcional = rec.costoPorGramo * cantidadUsada
-                          } else if (rec.totalCost) {
-                            costoProporcional = rec.totalCost * cantidadUsada
+                        if (item.type === 'ingredient') {
+                          itemData = ingredients.find(i => i.id === item.id)
+                          if (itemData) {
+                            if (itemData.costoPorGramo && itemData.costoPorGramo > 0) {
+                              costoProporcional = itemData.costoPorGramo * cantidadUsada
+                            } else if (itemData.pesoEmpaqueTotal && itemData.pesoEmpaqueTotal > 0 && itemData.costWithWastage) {
+                              costoProporcional = calcularCostoProporcional(
+                                itemData.costWithWastage,
+                                itemData.pesoEmpaqueTotal,
+                                cantidadUsada
+                              )
+                            } else if (itemData.costWithWastage) {
+                              costoProporcional = itemData.costWithWastage * cantidadUsada
+                            }
+                          }
+                        } else {
+                          itemData = recipes.find(r => r.id === item.id)
+                          if (itemData) {
+                            if (itemData.costoPorGramo && itemData.costoPorGramo > 0) {
+                              costoProporcional = itemData.costoPorGramo * cantidadUsada
+                            } else if (itemData.totalCost) {
+                              costoProporcional = itemData.totalCost * cantidadUsada
+                            }
                           }
                         }
 
                         return (
-                          <div key={index} className={`grid grid-cols-12 gap-2 p-3 border-b text-sm ${
+                          <div key={index} className={`flex gap-2 p-3 border-b text-sm ${
                             isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                           }`}>
-                            <div className={`col-span-6 flex items-center gap-2 ${
+                            <div className={`flex-grow flex items-center ${
                               isDarkMode ? 'text-gray-300' : 'text-gray-700'
                             }`}>
                               <SearchSelect
-                                options={recipes}
+                                options={item.type === 'ingredient' ? ingredients : recipes}
                                 value={item.id}
                                 onChange={(value) => handleItemChange(
                                   (formData.items ?? []).indexOf(item),
@@ -675,7 +700,7 @@ export default function ProductsNew() {
                                 placeholder="Seleccionar..."
                               />
                             </div>
-                            <div className="col-span-3 flex items-center">
+                            <div className="w-20 flex items-center">
                               <input
                                 type="number"
                                 step="0.01"
@@ -686,7 +711,7 @@ export default function ProductsNew() {
                                   parseFloat(e.target.value)
                                 )}
                                 onFocus={(e) => e.target.select()}
-                                className={`w-full px-2 py-1 rounded border text-center ${
+                                className={`w-full px-2 py-1 rounded border text-center text-xs ${
                                   isDarkMode
                                     ? 'bg-[#111827] border-gray-600 text-white'
                                     : 'bg-white border-gray-300 text-gray-900'
@@ -694,26 +719,26 @@ export default function ProductsNew() {
                                 placeholder="0"
                               />
                             </div>
-                            <div className={`col-span-3 flex items-center justify-between ${
+                            <div className={`w-24 flex items-center justify-between ${
                               isDarkMode ? 'text-gray-300' : 'text-gray-700'
                             }`}>
-                              <span className="font-semibold">{formatMoneyDisplay(costoProporcional)}</span>
+                              <span className="font-semibold text-xs">{formatMoneyDisplay(costoProporcional)}</span>
                               <button
                                 onClick={() => handleRemoveItem((formData.items ?? []).indexOf(item))}
                                 className="p-1 text-red-500 hover:bg-red-500/10 rounded"
                               >
-                                <Trash2 size={14} />
+                                <Trash2 size={12} />
                               </button>
                             </div>
                           </div>
                         )
                       })}
 
-                    {(formData.items ?? []).filter(item => item.type === 'recipe').length === 0 && (
+                    {(formData.items ?? []).filter(item => item.type === 'recipe' || item.type === 'ingredient').length === 0 && (
                       <div className={`text-center py-8 ${
                         isDarkMode ? 'text-gray-500' : 'text-gray-400'
                       }`}>
-                        <p className="text-xs">Sin recetas</p>
+                        <p className="text-xs">Sin insumos</p>
                       </div>
                     )}
                   </div>
