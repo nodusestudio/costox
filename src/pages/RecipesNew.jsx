@@ -302,47 +302,18 @@ export default function RecipesNew() {
       {/* Modal */}
       {showModal && (
         <Modal
-          title={editingId ? 'Editar Receta' : 'Nueva Receta'}
+          titleInput={
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="bg-transparent border-none text-2xl font-bold text-white focus:outline-none w-full"
+              placeholder="🍳 Escribe el nombre de tu receta aquí..."
+            />
+          }
           onClose={() => setShowModal(false)}
         >
           <div className="space-y-4">
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                Nombre *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg border ${
-                  isDarkMode
-                    ? 'bg-[#111827] border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-                placeholder="Ej: Masa de Pizza"
-              />
-            </div>
-
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                Descripción
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg border ${
-                  isDarkMode
-                    ? 'bg-[#111827] border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-                rows={2}
-                placeholder="Opcional"
-              />
-            </div>
 
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -426,73 +397,40 @@ export default function RecipesNew() {
               )}
             </div>
 
-            {/* Preview del costo */}
+            {/* Dashboard Excel - Recetas */}
             {(formData.ingredients || []).length > 0 && (
-              <div className={`p-4 rounded-xl border-2 ${
+              <div className={`p-2 rounded-xl border-2 ${
                 isDarkMode 
-                  ? 'bg-gradient-to-br from-blue-950 to-gray-900 border-blue-700' 
-                  : 'bg-gradient-to-br from-blue-50 to-white border-blue-300'
+                  ? 'bg-gradient-to-br from-green-950 to-gray-900 border-green-700' 
+                  : 'bg-gradient-to-br from-green-50 to-white border-green-300'
               }`}>
-                {/* Cabecera: Nombre + Peso en MISMA LÍNEA */}
-                <div className="flex items-center justify-between gap-4 mb-3">
-                  <h3 className={`text-lg font-bold ${
-                    isDarkMode ? 'text-white' : 'text-gray-900'
+                {/* Valor Principal: Costo Total CENTRADO */}
+                <div className="text-center mb-2">
+                  <div className={`text-xs font-bold mb-1 ${
+                    isDarkMode ? 'text-green-300' : 'text-green-700'
                   }`}>
-                    {formData.name || 'Nueva Receta'}
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <label className={`text-xs font-bold whitespace-nowrap ${
-                      isDarkMode ? 'text-blue-300' : 'text-blue-700'
-                    }`}>
-                      ⚖️ PESO (g):
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.pesoTotal}
-                      onChange={(e) => setFormData({ ...formData, pesoTotal: parseFloat(e.target.value) || 0 })}
-                      onFocus={(e) => e.target.select()}
-                      className={`w-32 px-3 py-1 rounded-lg border-2 font-black text-center ${
-                        isDarkMode
-                          ? 'bg-[#0a1828] border-blue-500 text-blue-300'
-                          : 'bg-white border-blue-500 text-blue-700'
-                      }`}
-                      style={{ fontSize: '2rem' }}
-                      placeholder="1000"
-                      min="0"
-                      step="1"
-                    />
+                    💰 COSTO TOTAL
+                  </div>
+                  <div className={`font-black ${
+                    isDarkMode ? 'text-green-400' : 'text-green-600'
+                  }`} style={{ fontSize: '2rem' }}>
+                    {formatMoneyDisplay(calculatePreviewCost())}
                   </div>
                 </div>
 
-                {/* Dos Cajas de Métricas - MÁS COMPACTAS */}
-                <div className="grid grid-cols-2 gap-2">
-                  {/* Costo Total */}
+                {/* 3 Cajas de Métricas Horizontales */}
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Costo/Gramo */}
                   <div className={`p-2 rounded-lg text-center ${
-                    isDarkMode ? 'bg-green-950/50 border border-green-700' : 'bg-green-50 border border-green-300'
+                    isDarkMode ? 'bg-blue-950/50 border border-blue-700' : 'bg-blue-50 border border-blue-300'
                   }`}>
                     <div className={`text-xs font-bold mb-1 ${
-                      isDarkMode ? 'text-green-300' : 'text-green-700'
-                    }`}>
-                      COSTO TOTAL
-                    </div>
-                    <div className={`text-lg font-black ${
-                      isDarkMode ? 'text-green-400' : 'text-green-600'
-                    }`}>
-                      {formatMoneyDisplay(calculatePreviewCost())}
-                    </div>
-                  </div>
-
-                  {/* Costo por Gramo */}
-                  <div className={`p-2 rounded-lg text-center ${
-                    isDarkMode ? 'bg-purple-950/50 border border-purple-700' : 'bg-purple-50 border border-purple-300'
-                  }`}>
-                    <div className={`text-xs font-bold mb-1 ${
-                      isDarkMode ? 'text-purple-300' : 'text-purple-700'
+                      isDarkMode ? 'text-blue-300' : 'text-blue-700'
                     }`}>
                       COSTO/GRAMO
                     </div>
                     <div className={`text-lg font-black ${
-                      isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
                     }`}>
                       {formData.pesoTotal > 0 
                         ? formatMoneyDisplay(calculatePreviewCost() / formData.pesoTotal) + '/g'
@@ -500,9 +438,70 @@ export default function RecipesNew() {
                       }
                     </div>
                   </div>
+
+                  {/* Peso Total */}
+                  <div className={`p-2 rounded-lg text-center ${
+                    isDarkMode ? 'bg-purple-950/50 border border-purple-700' : 'bg-purple-50 border border-purple-300'
+                  }`}>
+                    <div className={`text-xs font-bold mb-1 ${
+                      isDarkMode ? 'text-purple-300' : 'text-purple-700'
+                    }`}>
+                      ⚖️ PESO TOTAL (g)
+                    </div>
+                    <input
+                      type="number"
+                      value={formData.pesoTotal}
+                      onChange={(e) => setFormData({ ...formData, pesoTotal: parseFloat(e.target.value) || 0 })}
+                      onFocus={(e) => e.target.select()}
+                      className={`w-full text-center px-2 py-1 rounded-lg border font-black text-lg ${
+                        isDarkMode
+                          ? 'bg-[#0a1828] border-purple-500 text-purple-400'
+                          : 'bg-white border-purple-500 text-purple-600'
+                      }`}
+                      placeholder="1000"
+                      min="0"
+                      step="1"
+                    />
+                  </div>
+
+                  {/* Cantidad de Ítems */}
+                  <div className={`p-2 rounded-lg text-center ${
+                    isDarkMode ? 'bg-orange-950/50 border border-orange-700' : 'bg-orange-50 border border-orange-300'
+                  }`}>
+                    <div className={`text-xs font-bold mb-1 ${
+                      isDarkMode ? 'text-orange-300' : 'text-orange-700'
+                    }`}>
+                      📦 CANTIDAD ÍTEMS
+                    </div>
+                    <div className={`text-lg font-black ${
+                      isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                    }`}>
+                      {(formData.ingredients || []).length}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
+
+            {/* Descripción al final */}
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Descripción (opcional)
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  isDarkMode
+                    ? 'bg-[#111827] border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+                rows={2}
+                placeholder="Agrega una descripción opcional..."
+              />
+            </div>
 
             <div className="flex justify-end gap-6 mt-10 pt-8 border-t-2 border-gray-600 pb-12 bg-gray-800/50 -mx-8 px-8 -mb-8 rounded-b-2xl">
               <button
