@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Edit2, Trash2, Package, BookOpen } from 'lucide-react'
+import { Plus, Edit2, Trash2, Package, BookOpen, Upload, Download } from 'lucide-react'
 import { getRecipes, saveRecipe, deleteRecipe, getIngredients } from '@/utils/storage'
 import { formatMoneyDisplay, calcularCostoProporcional } from '@/utils/formatters'
 import { showToast } from '@/utils/toast'
@@ -8,6 +8,7 @@ import Button from '@/components/Button'
 import SearchSelect from '@/components/SearchSelect'
 import { useI18n } from '@/context/I18nContext'
 import { useCategories } from '@/context/CategoriesContext'
+import * as XLSX from 'xlsx'
 
 export default function RecipesNew() {
   const { isDarkMode } = useI18n()
@@ -348,12 +349,22 @@ export default function RecipesNew() {
             }
           }
 
+          const pesoTotal = parseFloat(row['Peso Total (g)']) || 0
+          const wastagePercent = parseFloat(row['% Merma']) || 30
+          
+          // Calcular costo total incluyendo merma
+          const baseCost = parseFloat(row['Costo Total']) || 0
+          const totalCost = baseCost * (1 + wastagePercent / 100)
+          const costoPorGramo = pesoTotal > 0 ? totalCost / pesoTotal : 0
+
           const newRecipe = {
             name: row['Nombre'] || 'Receta sin nombre',
             description: row['Descripción'] || '',
             categoryId: categoryId,
-            pesoTotal: parseFloat(row['Peso Total (g)']) || 0,
-            wastagePercent: parseFloat(row['% Merma']) || 30,
+            pesoTotal: pesoTotal,
+            wastagePercent: wastagePercent,
+            totalCost: totalCost,
+            costoPorGramo: costoPorGramo,
             ingredients: [],
             order: recipes.length + imported
           }
