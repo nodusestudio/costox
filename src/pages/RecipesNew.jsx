@@ -21,6 +21,7 @@ export default function RecipesNew() {
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
   const [categoryName, setCategoryName] = useState('')
+  const [draggedItem, setDraggedItem] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -65,9 +66,13 @@ export default function RecipesNew() {
         }
         // Releer una sola vez para reflejar los valores corregidos
         const fixedRecipes = await getRecipes()
-        setRecipes(Array.isArray(fixedRecipes) ? fixedRecipes : [])
+        const sortedRecipes = Array.isArray(fixedRecipes) 
+          ? fixedRecipes.sort((a, b) => (a.order || 0) - (b.order || 0))
+          : []
+        setRecipes(sortedRecipes)
       } else {
-        setRecipes(normalizedRecipes)
+        const sortedRecipes = normalizedRecipes.sort((a, b) => (a.order || 0) - (b.order || 0))
+        setRecipes(sortedRecipes)
       }
       setIngredients(Array.isArray(ingredientsData) ? ingredientsData : [])
     } catch (error) {
@@ -199,7 +204,7 @@ export default function RecipesNew() {
   }
 
   const handleDragStart = (e, recipe) => {
-    e.dataTransfer.setData('recipeId', recipe.id)
+    setDraggedItem(recipe)
     e.dataTransfer.effectAllowed = 'move'
   }
 
@@ -208,14 +213,58 @@ export default function RecipesNew() {
     e.dataTransfer.dropEffect = 'move'
   }
 
-  const handleDrop = async (e, categoryId) => {
+  const handleDrop = async (e, targetRecipe) => {
     e.preventDefault()
-    const recipeId = e.dataTransfer.getData('recipeId')
-    const recipe = recipes.find(r => r.id === recipeId)
+    
+    if (!draggedItem || draggedItem.id === targetRecipe.id) {
+      setDraggedItem(null)
+      return
+    }
+
+    // Reordenar solo dentro de la misma categoría
+    if (draggedItem.categoryId !== targetRecipe.categoryId) {
+      setDraggedItem(null)
+      return
+    }
+
+    try {
+      const filtered = selectedCategoryFilter
+        ? recipes.filter(r => r.categoryId === selectedCategoryFilter)
+        : recipes
+      
+      const draggedIndex = filtered.findIndex(r => r.id === draggedItem.id)
+      const targetIndex = filtered.findIndex(r => r.id === targetRecipe.id)
+      
+      const reordered = [...filtered]
+      const [removed] = reordered.splice(draggedIndex, 1)
+      reordered.splice(targetIndex, 0, removed)
+      
+      // Asignar nuevos índices
+      const updates = reordered.map((recipe, index) => 
+        saveRecipe({ ...recipe, order: index }, recipe.id)
+      )
+      
+      await Promise.all(updates)
+      await loadData()
+      showToast('✅ Orden actualizado', 'success')
+    } catch (error) {
+      console.error('Error reordering:', error)
+      showToast('Error al reordenar', 'error')
+    } finally {
+      setDraggedItem(null)
+    }
+  }
+
+  const handleDropCategory = async (e, categoryId) => {
+    e.preventDefault()
+    
+    if (!draggedItem) return
+    
+    const recipe = recipes.find(r => r.id === draggedItem.id)
     
     if (recipe && recipe.categoryId !== categoryId) {
       try {
-        await saveRecipe({ ...recipe, categoryId: categoryId || '' }, recipeId)
+        await saveRecipe({ ...recipe, categoryId: categoryId || '' }, draggedItem.id)
         showToast('✅ Receta movida a categoría', 'success')
         await loadData()
       } catch (error) {
@@ -223,6 +272,7 @@ export default function RecipesNew() {
         showToast('Error al mover', 'error')
       }
     }
+    setDraggedItem(null)
   }
 
   const getItemName = (item) => {
@@ -328,7 +378,7 @@ export default function RecipesNew() {
         <button
           onClick={() => setSelectedCategoryFilter(null)}
           onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, null)}
+          onDrop={(e) => handleDropCategory(e, null)}
           className={`px-6 py-2 font-semibold transition-all border-b-4 ${
             selectedCategoryFilter === null
               ? 'border-primary-blue text-primary-blue'
@@ -342,7 +392,7 @@ export default function RecipesNew() {
             <button
               onClick={() => setSelectedCategoryFilter(cat.id)}
               onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, cat.id)}
+              onDrop={(e) => handleDropCategory(e, cat.id)}
               className={`px-6 py-2 font-semibold transition-all border-b-4 ${
                 selectedCategoryFilter === cat.id
                   ? 'border-primary-blue text-primary-blue'
@@ -399,6 +449,8 @@ export default function RecipesNew() {
             key={recipe.id} 
             draggable
             onDragStart={(e) => handleDragStart(e, recipe)}
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, recipe)}
             className={`p-4 rounded-xl border cursor-move ${
               isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
             }`}
@@ -574,6 +626,7 @@ export default function RecipesNew() {
                           <input
                             type="number"
                             step="1"
+                            min="0"
                             value={item.quantity}
                             onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
                             onFocus={(e) => e.target.select()}
@@ -671,6 +724,7 @@ export default function RecipesNew() {
                     </div>
                     <input
                       type="number"
+                      min="0"
                       value={formData.pesoTotal}
                       onChange={(e) => setFormData({ ...formData, pesoTotal: parseFloat(e.target.value) || 0 })}
                       onFocus={(e) => e.target.select()}

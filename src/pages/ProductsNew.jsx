@@ -22,6 +22,7 @@ export default function ProductsNew() {
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
   const [categoryName, setCategoryName] = useState('')
+  const [draggedItem, setDraggedItem] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -44,7 +45,11 @@ export default function ProductsNew() {
         getIngredients(),
         getRecipes()
       ])
-      setProducts(Array.isArray(productsData) ? productsData : [])
+      // Ordenar productos por campo order
+      const sortedProducts = Array.isArray(productsData) 
+        ? productsData.sort((a, b) => (a.order || 0) - (b.order || 0))
+        : []
+      setProducts(sortedProducts)
       setIngredients(Array.isArray(ingredientsData) ? ingredientsData : [])
       setRecipes(Array.isArray(recipesData) ? recipesData : [])
     } catch (error) {
@@ -319,7 +324,7 @@ export default function ProductsNew() {
   }
 
   const handleDragStart = (e, product) => {
-    e.dataTransfer.setData('productId', product.id)
+    setDraggedItem(product)
     e.dataTransfer.effectAllowed = 'move'
   }
 
@@ -328,14 +333,58 @@ export default function ProductsNew() {
     e.dataTransfer.dropEffect = 'move'
   }
 
-  const handleDrop = async (e, categoryId) => {
+  const handleDrop = async (e, targetProduct) => {
     e.preventDefault()
-    const productId = e.dataTransfer.getData('productId')
-    const product = products.find(p => p.id === productId)
+    
+    if (!draggedItem || draggedItem.id === targetProduct.id) {
+      setDraggedItem(null)
+      return
+    }
+
+    // Reordenar solo dentro de la misma categoría
+    if (draggedItem.categoryId !== targetProduct.categoryId) {
+      setDraggedItem(null)
+      return
+    }
+
+    try {
+      const filtered = selectedCategoryFilter
+        ? products.filter(p => p.categoryId === selectedCategoryFilter)
+        : products
+      
+      const draggedIndex = filtered.findIndex(p => p.id === draggedItem.id)
+      const targetIndex = filtered.findIndex(p => p.id === targetProduct.id)
+      
+      const reordered = [...filtered]
+      const [removed] = reordered.splice(draggedIndex, 1)
+      reordered.splice(targetIndex, 0, removed)
+      
+      // Asignar nuevos índices
+      const updates = reordered.map((product, index) => 
+        saveProduct({ ...product, order: index }, product.id)
+      )
+      
+      await Promise.all(updates)
+      await loadData()
+      showToast('✅ Orden actualizado', 'success')
+    } catch (error) {
+      console.error('Error reordering:', error)
+      showToast('Error al reordenar', 'error')
+    } finally {
+      setDraggedItem(null)
+    }
+  }
+
+  const handleDropCategory = async (e, categoryId) => {
+    e.preventDefault()
+    
+    if (!draggedItem) return
+    
+    const product = products.find(p => p.id === draggedItem.id)
     
     if (product && product.categoryId !== categoryId) {
       try {
-        await saveProduct({ ...product, categoryId: categoryId || '' }, productId)
+        await saveProduct({ ...product, categoryId: categoryId || '' }, draggedItem.id)
         showToast('✅ Producto movido a categoría', 'success')
         await loadData()
       } catch (error) {
@@ -343,6 +392,7 @@ export default function ProductsNew() {
         showToast('Error al mover', 'error')
       }
     }
+    setDraggedItem(null)
   }
 
   const metrics = calculateMetrics()
@@ -387,7 +437,7 @@ export default function ProductsNew() {
         <button
           onClick={() => setSelectedCategoryFilter(null)}
           onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, null)}
+          onDrop={(e) => handleDropCategory(e, null)}
           className={`px-6 py-2 font-semibold transition-all border-b-4 ${
             selectedCategoryFilter === null
               ? 'border-primary-blue text-primary-blue'
@@ -401,7 +451,7 @@ export default function ProductsNew() {
             <button
               onClick={() => setSelectedCategoryFilter(cat.id)}
               onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, cat.id)}
+              onDrop={(e) => handleDropCategory(e, cat.id)}
               className={`px-6 py-2 font-semibold transition-all border-b-4 ${
                 selectedCategoryFilter === cat.id
                   ? 'border-primary-blue text-primary-blue'
@@ -460,6 +510,8 @@ export default function ProductsNew() {
             key={product.id} 
             draggable
             onDragStart={(e) => handleDragStart(e, product)}
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, product)}
             className={`p-4 rounded-xl border cursor-move ${
               isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
             }`}
@@ -647,6 +699,7 @@ export default function ProductsNew() {
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   value={formData.realSalePrice}
                   onChange={(e) => setFormData({ ...formData, realSalePrice: parseFloat(e.target.value) || 0 })}
                   onFocus={(e) => e.target.select()}
@@ -1016,6 +1069,7 @@ export default function ProductsNew() {
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   value={formData.laborCost}
                   onChange={(e) => setFormData({ ...formData, laborCost: parseFloat(e.target.value) || 0 })}
                   onFocus={(e) => e.target.select()}

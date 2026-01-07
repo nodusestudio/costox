@@ -10,7 +10,7 @@ import { useCategories } from '@/context/CategoriesContext'
 
 export default function PromotionsNew() {
   const { isDarkMode } = useI18n()
-  const { categoriesPromotions: categoriesPromotions: categories, saveCategory, deleteCategory } = useCategories()
+  const { categoriesPromotions: categories, saveCategory, deleteCategory } = useCategories()
   const [promotions, setPromotions] = useState([])
   const [products, setProducts] = useState([])
   const [ingredients, setIngredients] = useState([])
@@ -21,6 +21,7 @@ export default function PromotionsNew() {
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
   const [categoryName, setCategoryName] = useState('')
+  const [draggedItem, setDraggedItem] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -41,7 +42,10 @@ export default function PromotionsNew() {
         getProducts(),
         getIngredients()
       ])
-      setPromotions(Array.isArray(promotionsData) ? promotionsData : [])
+      const sortedPromotions = Array.isArray(promotionsData) 
+        ? promotionsData.sort((a, b) => (a.order || 0) - (b.order || 0))
+        : []
+      setPromotions(sortedPromotions)
       setProducts(Array.isArray(productsData) ? productsData : [])
       setIngredients(Array.isArray(ingredientsData) ? ingredientsData : [])
     } catch (error) {
@@ -237,7 +241,7 @@ export default function PromotionsNew() {
   }
 
   const handleDragStart = (e, promotion) => {
-    e.dataTransfer.setData('promotionId', promotion.id)
+    setDraggedItem(promotion)
     e.dataTransfer.effectAllowed = 'move'
   }
 
@@ -246,14 +250,58 @@ export default function PromotionsNew() {
     e.dataTransfer.dropEffect = 'move'
   }
 
-  const handleDrop = async (e, categoryId) => {
+  const handleDrop = async (e, targetPromotion) => {
     e.preventDefault()
-    const promotionId = e.dataTransfer.getData('promotionId')
-    const promotion = promotions.find(p => p.id === promotionId)
+    
+    if (!draggedItem || draggedItem.id === targetPromotion.id) {
+      setDraggedItem(null)
+      return
+    }
+
+    // Reordenar solo dentro de la misma categoría
+    if (draggedItem.categoryId !== targetPromotion.categoryId) {
+      setDraggedItem(null)
+      return
+    }
+
+    try {
+      const filtered = selectedCategoryFilter
+        ? promotions.filter(p => p.categoryId === selectedCategoryFilter)
+        : promotions
+      
+      const draggedIndex = filtered.findIndex(p => p.id === draggedItem.id)
+      const targetIndex = filtered.findIndex(p => p.id === targetPromotion.id)
+      
+      const reordered = [...filtered]
+      const [removed] = reordered.splice(draggedIndex, 1)
+      reordered.splice(targetIndex, 0, removed)
+      
+      // Asignar nuevos índices
+      const updates = reordered.map((promotion, index) => 
+        savePromotion({ ...promotion, order: index }, promotion.id)
+      )
+      
+      await Promise.all(updates)
+      await loadData()
+      showToast('✅ Orden actualizado', 'success')
+    } catch (error) {
+      console.error('Error reordering:', error)
+      showToast('Error al reordenar', 'error')
+    } finally {
+      setDraggedItem(null)
+    }
+  }
+
+  const handleDropCategory = async (e, categoryId) => {
+    e.preventDefault()
+    
+    if (!draggedItem) return
+    
+    const promotion = promotions.find(p => p.id === draggedItem.id)
     
     if (promotion && promotion.categoryId !== categoryId) {
       try {
-        await savePromotion({ ...promotion, categoryId: categoryId || '' }, promotionId)
+        await savePromotion({ ...promotion, categoryId: categoryId || '' }, draggedItem.id)
         showToast('✅ Combo movido a categoría', 'success')
         await loadData()
       } catch (error) {
@@ -261,6 +309,7 @@ export default function PromotionsNew() {
         showToast('Error al mover', 'error')
       }
     }
+    setDraggedItem(null)
   }
 
   const metrics = calculateMetrics()
@@ -305,7 +354,7 @@ export default function PromotionsNew() {
         <button
           onClick={() => setSelectedCategoryFilter(null)}
           onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, null)}
+          onDrop={(e) => handleDropCategory(e, null)}
           className={`px-6 py-2 font-semibold transition-all border-b-4 ${
             selectedCategoryFilter === null
               ? 'border-primary-blue text-primary-blue'
@@ -319,7 +368,7 @@ export default function PromotionsNew() {
             <button
               onClick={() => setSelectedCategoryFilter(cat.id)}
               onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, cat.id)}
+              onDrop={(e) => handleDropCategory(e, cat.id)}
               className={`px-6 py-2 font-semibold transition-all border-b-4 ${
                 selectedCategoryFilter === cat.id
                   ? 'border-primary-blue text-primary-blue'
@@ -376,6 +425,8 @@ export default function PromotionsNew() {
             key={promo.id} 
             draggable
             onDragStart={(e) => handleDragStart(e, promo)}
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, promo)}
             className={`p-4 rounded-xl border cursor-move ${
               promo.isLosing
                 ? 'border-red-500 bg-red-900/10'
@@ -639,6 +690,7 @@ export default function PromotionsNew() {
                     <input
                       type="number"
                       step="1"
+                      min="0"
                       value={item.quantity}
                       onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value))}
                       onFocus={(e) => e.target.select()}
@@ -687,6 +739,7 @@ export default function PromotionsNew() {
                     <input
                       type="number"
                       step="0.01"
+                      min="0"
                       value={formData.comboPrice || metrics.totalSuggestedPrice}
                       onChange={(e) => setFormData({ ...formData, comboPrice: parseFloat(e.target.value) })}
                       onFocus={(e) => e.target.select()}
