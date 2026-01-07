@@ -410,35 +410,33 @@ export default function ProductsNew() {
             >
               {cat.name}
             </button>
-            {selectedCategoryFilter === cat.id && (
-              <div className="absolute -top-1 -right-1 flex gap-1">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setEditingCategory(cat)
-                    setCategoryName(cat.name)
-                    setShowCategoryModal(true)
-                  }}
-                  className="p-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg"
-                  title="Editar categoría"
-                >
-                  <Edit2 size={12} />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (window.confirm(`¿Eliminar la categoría "${cat.name}"?`)) {
-                      deleteCategory(cat.id)
-                      setSelectedCategoryFilter(null)
-                    }
-                  }}
-                  className="p-1 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg"
-                  title="Eliminar categoría"
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
-            )}
+            <div className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setEditingCategory(cat)
+                  setCategoryName(cat.name)
+                  setShowCategoryModal(true)
+                }}
+                className="p-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg"
+                title="Editar categoría"
+              >
+                <Edit2 size={12} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (window.confirm(`¿Eliminar la categoría "${cat.name}"?`)) {
+                    deleteCategory(cat.id)
+                    setSelectedCategoryFilter(null)
+                  }
+                }}
+                className="p-1 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg"
+                title="Eliminar categoría"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
           </div>
         ))}
         <button
@@ -471,6 +469,11 @@ export default function ProductsNew() {
                 <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   {product.name}
                 </h3>
+                {product.categoryId && (
+                  <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-blue-500/20 text-blue-400 rounded-full">
+                    {categories.find(c => c.id === product.categoryId)?.name || 'Sin categoría'}
+                  </span>
+                )}
                 {product.description && (
                   <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     {product.description}
