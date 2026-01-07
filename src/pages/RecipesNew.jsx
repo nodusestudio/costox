@@ -34,7 +34,32 @@ export default function RecipesNew() {
         getRecipes(),
         getIngredients()
       ])
-      setRecipes(Array.isArray(recipesData) ? recipesData : [])
+      // Reparación automática: si alguna receta quedó guardada con totales absurdos
+      // (por datos viejos o cálculos previos incorrectos), la recalculamos al cargar.
+      // Esto también dispara la sincronización con Productos desde storage.js.
+      const normalizedRecipes = Array.isArray(recipesData) ? recipesData : []
+      const brokenRecipes = normalizedRecipes.filter(r => {
+        const total = parseFloat(r?.totalCost || 0)
+        return !Number.isFinite(total) || total > 100000
+      })
+
+      if (brokenRecipes.length > 0) {
+        for (const r of brokenRecipes) {
+          await saveRecipe(
+            {
+              ...r,
+              ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
+              pesoTotal: parseFloat(r.pesoTotal || 0)
+            },
+            r.id
+          )
+        }
+        // Releer una sola vez para reflejar los valores corregidos
+        const fixedRecipes = await getRecipes()
+        setRecipes(Array.isArray(fixedRecipes) ? fixedRecipes : [])
+      } else {
+        setRecipes(normalizedRecipes)
+      }
       setIngredients(Array.isArray(ingredientsData) ? ingredientsData : [])
     } catch (error) {
       console.error('Error loading data:', error)
@@ -159,19 +184,22 @@ export default function RecipesNew() {
       const ing = ingredients.find(i => i.id === item.id)
       if (ing) {
         const quantity = parseFloat(item.quantity || 0)
+        if (!Number.isFinite(quantity) || quantity <= 0) return 0
         
         if (ing.costoPorGramo && ing.costoPorGramo > 0) {
           return ing.costoPorGramo * quantity
         } else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
           return calcularCostoProporcional(ing.costWithWastage, ing.pesoEmpaqueTotal, quantity)
         } else if (ing.costWithWastage) {
-          return ing.costWithWastage * quantity
+          // Fallback seguro para datos antiguos: asumimos empaque 1000g/ml si falta divisor
+          return calcularCostoProporcional(ing.costWithWastage, 1000, quantity)
         }
       }
     } else {
       const rec = recipes.find(r => r.id === item.id)
       if (rec) {
         const quantity = parseFloat(item.quantity || 0)
+        if (!Number.isFinite(quantity) || quantity <= 0) return 0
         
         // CORREGIDO: Usar costo proporcional por gramo (igual que ingredientes)
         if (rec.costoPorGramo && rec.costoPorGramo > 0) {
@@ -181,9 +209,9 @@ export default function RecipesNew() {
           const costoPorGramo = rec.totalCost / rec.pesoTotal
           return costoPorGramo * quantity
         } else if (rec.totalCost && (!rec.pesoTotal || rec.pesoTotal === 0)) {
-          // Validación: Si pesoTotal es 0 o nulo, usar valor por defecto 1g
-          console.warn(`⚠️ Receta ${rec.name} tiene pesoTotal=0, usando valor por defecto 1g`)
-          return rec.totalCost * quantity
+          // Sin peso no es seguro convertir a costo/gramo (evita costos millonarios).
+          console.warn(`⚠️ Receta ${rec.name} tiene pesoTotal inválido; se omite del costo.`)
+          return 0
         }
       }
     }
