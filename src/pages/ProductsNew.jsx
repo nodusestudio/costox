@@ -367,85 +367,45 @@ export default function ProductsNew() {
       {/* Modal */}
       {showModal && (
         <Modal
-          title={editingId ? 'Editar Producto' : 'Nuevo Producto'}
+          titleInput={
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full bg-transparent border-none text-2xl font-bold text-white placeholder-gray-500 focus:outline-none"
+              placeholder="📝 Escribe el nombre de tu producto aquí..."
+            />
+          }
           onClose={() => setShowModal(false)}
         >
           <div className="space-y-6 pb-6">
-            {/* Información Básica */}
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Nombre del Producto *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className={`w-full px-4 py-2 rounded-lg border ${
-                    isDarkMode
-                      ? 'bg-[#111827] border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-                  placeholder="Ej: Hamburguesa Completa"
-                />
-              </div>
-
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Descripción
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className={`w-full px-4 py-2 rounded-lg border ${
-                    isDarkMode
-                      ? 'bg-[#111827] border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-                  rows={2}
-                  placeholder="Opcional"
-                />
-              </div>
-            </div>
-
-            {/* HEADER COMPACTO: Nombre + Precio en línea horizontal */}
+            {/* HEADER COMPACTO: Precio de Venta */}
             <div className={`p-2 rounded-xl border-2 ${
               isDarkMode 
                 ? 'bg-gradient-to-br from-green-950 to-gray-900 border-green-700' 
                 : 'bg-gradient-to-br from-green-50 to-white border-green-300'
             }`}>
-              {/* Cabecera: Nombre + Precio en MISMA LÍNEA */}
-              <div className="flex items-center justify-between gap-4 mb-2">
-                <h3 className={`text-lg font-bold ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
+              {/* Precio de Venta Centrado */}
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <label className={`text-xs font-bold ${
+                  isDarkMode ? 'text-green-300' : 'text-green-700'
                 }`}>
-                  {formData.name || 'Nuevo Producto'}
-                </h3>
-                <div className="flex items-center gap-2">
-                  <label className={`text-xs font-bold whitespace-nowrap ${
-                    isDarkMode ? 'text-green-300' : 'text-green-700'
-                  }`}>
-                    💵 PRECIO:
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.realSalePrice}
-                    onChange={(e) => setFormData({ ...formData, realSalePrice: parseFloat(e.target.value) || 0 })}
-                    onFocus={(e) => e.target.select()}
-                    className={`w-32 px-3 py-1 rounded-lg border-2 font-black text-center ${
-                      isDarkMode
-                        ? 'bg-[#0a2818] border-green-500 text-green-300'
-                        : 'bg-white border-green-500 text-green-700'
-                    }`}
-                    style={{ fontSize: '2rem' }}
-                    placeholder="$ 0"
-                  />
-                </div>
+                  💵 PRECIO DE VENTA:
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.realSalePrice}
+                  onChange={(e) => setFormData({ ...formData, realSalePrice: parseFloat(e.target.value) || 0 })}
+                  onFocus={(e) => e.target.select()}
+                  className={`w-40 px-3 py-1 rounded-lg border-2 font-black text-center ${
+                    isDarkMode
+                      ? 'bg-[#0a2818] border-green-500 text-green-300'
+                      : 'bg-white border-green-500 text-green-700'
+                  }`}
+                  style={{ fontSize: '2rem' }}
+                  placeholder="$ 0"
+                />
               </div>
 
               {/* Tres Cajas de Métricas - MÁS COMPACTAS */}
@@ -794,6 +754,26 @@ export default function ProductsNew() {
                   placeholder="$ 0"
                 />
               </div>
+            </div>
+
+            {/* Descripción - Movida al final */}
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                📝 Descripción (Opcional)
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  isDarkMode
+                    ? 'bg-[#111827] border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+                rows={2}
+                placeholder="Agrega detalles adicionales del producto..."
+              />
             </div>
 
             {/* Botones de Acción */}
