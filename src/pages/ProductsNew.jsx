@@ -200,10 +200,18 @@ export default function ProductsNew() {
       } else if (item.type === 'recipe') {
         const rec = recipes.find(r => r.id === item.id)
         if (rec) {
-          const cantidadUsada = parseFloat(item.quantity || 1)
+          const cantidadUsada = parseFloat(item.quantity || 0)
+          
+          // CORREGIDO: Usar costo proporcional por gramo (igual que ingredientes)
           if (rec.costoPorGramo && rec.costoPorGramo > 0) {
             costoIngredientes += rec.costoPorGramo * cantidadUsada
-          } else if (rec.totalCost) {
+          } else if (rec.totalCost && rec.pesoTotal && rec.pesoTotal > 0) {
+            // Calcular costo por gramo si no está precalculado
+            const costoPorGramo = rec.totalCost / rec.pesoTotal
+            costoIngredientes += costoPorGramo * cantidadUsada
+          } else if (rec.totalCost && (!rec.pesoTotal || rec.pesoTotal === 0)) {
+            // Validación: Si pesoTotal es 0 o nulo, usar valor por defecto 1g
+            console.warn(`⚠️ Receta ${rec.name} tiene pesoTotal=0, usando valor por defecto 1g`)
             costoIngredientes += rec.totalCost * cantidadUsada
           }
         }
@@ -744,9 +752,16 @@ export default function ProductsNew() {
                         } else {
                           itemData = recipes.find(r => r.id === item.id)
                           if (itemData) {
+                            // CORREGIDO: Usar costo proporcional por gramo
                             if (itemData.costoPorGramo && itemData.costoPorGramo > 0) {
                               costoProporcional = itemData.costoPorGramo * cantidadUsada
-                            } else if (itemData.totalCost) {
+                            } else if (itemData.totalCost && itemData.pesoTotal && itemData.pesoTotal > 0) {
+                              // Calcular costo por gramo si no está precalculado
+                              const costoPorGramo = itemData.totalCost / itemData.pesoTotal
+                              costoProporcional = costoPorGramo * cantidadUsada
+                            } else if (itemData.totalCost && (!itemData.pesoTotal || itemData.pesoTotal === 0)) {
+                              // Validación: Si pesoTotal es 0 o nulo, usar valor por defecto 1g
+                              console.warn(`⚠️ Receta ${itemData.name} tiene pesoTotal=0, usando valor por defecto 1g`)
                               costoProporcional = itemData.totalCost * cantidadUsada
                             }
                           }

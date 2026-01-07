@@ -227,8 +227,21 @@ export const calculateRecipeCost = async (ingredientsList) => {
       }
     } else if (item.type === 'recipe') {
       const recipe = await getDocById(COLLECTIONS.recipes, item.id)
-      if (recipe && recipe.totalCost) {
-        totalCost += recipe.totalCost * parseFloat(item.quantity || 1)
+      if (recipe) {
+        const cantidad_usada = parseFloat(item.quantity || 0)
+        
+        // CORREGIDO: Usar costo proporcional por gramo
+        if (recipe.costoPorGramo && recipe.costoPorGramo > 0) {
+          totalCost += recipe.costoPorGramo * cantidad_usada
+        } else if (recipe.totalCost && recipe.pesoTotal && recipe.pesoTotal > 0) {
+          // Calcular costo por gramo si no está precalculado
+          const costoPorGramo = recipe.totalCost / recipe.pesoTotal
+          totalCost += costoPorGramo * cantidad_usada
+        } else if (recipe.totalCost && recipe.pesoTotal === 0) {
+          // Validación: Si pesoTotal es 0, usar peso por defecto de 1g para evitar división por cero
+          console.warn(`⚠️ Receta ${recipe.name} tiene pesoTotal=0, usando valor por defecto 1g`)
+          totalCost += recipe.totalCost * cantidad_usada
+        }
       }
     }
   }
@@ -336,11 +349,18 @@ export const calculateProductMetrics = async (productData) => {
     } else if (item.type === 'recipe') {
       const recipe = await getDocById(COLLECTIONS.recipes, item.id)
       if (recipe) {
-        const cantidad_usada = parseFloat(item.quantity || 1)
+        const cantidad_usada = parseFloat(item.quantity || 0)
         
+        // CORREGIDO: Usar costo proporcional por gramo (igual que ingredientes)
         if (recipe.costoPorGramo && recipe.costoPorGramo > 0) {
           costoIngredientes += recipe.costoPorGramo * cantidad_usada
-        } else if (recipe.totalCost) {
+        } else if (recipe.totalCost && recipe.pesoTotal && recipe.pesoTotal > 0) {
+          // Calcular costo por gramo si no está precalculado
+          const costoPorGramo = recipe.totalCost / recipe.pesoTotal
+          costoIngredientes += costoPorGramo * cantidad_usada
+        } else if (recipe.totalCost && (!recipe.pesoTotal || recipe.pesoTotal === 0)) {
+          // Validación: Si pesoTotal es 0 o nulo, usar valor por defecto 1g
+          console.warn(`⚠️ Receta ${recipe.name || 'sin nombre'} tiene pesoTotal=0, usando valor por defecto 1g`)
           costoIngredientes += recipe.totalCost * cantidad_usada
         }
       }

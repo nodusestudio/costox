@@ -170,8 +170,21 @@ export default function RecipesNew() {
       }
     } else {
       const rec = recipes.find(r => r.id === item.id)
-      if (rec && rec.totalCost) {
-        return rec.totalCost * parseFloat(item.quantity || 1)
+      if (rec) {
+        const quantity = parseFloat(item.quantity || 0)
+        
+        // CORREGIDO: Usar costo proporcional por gramo (igual que ingredientes)
+        if (rec.costoPorGramo && rec.costoPorGramo > 0) {
+          return rec.costoPorGramo * quantity
+        } else if (rec.totalCost && rec.pesoTotal && rec.pesoTotal > 0) {
+          // Calcular costo por gramo si no está precalculado
+          const costoPorGramo = rec.totalCost / rec.pesoTotal
+          return costoPorGramo * quantity
+        } else if (rec.totalCost && (!rec.pesoTotal || rec.pesoTotal === 0)) {
+          // Validación: Si pesoTotal es 0 o nulo, usar valor por defecto 1g
+          console.warn(`⚠️ Receta ${rec.name} tiene pesoTotal=0, usando valor por defecto 1g`)
+          return rec.totalCost * quantity
+        }
       }
     }
     return 0
