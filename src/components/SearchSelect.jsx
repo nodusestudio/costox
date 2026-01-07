@@ -43,12 +43,12 @@ export default function SearchSelect({
   }
 
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
+    <div ref={containerRef} className={`relative ${className}`} style={{ zIndex: isOpen ? 10000 : 1 }}>
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-3 bg-[#111827] border border-gray-600 rounded-lg text-white cursor-pointer flex items-center justify-between hover:border-primary-blue transition-colors"
+        className="w-full px-2 py-2 bg-[#111827] border border-gray-600 rounded-lg text-white cursor-pointer flex items-center justify-between hover:border-primary-blue transition-colors"
       >
-        <span className={selectedOption ? 'text-white' : 'text-gray-500'}>
+        <span className={`${selectedOption ? 'text-white' : 'text-gray-500'} truncate text-sm`}>
           {selectedOption ? selectedOption[displayKey] : placeholder}
         </span>
         <div className="flex items-center gap-2">

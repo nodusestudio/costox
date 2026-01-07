@@ -551,7 +551,7 @@ export default function ProductsNew() {
                           <div key={index} className={`flex gap-2 p-3 border-b text-sm ${
                             isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                           }`}>
-                            <div className={`flex-grow flex items-center ${
+                            <div style={{ width: '75%' }} className={`flex items-center ${
                               isDarkMode ? 'text-gray-300' : 'text-gray-700'
                             }`}>
                               <SearchSelect
@@ -564,9 +564,10 @@ export default function ProductsNew() {
                                 )}
                                 displayKey="name"
                                 placeholder="Seleccionar..."
+                                className="w-full"
                               />
                             </div>
-                            <div className="w-20 flex items-center">
+                            <div style={{ width: '12.5%' }} className="flex items-center">
                               <input
                                 type="number"
                                 step="0.01"
@@ -585,13 +586,13 @@ export default function ProductsNew() {
                                 placeholder="0"
                               />
                             </div>
-                            <div className={`w-24 flex items-center justify-between ${
+                            <div style={{ width: '12.5%' }} className={`flex items-center justify-end gap-1 ${
                               isDarkMode ? 'text-gray-300' : 'text-gray-700'
                             }`}>
-                              <span className="font-semibold text-xs">{formatMoneyDisplay(costoProporcional)}</span>
+                              <span className="font-semibold text-xs truncate">{formatMoneyDisplay(costoProporcional)}</span>
                               <button
                                 onClick={() => handleRemoveItem((formData.items ?? []).indexOf(item))}
-                                className="p-1 text-red-500 hover:bg-red-500/10 rounded"
+                                className="p-1 text-red-500 hover:bg-red-500/10 rounded flex-shrink-0"
                               >
                                 <Trash2 size={12} />
                               </button>
@@ -611,13 +612,13 @@ export default function ProductsNew() {
                 </div>
               </div>
 
-              {/* Bloque 2: INSUMOS */}
+              {/* Bloque 2: RECETAS / INGREDIENTES */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className={`text-sm font-bold ${
                     isDarkMode ? 'text-purple-300' : 'text-purple-700'
                   }`}>
-                    🍖 INSUMOS
+                    🍖 RECETAS / INGREDIENTES
                   </h4>
                   <div className="flex gap-2">
                     <button
@@ -642,9 +643,9 @@ export default function ProductsNew() {
                   <div className={`flex gap-2 p-3 border-b font-bold text-xs ${
                     isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
                   }`}>
-                    <div className="flex-grow">NOMBRE</div>
-                    <div className="w-20 text-center">CANT</div>
-                    <div className="w-24 text-right">COSTO</div>
+                    <div style={{ width: '75%' }}>NOMBRE</div>
+                    <div style={{ width: '12.5%' }} className="text-center">CANT</div>
+                    <div style={{ width: '12.5%' }} className="text-right">COSTO</div>
                   </div>
 
                   {/* Lista de Ingredientes y Recetas */}
@@ -685,7 +686,7 @@ export default function ProductsNew() {
                           <div key={index} className={`flex gap-2 p-3 border-b text-sm ${
                             isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                           }`}>
-                            <div className={`flex-grow flex items-center ${
+                            <div style={{ width: '75%' }} className={`flex items-center ${
                               isDarkMode ? 'text-gray-300' : 'text-gray-700'
                             }`}>
                               <SearchSelect
@@ -698,9 +699,10 @@ export default function ProductsNew() {
                                 )}
                                 displayKey="name"
                                 placeholder="Seleccionar..."
+                                className="w-full"
                               />
                             </div>
-                            <div className="w-20 flex items-center">
+                            <div style={{ width: '12.5%' }} className="flex items-center">
                               <input
                                 type="number"
                                 step="0.01"
@@ -719,13 +721,13 @@ export default function ProductsNew() {
                                 placeholder="0"
                               />
                             </div>
-                            <div className={`w-24 flex items-center justify-between ${
+                            <div style={{ width: '12.5%' }} className={`flex items-center justify-end gap-1 ${
                               isDarkMode ? 'text-gray-300' : 'text-gray-700'
                             }`}>
-                              <span className="font-semibold text-xs">{formatMoneyDisplay(costoProporcional)}</span>
+                              <span className="font-semibold text-xs truncate">{formatMoneyDisplay(costoProporcional)}</span>
                               <button
                                 onClick={() => handleRemoveItem((formData.items ?? []).indexOf(item))}
-                                className="p-1 text-red-500 hover:bg-red-500/10 rounded"
+                                className="p-1 text-red-500 hover:bg-red-500/10 rounded flex-shrink-0"
                               >
                                 <Trash2 size={12} />
                               </button>
@@ -738,7 +740,7 @@ export default function ProductsNew() {
                       <div className={`text-center py-8 ${
                         isDarkMode ? 'text-gray-500' : 'text-gray-400'
                       }`}>
-                        <p className="text-xs">Sin insumos</p>
+                        <p className="text-xs">Sin recetas ni ingredientes</p>
                       </div>
                     )}
                   </div>
