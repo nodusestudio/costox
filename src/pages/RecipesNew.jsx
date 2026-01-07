@@ -19,6 +19,7 @@ export default function RecipesNew() {
     name: '',
     description: '',
     pesoTotal: 0, // Peso total de la receta en gramos
+    wastagePercent: 30, // % Merma por defecto
     ingredients: [], // { type: 'ingredient' | 'recipe', id, quantity }
   })
   const searchSelectRefs = useRef({})
@@ -49,7 +50,8 @@ export default function RecipesNew() {
             {
               ...r,
               ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
-              pesoTotal: parseFloat(r.pesoTotal || 0)
+              pesoTotal: parseFloat(r.pesoTotal || 0),
+              wastagePercent: parseFloat(r.wastagePercent ?? 30)
             },
             r.id
           )
@@ -76,6 +78,7 @@ export default function RecipesNew() {
         name: recipe.name || '',
         description: recipe.description || '',
         pesoTotal: recipe.pesoTotal || 0,
+        wastagePercent: recipe.wastagePercent ?? 30,
         ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
       })
     } else {
@@ -84,6 +87,7 @@ export default function RecipesNew() {
         name: '',
         description: '',
         pesoTotal: 0,
+        wastagePercent: 30,
         ingredients: [],
       })
     }
@@ -312,13 +316,13 @@ export default function RecipesNew() {
                   {formatMoneyDisplay(recipe.totalCost || 0)}
                 </span>
               </div>
-              {recipe.pesoTotal && recipe.pesoTotal > 0 && (
+              {recipe.costoPorGramo && recipe.costoPorGramo > 0 && (
                 <div className="flex justify-between items-center">
                   <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Costo por Gramo
+                    Costo por Gramo {recipe.wastagePercent ? `(${recipe.wastagePercent}% merma)` : ''}
                   </span>
                   <span className={`font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                    {formatMoneyDisplay((recipe.totalCost || 0) / recipe.pesoTotal)}/g
+                    {formatMoneyDisplay(recipe.costoPorGramo)}/g
                   </span>
                 </div>
               )}
@@ -480,9 +484,9 @@ export default function RecipesNew() {
                   </div>
                 </div>
 
-                {/* 3 Cajas de Métricas Horizontales */}
-                <div className="grid grid-cols-3 gap-2">
-                  {/* Costo/Gramo */}
+                {/* 4 Cajas de Métricas Horizontales */}
+                <div className="grid grid-cols-4 gap-2">
+                  {/* Costo/Gramo (CON MERMA) */}
                   <div className={`p-2 rounded-lg text-center ${
                     isDarkMode ? 'bg-blue-950/50 border border-blue-700' : 'bg-blue-50 border border-blue-300'
                   }`}>
@@ -494,10 +498,11 @@ export default function RecipesNew() {
                     <div className={`text-lg font-black ${
                       isDarkMode ? 'text-blue-400' : 'text-blue-600'
                     }`}>
-                      {formData.pesoTotal > 0 
-                        ? formatMoneyDisplay(calculatePreviewCost() / formData.pesoTotal) + '/g'
-                        : '$ 0/g'
-                      }
+                      {(() => {
+                        if (formData.pesoTotal <= 0) return '$ 0/g'
+                        const pesoNeto = formData.pesoTotal * (1 - (formData.wastagePercent || 0) / 100)
+                        return pesoNeto > 0 ? formatMoneyDisplay(calculatePreviewCost() / pesoNeto) + '/g' : '$ 0/g'
+                      })()}
                     </div>
                   </div>
 
@@ -522,6 +527,32 @@ export default function RecipesNew() {
                       }`}
                       placeholder="1000"
                       min="0"
+                      step="1"
+                    />
+                  </div>
+
+                  {/* % Merma */}
+                  <div className={`p-2 rounded-lg text-center ${
+                    isDarkMode ? 'bg-yellow-950/50 border border-yellow-700' : 'bg-yellow-50 border border-yellow-300'
+                  }`}>
+                    <div className={`text-xs font-bold mb-1 ${
+                      isDarkMode ? 'text-yellow-300' : 'text-yellow-700'
+                    }`}>
+                      🔥 % MERMA
+                    </div>
+                    <input
+                      type="number"
+                      value={formData.wastagePercent}
+                      onChange={(e) => setFormData({ ...formData, wastagePercent: parseFloat(e.target.value) || 0 })}
+                      onFocus={(e) => e.target.select()}
+                      className={`w-full text-center px-2 py-1 rounded-lg border font-black text-lg ${
+                        isDarkMode
+                          ? 'bg-[#0a1828] border-yellow-500 text-yellow-400'
+                          : 'bg-white border-yellow-500 text-yellow-600'
+                      }`}
+                      placeholder="30"
+                      min="0"
+                      max="100"
                       step="1"
                     />
                   </div>

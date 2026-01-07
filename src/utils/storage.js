@@ -274,20 +274,24 @@ export const saveRecipe = async (recipe, id = null) => {
     const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : []
     const totalCost = await calculateRecipeCost(ingredients)
     const pesoTotal = parseFloat(recipe.pesoTotal || 0)
+    const wastagePercent = parseFloat(recipe.wastagePercent ?? 30)
     
-    // Calcular costo por gramo de la receta
-    const costoPorGramo = pesoTotal > 0 ? totalCost / pesoTotal : 0
+    // Calcular costo por gramo REAL considerando merma
+    // Fórmula: costoPorGramo = costoTotal / (pesoTotal * (1 - wastagePercent/100))
+    const pesoNeto = pesoTotal * (1 - wastagePercent / 100)
+    const costoPorGramo = pesoNeto > 0 ? totalCost / pesoNeto : 0
     
     const recipeData = {
       ...recipe,
       ingredients,
       totalCost,
       pesoTotal,
+      wastagePercent,
       costoPorGramo,
       updatedAt: new Date().toISOString()
     }
     
-    console.log(`🍳 Guardando receta: ${recipe.name} - Costo Total: $${totalCost.toFixed(2)}`)
+    console.log(`🍳 Guardando receta: ${recipe.name} - Costo Total: $${totalCost.toFixed(2)} - Merma: ${wastagePercent}% - Costo/g: $${costoPorGramo.toFixed(4)}`)
 
     const savedRecipeId = await saveDoc(COLLECTIONS.recipes, recipeData, id)
 
