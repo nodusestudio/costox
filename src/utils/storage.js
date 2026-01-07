@@ -62,6 +62,7 @@ export const saveDoc = async (collectionName, data, id = null) => {
     if (id) {
       const docRef = doc(db, collectionName, id)
       await setDoc(docRef, { ...data, updatedAt: new Date().toISOString() }, { merge: true })
+      console.log(`✅ Datos guardados en: Firebase Firestore - ${collectionName}/${id}`)
       return id
     } else {
       const docRef = await addDoc(collection(db, collectionName), {
@@ -69,10 +70,11 @@ export const saveDoc = async (collectionName, data, id = null) => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       })
+      console.log(`✅ Datos guardados en: Firebase Firestore - ${collectionName}/${docRef.id}`)
       return docRef.id
     }
   } catch (error) {
-    console.error(`Error saving document to ${collectionName}:`, error)
+    console.error(`❌ Error saving document to ${collectionName}:`, error)
     throw error
   }
 }
@@ -176,6 +178,7 @@ export const saveIngredient = async (ingredient, id = null) => {
     updatedAt: new Date().toISOString()
   }
   
+  console.log(`🍔 Guardando ingrediente: ${ingredient.name} - Costo/g: $${costoPorGramo.toFixed(4)}`)
   return await saveDoc(COLLECTIONS.ingredients, ingredientData, id)
 }
 
@@ -254,6 +257,7 @@ export const saveRecipe = async (recipe, id = null) => {
       updatedAt: new Date().toISOString()
     }
     
+    console.log(`🍳 Guardando receta: ${recipe.name} - Costo Total: $${totalCost.toFixed(2)}`)
     return await saveDoc(COLLECTIONS.recipes, recipeData, id)
   } catch (error) {
     console.error('Error saving recipe:', error)
@@ -386,6 +390,7 @@ export const saveProduct = async (product, id = null) => {
       updatedAt: new Date().toISOString()
     }
     
+    console.log(`🍔 Guardando producto: ${product.name} - Costo: $${metrics.totalCost.toFixed(2)} - P-Contrib: ${metrics.pContribucion.toFixed(1)}%`)
     return await saveDoc(COLLECTIONS.products, productData, id)
   } catch (error) {
     console.error('Error saving product:', error)
@@ -497,6 +502,7 @@ export const savePromotion = async (promotion, id = null) => {
       updatedAt: new Date().toISOString()
     }
     
+    console.log(`🎉 Guardando promoción: ${promotion.name} - Precio Combo: $${metrics.comboPrice.toFixed(2)} - Descuento: ${metrics.discountPercent.toFixed(1)}%`)
     return await saveDoc(COLLECTIONS.promotions, promotionData, id)
   } catch (error) {
     console.error('Error saving promotion:', error)
