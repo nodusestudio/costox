@@ -24,7 +24,8 @@ const COLLECTIONS = {
   ingredients: 'ingredients',
   recipes: 'recipes',
   products: 'products',
-  promotions: 'promotions'
+  promotions: 'promotions',
+  categories: 'categories'
 }
 
 /**
@@ -144,6 +145,27 @@ export const saveSupplier = async (supplier, id = null) => {
  */
 export const deleteSupplier = async (id) => {
   return await deleteDocument(COLLECTIONS.suppliers, id)
+}
+
+/**
+ * Obtiene todas las categorías
+ */
+export const getCategories = async () => {
+  return await getAllDocs(COLLECTIONS.categories)
+}
+
+/**
+ * Guarda categoría
+ */
+export const saveCategory = async (category, id = null) => {
+  return await saveDoc(COLLECTIONS.categories, category, id)
+}
+
+/**
+ * Elimina categoría
+ */
+export const deleteCategory = async (id) => {
+  return await deleteDocument(COLLECTIONS.categories, id)
 }
 
 /**

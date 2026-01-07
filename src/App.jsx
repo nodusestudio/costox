@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BarChart3, Users, Package, BookOpen, ShoppingCart, Tags, Settings } from 'lucide-react'
+import { BarChart3, Users, Package, BookOpen, ShoppingCart, Tags, Settings, Folder } from 'lucide-react'
 import Dashboard from '@/pages/Dashboard'
 import Suppliers from '@/pages/Suppliers'
 import IngredientsNew from '@/pages/IngredientsNew'
@@ -7,8 +7,10 @@ import RecipesNew from '@/pages/RecipesNew'
 import ProductsNew from '@/pages/ProductsNew'
 import PromotionsNew from '@/pages/PromotionsNew'
 import SettingsPage from '@/pages/Settings'
+import CategoriesManager from '@/pages/CategoriesManager'
 import { getConfig } from '@/utils/storage'
 import { useI18n, I18nProvider } from '@/context/I18nContext'
+import { CategoriesProvider } from '@/context/CategoriesContext'
 
 function AppContent() {
   const { t, isDarkMode } = useI18n()
@@ -46,6 +48,7 @@ function AppContent() {
     { id: 'recipes', label: t('recipes'), icon: BookOpen, component: RecipesNew },
     { id: 'products', label: t('products'), icon: ShoppingCart, component: ProductsNew },
     { id: 'promotions', label: t('promotions'), icon: Tags, component: PromotionsNew },
+    { id: 'categories', label: 'Categorías', icon: Folder, component: CategoriesManager },
     { id: 'settings', label: t('settings'), icon: Settings, component: SettingsPage },
   ]
 
@@ -149,7 +152,9 @@ function AppContent() {
 export default function App() {
   return (
     <I18nProvider>
-      <AppContent />
+      <CategoriesProvider>
+        <AppContent />
+      </CategoriesProvider>
     </I18nProvider>
   )
 }

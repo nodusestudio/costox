@@ -7,17 +7,21 @@ import Modal from '@/components/Modal'
 import Button from '@/components/Button'
 import SearchSelect from '@/components/SearchSelect'
 import { useI18n } from '@/context/I18nContext'
+import { useCategories } from '@/context/CategoriesContext'
 
 export default function RecipesNew() {
   const { isDarkMode } = useI18n()
+  const { categories } = useCategories()
   const [recipes, setRecipes] = useState([])
   const [ingredients, setIngredients] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    categoryId: '',
     pesoTotal: 0, // Peso total de la receta en gramos
     wastagePercent: 30, // % Merma por defecto
     ingredients: [], // { type: 'ingredient' | 'recipe', id, quantity }
@@ -77,6 +81,7 @@ export default function RecipesNew() {
       setFormData({
         name: recipe.name || '',
         description: recipe.description || '',
+        categoryId: recipe.categoryId || '',
         pesoTotal: recipe.pesoTotal || 0,
         wastagePercent: recipe.wastagePercent ?? 30,
         ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
@@ -86,6 +91,7 @@ export default function RecipesNew() {
       setFormData({
         name: '',
         description: '',
+        categoryId: '',
         pesoTotal: 0,
         wastagePercent: 30,
         ingredients: [],
@@ -234,6 +240,11 @@ export default function RecipesNew() {
     return totalCosto
   }
 
+  // Filtrar recetas por categoría
+  const filteredRecipes = selectedCategoryFilter
+    ? recipes.filter(r => r.categoryId === selectedCategoryFilter)
+    : recipes
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -262,9 +273,41 @@ export default function RecipesNew() {
         </button>
       </div>
 
+      {/* Filtros de Categoría */}
+      <div className="flex gap-2 flex-wrap items-center">
+        <button
+          onClick={() => setSelectedCategoryFilter(null)}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            selectedCategoryFilter === null
+              ? 'bg-primary-blue text-white'
+              : isDarkMode
+              ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Todas
+        </button>
+        {categories.map(cat => (
+          <button
+            key={cat.id}
+            onClick={() => setSelectedCategoryFilter(cat.id)}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              selectedCategoryFilter === cat.id
+                ? `bg-${cat.color}-600 text-white`
+                : isDarkMode
+                ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+            style={selectedCategoryFilter === cat.id ? { backgroundColor: cat.color } : {}}
+          >
+            {cat.name}
+          </button>
+        ))}
+      </div>
+
       {/* Grid de Recetas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(recipes || []).map(recipe => (
+        {(filteredRecipes || []).map(recipe => (
           <div key={recipe.id} className={`p-4 rounded-xl border ${
             isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
           }`}>
@@ -331,12 +374,15 @@ export default function RecipesNew() {
         ))}
       </div>
 
-      {recipes.length === 0 && (
+      {filteredRecipes.length === 0 && (
         <div className={`text-center py-12 rounded-xl border ${
           isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
         }`}>
           <p className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>
-            No hay recetas registradas
+            {recipes.length === 0 
+              ? 'No hay recetas registradas'
+              : 'No hay recetas en esta categoría'
+            }
           </p>
         </div>
       )}
@@ -595,7 +641,30 @@ export default function RecipesNew() {
                 placeholder="Agrega una descripción opcional..."
               />
             </div>
-
+            {/* Categoría */}
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                🏷️ Categoría (Opcional)
+              </label>
+              <select
+                value={formData.categoryId}
+                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  isDarkMode
+                    ? 'bg-[#111827] border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+              >
+                <option value="">Sin categoría</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="flex justify-end gap-6 mt-10 pt-8 border-t-2 border-gray-600 pb-12 bg-gray-800/50 -mx-8 px-8 -mb-8 rounded-b-2xl">
               <button
                 onClick={() => setShowModal(false)}

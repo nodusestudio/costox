@@ -6,18 +6,22 @@ import Modal from '@/components/Modal'
 import SearchSelect from '@/components/SearchSelect'
 import Button from '@/components/Button'
 import { useI18n } from '@/context/I18nContext'
+import { useCategories } from '@/context/CategoriesContext'
 
 export default function PromotionsNew() {
   const { isDarkMode } = useI18n()
+  const { categories } = useCategories()
   const [promotions, setPromotions] = useState([])
   const [products, setProducts] = useState([])
   const [ingredients, setIngredients] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    categoryId: '',
     items: [], // { type: 'product' | 'ingredient', id, quantity }
     comboPrice: 0,
   })
@@ -52,6 +56,7 @@ export default function PromotionsNew() {
       setFormData({
         name: promotion.name || '',
         description: promotion.description || '',
+        categoryId: promotion.categoryId || '',
         items: Array.isArray(promotion.items) ? promotion.items : [],
         comboPrice: promotion.comboPrice || 0,
       })
@@ -60,6 +65,7 @@ export default function PromotionsNew() {
       setFormData({
         name: '',
         description: '',
+        categoryId: '',
         items: [],
         comboPrice: 0,
       })
@@ -213,6 +219,11 @@ export default function PromotionsNew() {
 
   const metrics = calculateMetrics()
 
+  // Filtrar promociones por categoría
+  const filteredPromotions = selectedCategoryFilter
+    ? promotions.filter(p => p.categoryId === selectedCategoryFilter)
+    : promotions
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -241,9 +252,41 @@ export default function PromotionsNew() {
         </button>
       </div>
 
+      {/* Filtros de Categoría */}
+      <div className="flex gap-2 flex-wrap items-center">
+        <button
+          onClick={() => setSelectedCategoryFilter(null)}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            selectedCategoryFilter === null
+              ? 'bg-primary-blue text-white'
+              : isDarkMode
+              ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Todas
+        </button>
+        {categories.map(cat => (
+          <button
+            key={cat.id}
+            onClick={() => setSelectedCategoryFilter(cat.id)}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              selectedCategoryFilter === cat.id
+                ? `bg-${cat.color}-600 text-white`
+                : isDarkMode
+                ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+            style={selectedCategoryFilter === cat.id ? { backgroundColor: cat.color } : {}}
+          >
+            {cat.name}
+          </button>
+        ))}
+      </div>
+
       {/* Grid de Combos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(promotions || []).map(promo => (
+        {(filteredPromotions || []).map(promo => (
           <div key={promo.id} className={`p-4 rounded-xl border ${
             promo.isLosing
               ? 'border-red-500 bg-red-900/10'
@@ -369,12 +412,15 @@ export default function PromotionsNew() {
         ))}
       </div>
 
-      {promotions.length === 0 && (
+      {filteredPromotions.length === 0 && (
         <div className={`text-center py-12 rounded-xl border ${
           isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
         }`}>
           <p className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>
-            No hay combos registrados
+            {promotions.length === 0 
+              ? 'No hay combos registrados'
+              : 'No hay combos en esta categoría'
+            }
           </p>
         </div>
       )}
@@ -421,6 +467,31 @@ export default function PromotionsNew() {
                 }`}
                 rows={2}
               />
+            </div>
+
+            {/* Categoría */}
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                🏷️ Categoría (Opcional)
+              </label>
+              <select
+                value={formData.categoryId}
+                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  isDarkMode
+                    ? 'bg-[#111827] border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+              >
+                <option value="">Sin categoría</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

@@ -7,18 +7,22 @@ import Modal from '@/components/Modal'
 import SearchSelect from '@/components/SearchSelect'
 import Button from '@/components/Button'
 import { useI18n } from '@/context/I18nContext'
+import { useCategories } from '@/context/CategoriesContext'
 
 export default function ProductsNew() {
   const { isDarkMode } = useI18n()
+  const { categories } = useCategories()
   const [products, setProducts] = useState([])
   const [ingredients, setIngredients] = useState([])
   const [recipes, setRecipes] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    categoryId: '',
     items: [], // { type: 'ingredient' | 'recipe', id, quantity }
     laborCost: 0, // Mano de Obra (Operario)
     realSalePrice: 0, // Precio de Venta
@@ -55,6 +59,7 @@ export default function ProductsNew() {
       setFormData({
         name: product.name || '',
         description: product.description || '',
+        categoryId: product.categoryId || '',
         items: Array.isArray(product.items) ? product.items : [],
         laborCost: product.laborCost || 0,
         realSalePrice: product.realSalePrice || 0,
@@ -64,6 +69,7 @@ export default function ProductsNew() {
       setFormData({
         name: '',
         description: '',
+        categoryId: '',
         items: [],
         laborCost: 0,
         realSalePrice: 0,
@@ -295,6 +301,11 @@ export default function ProductsNew() {
 
   const metrics = calculateMetrics()
 
+  // Filtrar productos por categoría
+  const filteredProducts = selectedCategoryFilter
+    ? products.filter(p => p.categoryId === selectedCategoryFilter)
+    : products
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -323,9 +334,41 @@ export default function ProductsNew() {
         </button>
       </div>
 
+      {/* Filtros de Categoría */}
+      <div className="flex gap-2 flex-wrap items-center">
+        <button
+          onClick={() => setSelectedCategoryFilter(null)}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            selectedCategoryFilter === null
+              ? 'bg-primary-blue text-white'
+              : isDarkMode
+              ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Todas
+        </button>
+        {categories.map(cat => (
+          <button
+            key={cat.id}
+            onClick={() => setSelectedCategoryFilter(cat.id)}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              selectedCategoryFilter === cat.id
+                ? `bg-${cat.color}-600 text-white`
+                : isDarkMode
+                ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+            style={selectedCategoryFilter === cat.id ? { backgroundColor: cat.color } : {}}
+          >
+            {cat.name}
+          </button>
+        ))}
+      </div>
+
       {/* Grid de Productos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(products ?? []).map(product => {
+        {(filteredProducts ?? []).map(product => {
           const recalculated = recalculateProductMetrics(product)
           return (
           <div key={product.id} className={`p-4 rounded-xl border ${
@@ -454,12 +497,15 @@ export default function ProductsNew() {
         })}
       </div>
 
-      {products.length === 0 && (
+      {filteredProducts.length === 0 && (
         <div className={`text-center py-12 rounded-xl border ${
           isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
         }`}>
           <p className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>
-            No hay productos registrados
+            {products.length === 0 
+              ? 'No hay productos registrados'
+              : 'No hay productos en esta categoría'
+            }
           </p>
         </div>
       )}
@@ -892,9 +938,34 @@ export default function ProductsNew() {
                     ? 'bg-[#111827] border-gray-600 text-white'
                     : 'bg-white border-gray-300 text-gray-900'
                 }`}
-                rows={2}
-                placeholder="Agrega detalles adicionales del producto..."
+                rows="2"
+                placeholder="Detalles adicionales..."
               />
+            </div>
+
+            {/* Categoría */}
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                🏷️ Categoría (Opcional)
+              </label>
+              <select
+                value={formData.categoryId}
+                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  isDarkMode
+                    ? 'bg-[#111827] border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+              >
+                <option value="">Sin categoría</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Botones de Acción */}
