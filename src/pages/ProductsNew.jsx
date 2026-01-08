@@ -62,6 +62,39 @@ export default function ProductsNew() {
     setLoading(false)
   }
 
+  // FUNCIÓN PARA RECALCULAR TODOS LOS PRODUCTOS Y ACTUALIZAR FIREBASE
+  const recalcularTodosLosProductos = async () => {
+    if (!window.confirm('¿Recalcular y actualizar TODOS los productos en Firebase? Esto puede tardar unos segundos.')) {
+      return
+    }
+    
+    setLoading(true)
+    showToast('🔄 Recalculando productos...', 'info')
+    
+    try {
+      let actualizados = 0
+      
+      for (const product of products) {
+        try {
+          // Guardar el producto (esto ejecuta calculateProductMetrics automáticamente)
+          await saveProduct(product, product.id)
+          actualizados++
+          console.log(`✅ Actualizado: ${product.name}`)
+        } catch (error) {
+          console.error(`❌ Error al actualizar ${product.name}:`, error)
+        }
+      }
+      
+      await loadData()
+      showToast(`✅ ${actualizados} productos actualizados exitosamente`, 'success')
+    } catch (error) {
+      console.error('Error recalculando productos:', error)
+      showToast('❌ Error al recalcular productos', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleOpenModal = (product = null) => {
     if (product) {
       setEditingId(product.id)
@@ -559,6 +592,13 @@ export default function ProductsNew() {
           >
             <Download size={18} />
             📤 Exportar Excel
+          </button>
+          <button
+            onClick={recalcularTodosLosProductos}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors font-medium"
+            title="Recalcular CT de todos los productos y actualizar Firebase"
+          >
+            🔄 Recalcular Todos
           </button>
           <button
             onClick={() => handleOpenModal()}
