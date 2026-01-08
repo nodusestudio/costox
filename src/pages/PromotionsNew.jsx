@@ -32,49 +32,23 @@ export default function PromotionsNew() {
     comboPrice: 0,
   })
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  // FUNCIÓN DE LIMPIEZA DE NÚMEROS
-  // Convierte cualquier valor a número válido o devuelve 0
-  const parseSafeNumber = (val) => {
+  // ===== FUNCIÓN BLINDADA PARA CONVERTIR A NÚMERO =====
+  // Siempre devuelve un número válido o 0
+  const toNumber = (val) => {
     if (val === null || val === undefined || val === '') return 0
-    
-    // Si ya es número
-    if (typeof val === 'number') {
-      return isFinite(val) ? val : 0
-    }
-    
-    // Si es string, limpiar y convertir
+    if (typeof val === 'number') return isFinite(val) ? val : 0
     if (typeof val === 'string') {
-      // Remover separadores de miles y convertir coma a punto
       const cleaned = val.replace(/\./g, '').replace(',', '.')
       const parsed = parseFloat(cleaned)
       return isFinite(parsed) ? parsed : 0
     }
-    
     return 0
   }
 
-  // Sincronizar costos de items del combo cuando cambian los productos
+  // ===== CARGAR DATOS INICIALES =====
   useEffect(() => {
-    if (formData.items && formData.items.length > 0 && products.length > 0) {
-      // Forzar actualización de costos verificando contra lista de productos actual
-      const needsUpdate = formData.items.some(item => {
-        if (item.type === 'product') {
-          const product = products.find(p => p.id === item.id)
-          return product && product.totalCost !== undefined
-        }
-        return false
-      })
-      
-      if (needsUpdate) {
-        // Disparar re-render para actualizar costos en tabla
-        setFormData({ ...formData })
-      }
-    }
-  }, [products])
+    loadData()
+  }, [])
 
   const loadData = async () => {
     setLoading(true)
@@ -85,8 +59,6 @@ export default function PromotionsNew() {
         getIngredients()
       ])
       
-      // NO SINCRONIZAR - Solo cargar datos tal cual están en Firebase
-      // Los costos se calcularán LOCALMENTE desde el estado de products
       const sortedPromotions = Array.isArray(promotionsData)
         ? promotionsData.sort((a, b) => (a.order || 0) - (b.order || 0))
         : []
@@ -96,18 +68,7 @@ export default function PromotionsNew() {
       setIngredients(Array.isArray(ingredientsData) ? ingredientsData : [])
     } catch (error) {
       console.error('Error loading data:', error)
-      
-      // Detectar error de bloqueo de Firebase (ERR_BLOCKED_BY_CLIENT)
-      const isBlockedError = error.message?.includes('blocked') || 
-                             error.code === 'ERR_BLOCKED_BY_CLIENT' ||
-                             error.toString().includes('Failed to fetch')
-      
-      if (isBlockedError) {
-        showToast('⚠️ Error de conexión con la base de datos. Verifica bloqueadores de anuncios o extensiones del navegador.', 'error')
-      } else {
-        showToast('⚠️ Error de conexión con la base de datos', 'error')
-      }
-      
+      showToast('⚠️ Error de conexión con la base de datos', 'error')
       setPromotions([])
       setProducts([])
       setIngredients([])
@@ -115,30 +76,157 @@ export default function PromotionsNew() {
     setLoading(false)
   }
 
+  // ===== OBTENER DATOS EN VIVO DEL PRODUCTO =====
+  // Esta función busca el producto en el estado global y extrae sus datos actuales
+  const getLiveProductData = (productId) => {
+    const product = products.find(p => p.id === productId)
+    if (!product) {
+      return { costoTotal: 0, precioVenta: 0, nombre: 'Producto no encontrado' }
+    }
+
+    // Extraer costoTotal (el CT que debe ser $9.317,1 para BURGER CLASICA)
+    const costoTotal = toNumber(product.totalCost)
+    
+    // Extraer precioVenta (el PV que debe ser $14.000,0)
+    const precioVenta = toNumber(product.realSalePrice)
+
+    return {
+      costoTotal,
+      precioVenta,
+      nombre: product.name || 'Sin nombre'
+    }
+  }
+
+  // ===== OBTENER DATOS EN VIVO DEL INGREDIENTE =====
+  const getLiveIngredientData = (ingredientId) => {
+    const ingredient = ingredients.find(i => i.id === ingredientId)
+    if (!ingredient) {
+      return { costoPorGramo: 0, nombre: 'Ingrediente no encontrado' }
+    }
+
+    const costoPorGramo = toNumber(ingredient.costoPorGramo || ingredient.costWithWastage)
+    
+    return {
+      costoPorGramo,
+      nombre: ingredient.name || 'Sin nombre'
+    }
+  }
+
+  // ===== CALCULAR MÉTRICAS DEL COMBO (RESUMEN BLINDADO) =====
+  const calculateMetrics = () => {
+    let totalCost = 0
+    let totalSuggestedPrice = 0
+    const items = formData.items || []
+
+    if (!Array.isArray(items)) {
+      return {
+        totalCost: 0,
+        totalSuggestedPrice: 0,
+        comboPrice: 0,
+        discountAmount: 0,
+        discountPercent: 0,
+        profitAmount: 0,
+        profitMarginPercent: 0,
+        isLosing: false,
+        isLowMargin: false
+      }
+    }
+
+    // Sumar item por item con protección de billones
+    items.forEach(item => {
+      if (!item || !item.id) return
+      
+      const quantity = toNumber(item.quantity)
+      if (quantity <= 0) return
+      
+      if (item.type === 'product') {
+        const liveData = getLiveProductData(item.id)
+        const itemCost = toNumber(liveData.costoTotal) * quantity
+        const itemPrice = toNumber(liveData.precioVenta) * quantity
+        
+        totalCost += itemCost
+        totalSuggestedPrice += itemPrice
+      } else {
+        const liveData = getLiveIngredientData(item.id)
+        const itemCost = toNumber(liveData.costoPorGramo) * quantity
+        
+        totalCost += itemCost
+        totalSuggestedPrice += itemCost * 1.4 // Margen 40% para ingredientes
+      }
+    })
+
+    const comboPrice = toNumber(formData.comboPrice) || totalSuggestedPrice
+    const discountAmount = totalSuggestedPrice - comboPrice
+    const discountPercent = totalSuggestedPrice > 0 ? (discountAmount / totalSuggestedPrice) * 100 : 0
+    const profitAmount = comboPrice - totalCost
+    const profitMarginPercent = comboPrice > 0 ? (profitAmount / comboPrice) * 100 : 0
+
+    return {
+      totalCost: Number(totalCost.toFixed(2)),
+      totalSuggestedPrice: Number(totalSuggestedPrice.toFixed(2)),
+      comboPrice: Number(comboPrice.toFixed(2)),
+      discountAmount: Number(discountAmount.toFixed(2)),
+      discountPercent: Number(discountPercent.toFixed(2)),
+      profitAmount: Number(profitAmount.toFixed(2)),
+      profitMarginPercent: Number(profitMarginPercent.toFixed(2)),
+      isLosing: profitAmount < 0,
+      isLowMargin: profitMarginPercent < 20
+    }
+  }
+
+  // ===== CALCULAR MÉTRICAS PARA UN COMBO GUARDADO =====
+  const calculatePromotionMetrics = (promotion) => {
+    let totalCost = 0
+    let totalSuggestedPrice = 0
+    const items = promotion.items || []
+
+    if (!Array.isArray(items)) {
+      return {
+        totalCost: 0,
+        totalSuggestedPrice: 0,
+        comboPrice: 0,
+        profitMarginPercent: 0,
+        profitMarginValue: 0,
+        isLosing: false
+      }
+    }
+
+    items.forEach(item => {
+      if (!item || !item.id) return
+      
+      const quantity = toNumber(item.quantity)
+      if (quantity <= 0) return
+      
+      if (item.type === 'product') {
+        const liveData = getLiveProductData(item.id)
+        totalCost += toNumber(liveData.costoTotal) * quantity
+        totalSuggestedPrice += toNumber(liveData.precioVenta) * quantity
+      } else {
+        const liveData = getLiveIngredientData(item.id)
+        const itemCost = toNumber(liveData.costoPorGramo) * quantity
+        totalCost += itemCost
+        totalSuggestedPrice += itemCost * 1.4
+      }
+    })
+
+    const comboPrice = toNumber(promotion.comboPrice) || totalSuggestedPrice
+    const profitMarginValue = comboPrice - totalCost
+    const profitMarginPercent = comboPrice > 0 ? (profitMarginValue / comboPrice) * 100 : 0
+
+    return {
+      totalCost: Number(totalCost.toFixed(2)),
+      totalSuggestedPrice: Number(totalSuggestedPrice.toFixed(2)),
+      comboPrice: Number(comboPrice.toFixed(2)),
+      profitMarginPercent: Number(profitMarginPercent.toFixed(2)),
+      profitMarginValue: Number(profitMarginValue.toFixed(2)),
+      isLosing: profitMarginValue < 0
+    }
+  }
+
+  // ===== MODAL - ABRIR/CERRAR =====
   const handleOpenModal = (promotion = null) => {
     if (promotion) {
       setEditingId(promotion.id)
-      
-      // NO SINCRONIZAR - Solo cargar estructura básica del combo
-      // Los costos se obtienen SIEMPRE desde el estado local de products
-      // Ignorar CUALQUIER valor guardado en el combo ($5.255,6)
-      
-      // DEBUG: Verificar costos en el estado local
-      if (Array.isArray(promotion.items) && promotion.items.length > 0) {
-        console.log('=== ABRIENDO COMBO: VERIFICACIÓN DE COSTOS ===')
-        promotion.items.forEach(item => {
-          if (item.type === 'product') {
-            const localProduct = products.find(p => p.id === item.id)
-            if (localProduct) {
-              console.log(`Producto: ${localProduct.name}`)
-              console.log(`  - CT en estado local: $${parseFloat(localProduct.totalCost).toFixed(2)}`)
-              console.log(`  - Usar SIEMPRE este valor, NO el guardado en combo`)
-            }
-          }
-        })
-        console.log('===============================================')
-      }
-      
       setFormData({
         name: promotion.name || '',
         description: promotion.description || '',
@@ -159,6 +247,12 @@ export default function PromotionsNew() {
     setShowModal(true)
   }
 
+  const handleCloseModal = () => {
+    setShowModal(false)
+    setEditingId(null)
+  }
+
+  // ===== MANEJO DE ITEMS DEL COMBO =====
   const handleAddItem = (type) => {
     const currentItems = Array.isArray(formData.items) ? formData.items : []
     setFormData({
@@ -184,165 +278,15 @@ export default function PromotionsNew() {
     setFormData({ ...formData, items: updated })
   }
 
-  // FORZAR CT REAL DEL PRODUCTO
-  // El costo DEBE ser exactamente el costoTotal del producto original
-  // Si es 'BURGER CLASICA NORMAL PEQUEÑA', debe ser $9.317,1 EXACTO
-  const getProductTotalCost = (productRef) => {
-    if (!productRef || !productRef.id) return 0
-    
-    // Buscar producto en estado local
-    const currentProduct = products.find(p => p.id === productRef.id)
-    
-    if (!currentProduct) {
-      console.warn(`Producto ${productRef.id} no encontrado en estado local`)
-      return 0
-    }
-    
-    // DEBUG DETALLADO
-    console.log(`======================================`)
-    console.log(`[PRODUCTO] ${currentProduct.name}`)
-    console.log(`  - totalCost RAW:`, currentProduct.totalCost)
-    console.log(`  - totalCost TYPE:`, typeof currentProduct.totalCost)
-    
-    // USAR parseSafeNumber para obtener el CT
-    const totalCost = parseSafeNumber(currentProduct.totalCost)
-    
-    console.log(`  - totalCost PARSEADO:`, totalCost)
-    console.log(`======================================`)
-    
-    if (totalCost > 0) {
-      return totalCost
-    }
-    
-    console.warn(`[CT] ${currentProduct.name}: totalCost inválido, usando fallback`)
-    
-    // Fallback: calcular desde ingredientes + mano de obra
-    const laborCost = parseSafeNumber(currentProduct.laborCost)
-    let ingredientsCost = 0
-    
-    if (Array.isArray(currentProduct.items)) {
-      currentProduct.items.forEach(item => {
-        if (item.type === 'ingredient' || item.type === 'ingredient-embalaje' || item.type === 'ingredient-receta') {
-          const ing = ingredients.find(i => i.id === item.id)
-          if (ing) {
-            const qty = parseSafeNumber(item.quantity)
-            const cost = parseSafeNumber(ing.costoPorGramo || ing.costWithWastage)
-            ingredientsCost += cost * qty
-          }
-        }
-      })
-    }
-    
-    return ingredientsCost + laborCost
-  }
-
-  // RESET DE CÁLCULOS - Recalcular desde CERO en cada renderizado
-  // Sumar SOLO números válidos para evitar billones
-  const calculateMetrics = () => {
-    // RESET: Iniciar desde cero
-    let totalCost = 0
-    let totalSuggestedPrice = 0
-    const items = formData.items || []
-
-    // Validar que sea un array
-    if (!Array.isArray(items)) {
-      return {
-        totalCost: 0,
-        totalSuggestedPrice: 0,
-        comboPrice: 0,
-        discountAmount: 0,
-        discountPercent: 0,
-        profitAmount: 0,
-        profitMarginPercent: 0,
-        isLosing: false,
-        isLowMargin: false
-      }
-    }
-
-    // Sumar item por item con validación estricta
-    items.forEach(item => {
-      if (!item || !item.id) return
-      
-      const quantity = parseSafeNumber(item.quantity)
-      if (quantity <= 0) return // Ignorar cantidades inválidas
-      
-      if (item.type === 'product') {
-        const prod = products.find(p => p.id === item.id)
-        if (prod) {
-          // FORZAR CT REAL del producto
-          const productCost = getProductTotalCost(prod)
-          const productPrice = parseSafeNumber(prod.realSalePrice)
-          
-          // Validar antes de sumar
-          if (isFinite(productCost) && productCost >= 0) {
-            totalCost += productCost * quantity
-          }
-          if (isFinite(productPrice) && productPrice >= 0) {
-            totalSuggestedPrice += productPrice * quantity
-          }
-        }
-      } else {
-        const ing = ingredients.find(i => i.id === item.id)
-        if (ing) {
-          let costoProporcional = 0
-          
-          // Usar costoPorGramo si está disponible
-          const costoPorGramo = parseSafeNumber(ing.costoPorGramo)
-          if (costoPorGramo > 0) {
-            costoProporcional = costoPorGramo * quantity
-          } 
-          // Fallback 1: Calcular usando pesoEmpaqueTotal
-          else {
-            const costWithWastage = parseSafeNumber(ing.costWithWastage)
-            const pesoEmpaqueTotal = parseSafeNumber(ing.pesoEmpaqueTotal)
-            
-            if (pesoEmpaqueTotal > 0 && costWithWastage > 0) {
-              costoProporcional = calcularCostoProporcional(
-                costWithWastage, 
-                pesoEmpaqueTotal, 
-                quantity
-              )
-            } else if (costWithWastage > 0) {
-              costoProporcional = costWithWastage * quantity
-            }
-          }
-          
-          // Validar antes de sumar
-          if (isFinite(costoProporcional) && costoProporcional >= 0) {
-            totalCost += costoProporcional
-            totalSuggestedPrice += costoProporcional * 1.4 // Margen 40%
-          }
-        }
-      }
-    })
-
-    const comboPrice = parseSafeNumber(formData.comboPrice) || totalSuggestedPrice
-    const discountAmount = totalSuggestedPrice - comboPrice
-    const discountPercent = totalSuggestedPrice > 0 ? (discountAmount / totalSuggestedPrice) * 100 : 0
-    const profitAmount = comboPrice - totalCost
-    const profitMarginPercent = comboPrice > 0 ? (profitAmount / comboPrice) * 100 : 0
-
-    return {
-      totalCost: parseSafeNumber(totalCost),
-      totalSuggestedPrice: parseSafeNumber(totalSuggestedPrice),
-      comboPrice: parseSafeNumber(comboPrice),
-      discountAmount: parseSafeNumber(discountAmount),
-      discountPercent: parseSafeNumber(discountPercent),
-      profitAmount: parseSafeNumber(profitAmount),
-      profitMarginPercent: parseSafeNumber(profitMarginPercent),
-      isLosing: profitAmount < 0,
-      isLowMargin: profitMarginPercent < 20
-    }
-  }
-
+  // ===== GUARDAR COMBO =====
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      alert('El nombre es requerido')
+      showToast('El nombre es requerido', 'error')
       return
     }
 
     if (!Array.isArray(formData.items) || formData.items.length === 0) {
-      alert('Debe agregar al menos un item al combo')
+      showToast('Debe agregar al menos un item al combo', 'error')
       return
     }
 
@@ -354,8 +298,18 @@ export default function PromotionsNew() {
     }
 
     try {
-      await savePromotion(formData, editingId)
-      showToast('✅ Guardado satisfactoriamente', 'success')
+      // IMPORTANTE: Solo guardamos id y cantidad, no costos
+      const comboToSave = {
+        ...formData,
+        items: formData.items.map(item => ({
+          type: item.type,
+          id: item.id,
+          quantity: toNumber(item.quantity)
+        }))
+      }
+      
+      await savePromotion(comboToSave, editingId)
+      showToast('✅ Combo guardado exitosamente', 'success')
       setShowModal(false)
       await loadData()
     } catch (error) {
@@ -364,18 +318,21 @@ export default function PromotionsNew() {
     }
   }
 
+  // ===== ELIMINAR COMBO =====
   const handleDelete = async (id) => {
     if (window.confirm('¿Eliminar este combo?')) {
       try {
         await deletePromotion(id)
+        showToast('✅ Combo eliminado', 'success')
         await loadData()
       } catch (error) {
         console.error('Error deleting promotion:', error)
-        alert('Error al eliminar')
+        showToast('Error al eliminar', 'error')
       }
     }
   }
 
+  // ===== DUPLICAR COMBO =====
   const handleDuplicate = async (promotion) => {
     try {
       const duplicated = {
@@ -392,6 +349,7 @@ export default function PromotionsNew() {
     }
   }
 
+  // ===== DRAG & DROP =====
   const handleDragStart = (e, promotion) => {
     setDraggedItem(promotion)
     e.dataTransfer.effectAllowed = 'move'
@@ -410,7 +368,6 @@ export default function PromotionsNew() {
       return
     }
 
-    // Reordenar solo dentro de la misma categoría
     if (draggedItem.categoryId !== targetPromotion.categoryId) {
       setDraggedItem(null)
       return
@@ -428,7 +385,6 @@ export default function PromotionsNew() {
       const [removed] = reordered.splice(draggedIndex, 1)
       reordered.splice(targetIndex, 0, removed)
       
-      // Asignar nuevos índices
       const updates = reordered.map((promotion, index) => 
         savePromotion({ ...promotion, order: index }, promotion.id)
       )
@@ -464,279 +420,178 @@ export default function PromotionsNew() {
     setDraggedItem(null)
   }
 
+  // ===== CATEGORÍAS =====
+  const handleSaveCategory = async () => {
+    if (!categoryName.trim()) {
+      showToast('El nombre de la categoría es requerido', 'error')
+      return
+    }
+
+    try {
+      await saveCategory(categoryName, editingCategory)
+      setCategoryName('')
+      setEditingCategory(null)
+      setShowCategoryModal(false)
+      showToast('✅ Categoría guardada', 'success')
+    } catch (error) {
+      console.error('Error saving category:', error)
+      showToast('Error al guardar categoría', 'error')
+    }
+  }
+
+  const handleDeleteCategory = async (id) => {
+    if (window.confirm('¿Eliminar esta categoría? Los combos no se eliminarán.')) {
+      try {
+        await deleteCategory(id)
+        showToast('✅ Categoría eliminada', 'success')
+      } catch (error) {
+        console.error('Error deleting category:', error)
+        showToast('Error al eliminar categoría', 'error')
+      }
+    }
+  }
+
+  // ===== EXPORTAR A EXCEL =====
   const handleExportExcel = () => {
     try {
-      const exportData = promotions.map((promo, index) => {
-        try {
-          const categoryName = categories.find(c => c.id === promo.categoryId)?.name || 'Sin categoría'
-          const metrics = calculatePromotionMetrics(promo)
-          
-          const totalCost = parseFloat(metrics.totalCost) || 0
-          const comboPrice = parseFloat(promo.comboPrice || metrics.totalSuggestedPrice) || 0
-          const profitMarginPercent = parseFloat(metrics.profitMarginPercent) || 0
-          const profitMarginValue = parseFloat(metrics.profitMarginValue) || 0
-          
-          return {
-            'Nombre': promo.name || 'Sin nombre',
-            'Descripción': promo.description || '',
-            'Categoría': categoryName,
-            'Costo Total': totalCost.toFixed(2),
-            'Precio Combo': comboPrice.toFixed(2),
-            'Margen %': profitMarginPercent.toFixed(2),
-            'Utilidad $': profitMarginValue.toFixed(2),
-            'Estado': promo.isLosing ? 'Perdiendo' : profitMarginPercent < 20 ? 'Margen bajo' : 'Normal'
-          }
-        } catch (itemError) {
-          console.error(`Error exportando promoción en índice ${index}:`, promo.name, itemError)
-          return {
-            'Nombre': promo.name || 'Sin nombre',
-            'Descripción': 'Error al exportar',
-            'Categoría': '',
-            'Costo Total': '0.00',
-            'Precio Combo': '0.00',
-            'Margen %': '0.00',
-            'Utilidad $': '0.00',
-            'Estado': 'Error'
-          }
+      const exportData = promotions.map(promo => {
+        const categoryName = categories.find(c => c.id === promo.categoryId)?.name || 'Sin categoría'
+        const metrics = calculatePromotionMetrics(promo)
+        
+        return {
+          'Nombre': promo.name || 'Sin nombre',
+          'Descripción': promo.description || '',
+          'Categoría': categoryName,
+          'Costo Total': metrics.totalCost.toFixed(2),
+          'Precio Combo': metrics.comboPrice.toFixed(2),
+          'Margen %': metrics.profitMarginPercent.toFixed(2),
+          'Utilidad $': metrics.profitMarginValue.toFixed(2),
+          'Estado': metrics.isLosing ? 'Perdiendo' : metrics.profitMarginPercent < 20 ? 'Margen bajo' : 'Normal'
         }
       })
 
-      const worksheet = XLSX.utils.json_to_sheet(exportData)
-      const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Promociones')
-      
-      const fileName = `Promociones_${new Date().toISOString().split('T')[0]}.xlsx`
-      XLSX.writeFile(workbook, fileName)
-      
-      showToast('✅ Promociones exportadas exitosamente', 'success')
+      const ws = XLSX.utils.json_to_sheet(exportData)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Combos')
+      XLSX.writeFile(wb, `combos_${new Date().toISOString().split('T')[0]}.xlsx`)
+      showToast('✅ Excel exportado exitosamente', 'success')
     } catch (error) {
-      console.error('Error crítico al exportar promociones:', error)
-      showToast('❌ Error al exportar promociones', 'error')
+      console.error('Error exporting Excel:', error)
+      showToast('Error al exportar Excel', 'error')
     }
   }
 
+  // ===== IMPORTAR DESDE EXCEL =====
   const handleImportExcel = (e) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files[0]
     if (!file) return
 
     const reader = new FileReader()
-    reader.onload = async (event) => {
+    reader.onload = async (evt) => {
       try {
-        const data = new Uint8Array(event.target.result)
-        const workbook = XLSX.read(data, { type: 'array' })
-        const sheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[sheetName]
-        const jsonData = XLSX.utils.sheet_to_json(worksheet)
+        const bstr = evt.target.result
+        const wb = XLSX.read(bstr, { type: 'binary' })
+        const wsname = wb.SheetNames[0]
+        const ws = wb.Sheets[wsname]
+        const data = XLSX.utils.sheet_to_json(ws)
 
-        if (!jsonData.length) {
-          showToast('❌ Archivo vacío', 'error')
-          return
-        }
-
-        // Validar formato
-        const firstRow = jsonData[0]
-        if (!firstRow['Nombre']) {
-          showToast('❌ Formato de archivo no válido', 'error')
-          return
-        }
-
-        let imported = 0
-        for (const row of jsonData) {
-          const categoryName = row['Categoría'] || ''
-          let categoryId = ''
+        for (const row of data) {
+          const items = []
           
-          if (categoryName && categoryName !== 'Sin categoría') {
-            const existingCategory = categories.find(c => c.name === categoryName)
-            if (existingCategory) {
-              categoryId = existingCategory.id
-            } else {
-              const newCategory = { name: categoryName }
-              const result = await saveCategory(newCategory, null, 'promotions')
-              if (result) {
-                categoryId = result.id || ''
-              }
-            }
-          }
-
-          const newPromotion = {
-            name: row['Nombre'] || 'Promoción sin nombre',
+          const combo = {
+            name: row['Nombre'] || 'Importado',
             description: row['Descripción'] || '',
-            categoryId: categoryId,
-            items: [],
-            comboPrice: parseFloat(row['Precio Combo']) || 0,
-            order: promotions.length + imported
+            categoryId: '',
+            items: items,
+            comboPrice: toNumber(row['Precio Combo'])
           }
-
-          await savePromotion(newPromotion)
-          imported++
+          
+          await savePromotion(combo)
         }
 
-        showToast(`✅ ${imported} promociones importadas`, 'success')
         await loadData()
+        showToast('✅ Combos importados exitosamente', 'success')
       } catch (error) {
-        console.error('Error importing promotions:', error)
-        showToast('❌ Formato de archivo no válido', 'error')
+        console.error('Error importing Excel:', error)
+        showToast('Error al importar Excel', 'error')
       }
     }
-
-    reader.readAsArrayBuffer(file)
+    reader.readAsBinaryString(file)
     e.target.value = ''
   }
 
-  const calculatePromotionMetrics = (promo) => {
-    let totalCost = 0
-    let totalSuggestedPrice = 0
-
-    const items = Array.isArray(promo.items) ? promo.items : []
-    items.forEach(item => {
-      if (item.type === 'product') {
-        const product = products.find(p => p.id === item.id)
-        if (product) {
-          const quantity = parseInt(item.quantity) || 1
-          // Usar el costo total (CT) del producto directamente
-          const productCost = getProductTotalCost(product)
-          const productPrice = parseFloat(product.realSalePrice) || 0
-          totalCost += productCost * quantity
-          totalSuggestedPrice += productPrice * quantity
-        }
-      } else if (item.type === 'ingredient') {
-        const ing = ingredients.find(i => i.id === item.id)
-        if (ing) {
-          const quantity = parseInt(item.quantity) || 1
-          const costWithWastage = ing.costWithWastage || 0
-          totalCost += costWithWastage * quantity
-          totalSuggestedPrice += costWithWastage * quantity * 1.3
-        }
-      }
-    })
-
-    const comboPrice = promo.comboPrice || totalSuggestedPrice
-    const profitMarginValue = comboPrice - totalCost
-    const profitMarginPercent = comboPrice > 0 ? (profitMarginValue / comboPrice) * 100 : 0
-    const isLosing = profitMarginValue < 0
-
-    return {
-      totalCost,
-      totalSuggestedPrice,
-      comboPrice,
-      profitMarginValue,
-      profitMarginPercent,
-      isLosing
-    }
-  }
-
-  const metrics = calculateMetrics()
-
-  // Filtrar promociones por categoría
+  // ===== FILTRAR COMBOS =====
   const filteredPromotions = selectedCategoryFilter
     ? promotions.filter(p => p.categoryId === selectedCategoryFilter)
     : promotions
 
+  const metrics = showModal ? calculateMetrics() : null
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-gray-400">Cargando...</p>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue"></div>
       </div>
     )
   }
 
   return (
-    <div className={`p-4 md:p-6 space-y-6 ${isDarkMode ? 'bg-[#111827]' : 'bg-white'}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            Combos / Promociones
-          </h2>
-          <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Análisis inteligente de descuentos y márgenes
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 px-5 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-lg font-medium cursor-pointer">
-            <Upload size={20} />
-            📥 Importar Excel
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-dark-text dark:text-light-text">
+          Combos / Promociones
+        </h1>
+        <div className="flex gap-3">
+          <Button onClick={handleExportExcel} variant="secondary">
+            <Download className="w-4 h-4 mr-2" />
+            Exportar Excel
+          </Button>
+          <label>
             <input
               type="file"
-              accept=".xlsx, .xls"
+              accept=".xlsx,.xls"
               onChange={handleImportExcel}
               className="hidden"
             />
+            <Button variant="secondary" onClick={() => document.querySelector('input[type="file"]').click()}>
+              <Upload className="w-4 h-4 mr-2" />
+              Importar Excel
+            </Button>
           </label>
-          <button
-            onClick={handleExportExcel}
-            className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg font-medium"
-          >
-            <Download size={20} />
-            📤 Exportar Excel
-          </button>
-          <button
-            onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 px-5 py-3 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg font-medium"
-          >
-            <Plus size={20} />
+          <Button onClick={() => handleOpenModal()}>
+            <Plus className="w-4 h-4 mr-2" />
             Nuevo Combo
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* Pestañas de Categoría */}
-      <div className={`flex gap-2 items-center border-b-2 pb-3 ${
-        isDarkMode ? 'border-gray-700' : 'border-gray-200'
-      }`}>
+      {/* Filtro de Categorías */}
+      <div className="flex gap-3 flex-wrap">
         <button
           onClick={() => setSelectedCategoryFilter(null)}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDropCategory(e, null)}
-          className={`px-6 py-2 font-semibold transition-all border-b-4 ${
-            selectedCategoryFilter === null
-              ? 'border-primary-blue text-primary-blue'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            !selectedCategoryFilter
+              ? 'bg-primary-blue text-white'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
           }`}
         >
-          📋 Todas
+          Todos ({promotions.length})
         </button>
         {categories.map(cat => (
-          <div key={cat.id} className="relative group">
-            <button
-              onClick={() => setSelectedCategoryFilter(cat.id)}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDropCategory(e, cat.id)}
-              className={`px-6 py-2 font-semibold transition-all border-b-4 ${
-                selectedCategoryFilter === cat.id
-                  ? 'border-primary-blue text-primary-blue'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {cat.name}
-            </button>
-            <div className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setEditingCategory(cat)
-                  setCategoryName(cat.name)
-                  setShowCategoryModal(true)
-                }}
-                className="p-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg"
-                title="Editar categoría"
-              >
-                <Edit2 size={12} />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (window.confirm(`¿Eliminar la categoría "${cat.name}"?`)) {
-                    deleteCategory(cat.id, 'promotions', 'promotions')
-                    setSelectedCategoryFilter(null)
-                  }
-                }}
-                className="p-1 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg"
-                title="Eliminar categoría"
-              >
-                <Trash2 size={12} />
-              </button>
-            </div>
-          </div>
+          <button
+            key={cat.id}
+            onClick={() => setSelectedCategoryFilter(cat.id)}
+            onDrop={(e) => handleDropCategory(e, cat.id)}
+            onDragOver={handleDragOver}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              selectedCategoryFilter === cat.id
+                ? 'bg-primary-blue text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            {cat.name} ({promotions.filter(p => p.categoryId === cat.id).length})
+          </button>
         ))}
         <button
           onClick={() => {
@@ -744,584 +599,346 @@ export default function PromotionsNew() {
             setCategoryName('')
             setShowCategoryModal(true)
           }}
-          className="ml-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors text-sm"
+          className="px-4 py-2 rounded-lg border-2 border-dashed border-gray-400 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-primary-blue hover:text-primary-blue transition-colors"
         >
-          + Categoría
+          + Nueva Categoría
         </button>
       </div>
 
-      {/* Grid de Combos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(filteredPromotions || []).map(promo => (
-          <div 
-            key={promo.id} 
-            draggable
-            onDragStart={(e) => handleDragStart(e, promo)}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, promo)}
-            className={`p-4 rounded-xl border cursor-move ${
-              promo.isLosing
-                ? 'border-red-500 bg-red-900/10'
-                : promo.profitMarginPercent < 20
-                ? 'border-yellow-500 bg-yellow-900/10'
-                : isDarkMode
-                ? 'bg-[#1f2937] border-gray-700'
-                : 'bg-white border-gray-200'
-            }`}
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+      {/* Lista de Combos */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredPromotions.map(promo => {
+          const promoMetrics = calculatePromotionMetrics(promo)
+          
+          return (
+            <div
+              key={promo.id}
+              draggable
+              onDragStart={(e) => handleDragStart(e, promo)}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, promo)}
+              className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 cursor-move transition-all hover:shadow-lg ${
+                draggedItem?.id === promo.id ? 'opacity-50' : ''
+              }`}
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-dark-text dark:text-light-text mb-2">
                     {promo.name}
                   </h3>
-                  {promo.isLosing && (
-                    <AlertTriangle size={18} className="text-red-500" />
+                  {promo.description && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      {promo.description}
+                    </p>
                   )}
                 </div>
-                {promo.categoryId && (
-                  <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-blue-500/20 text-blue-400 rounded-full">
-                    {categories.find(c => c.id === promo.categoryId)?.name || 'Sin categoría'}
-                  </span>
-                )}
-                {promo.description && (
-                  <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {promo.description}
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => handleDuplicate(promo)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isDarkMode
-                      ? 'hover:bg-[#111827] text-green-400'
-                      : 'hover:bg-gray-100 text-green-600'
-                  }`}
-                  title="Duplicar combo"
-                >
-                  <Plus size={16} />
-                </button>
-                <button
-                  onClick={() => handleOpenModal(promo)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isDarkMode
-                      ? 'hover:bg-[#111827] text-blue-400'
-                      : 'hover:bg-gray-100 text-blue-600'
-                  }`}
-                >
-                  <Edit2 size={16} />
-                </button>
-                <button
-                  onClick={() => handleDelete(promo.id)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isDarkMode
-                      ? 'hover:bg-[#111827] text-red-400'
-                      : 'hover:bg-gray-100 text-red-600'
-                  }`}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-2 text-sm mb-3">
-              <div className="flex justify-between">
-                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                  Precio Normal
-                </span>
-                <span className="line-through">
-                  {formatMoneyDisplay(promo.totalSuggestedPrice || 0)}
-                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleOpenModal(promo)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4 text-primary-blue" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(promo.id)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </button>
+                </div>
               </div>
 
-              {promo.discountAmount > 0 && (
-                <div className="flex justify-between">
-                  <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                    Descuento
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Costo Total:</span>
+                  <span className="font-semibold text-dark-text dark:text-light-text">
+                    {formatMoneyDisplay(promoMetrics.totalCost)}
                   </span>
-                  <span className="text-yellow-500 font-semibold">
-                    -{formatMoneyDisplay(promo.discountAmount)} ({promo.discountPercent?.toFixed(1)}%)
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Precio Combo:</span>
+                  <span className="font-semibold text-primary-blue">
+                    {formatMoneyDisplay(promoMetrics.comboPrice)}
                   </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Margen:</span>
+                  <div className="flex items-center gap-2">
+                    {promoMetrics.isLosing ? (
+                      <TrendingDown className="w-4 h-4 text-red-500" />
+                    ) : (
+                      <TrendingUp className="w-4 h-4 text-green-500" />
+                    )}
+                    <span className={`font-semibold ${
+                      promoMetrics.isLosing ? 'text-red-500' : 
+                      promoMetrics.profitMarginPercent < 20 ? 'text-yellow-500' : 'text-green-500'
+                    }`}>
+                      {promoMetrics.profitMarginPercent.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {promoMetrics.isLosing && (
+                <div className="mt-4 flex items-center gap-2 text-red-500 text-sm">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span>Este combo genera pérdidas</span>
                 </div>
               )}
 
-              <div className="flex justify-between items-center pt-2 border-t border-gray-700">
-                <span className="font-semibold">Precio Combo</span>
-                <span className={`font-bold text-xl ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                  {formatMoneyDisplay(promo.comboPrice || 0)}
-                </span>
-              </div>
-
-              <div className={`p-2 rounded mt-2 ${
-                promo.isLosing
-                  ? 'bg-red-900/20 border border-red-700'
-                  : promo.profitMarginPercent < 20
-                  ? 'bg-yellow-900/20 border border-yellow-700'
-                  : 'bg-green-900/20 border border-green-700'
-              }`}>
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1">
-                    {promo.isLosing ? (
-                      <TrendingDown size={16} className="text-red-500" />
-                    ) : (
-                      <TrendingUp size={16} className="text-green-500" />
-                    )}
-                    <span className={`text-xs font-semibold ${
-                      promo.isLosing
-                        ? 'text-red-400'
-                        : promo.profitMarginPercent < 20
-                        ? 'text-yellow-400'
-                        : 'text-green-400'
-                    }`}>
-                      Margen
-                    </span>
-                  </div>
-                  <span className={`font-bold ${
-                    promo.isLosing
-                      ? 'text-red-400'
-                      : promo.profitMarginPercent < 20
-                      ? 'text-yellow-400'
-                      : 'text-green-400'
-                  }`}>
-                    {promo.profitMarginPercent?.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="flex justify-between text-xs mt-1">
-                  <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                    Ganancia
-                  </span>
-                  <span className={promo.isLosing ? 'text-red-400' : 'text-green-400'}>
-                    {formatMoneyDisplay(promo.profitAmount || 0)}
-                  </span>
-                </div>
-              </div>
+              <Button
+                onClick={() => handleDuplicate(promo)}
+                variant="secondary"
+                className="w-full mt-4"
+              >
+                Duplicar Combo
+              </Button>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
-      {filteredPromotions.length === 0 && (
-        <div className={`text-center py-12 rounded-xl border ${
-          isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
-        }`}>
-          <p className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>
-            {promotions.length === 0 
-              ? 'No hay combos registrados'
-              : 'No hay combos en esta categoría'
-            }
-          </p>
-        </div>
-      )}
-
-      {/* Modal */}
+      {/* Modal de Combo */}
       {showModal && (
         <Modal
+          isOpen={showModal}
+          onClose={handleCloseModal}
           title={editingId ? 'Editar Combo' : 'Nuevo Combo'}
-          onClose={() => setShowModal(false)}
+          maxWidth="4xl"
         >
-          <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                Nombre *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg border ${
-                  isDarkMode
-                    ? 'bg-[#111827] border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-                placeholder="Ej: Combo Hamburguesa + Gaseosa"
-              />
+          <div className="space-y-6">
+            {/* Información Básica */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Nombre del Combo *
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-dark-text dark:text-light-text focus:ring-2 focus:ring-primary-blue"
+                  placeholder="Ej: Combo Familiar"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Categoría
+                </label>
+                <SearchSelect
+                  options={categories.map(c => ({ value: c.id, label: c.name }))}
+                  value={formData.categoryId}
+                  onChange={(value) => setFormData({ ...formData, categoryId: value })}
+                  placeholder="Seleccionar categoría"
+                />
+              </div>
             </div>
 
             <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-700'
-              }`}>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Descripción
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg border ${
-                  isDarkMode
-                    ? 'bg-[#111827] border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
                 rows={2}
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-dark-text dark:text-light-text focus:ring-2 focus:ring-primary-blue"
+                placeholder="Descripción opcional del combo"
               />
             </div>
 
-            {/* Categoría */}
+            {/* Items del Combo */}
             <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                🏷️ Categoría (Opcional)
-              </label>
-              <select
-                value={formData.categoryId}
-                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg border ${
-                  isDarkMode
-                    ? 'bg-[#111827] border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-              >
-                <option value="">Sin categoría</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className={`block text-sm font-medium ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
+              <div className="flex justify-between items-center mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Items del Combo
                 </label>
-                <div className="flex gap-3">
-                  <button
+                <div className="flex gap-2">
+                  <Button
                     onClick={() => handleAddItem('product')}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md font-medium"
+                    variant="secondary"
+                    size="sm"
                   >
-                    + Producto
-                  </button>
-                  <button
+                    <Plus className="w-4 h-4 mr-1" />
+                    Producto
+                  </Button>
+                  <Button
                     onClick={() => handleAddItem('ingredient')}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-md font-medium"
+                    variant="secondary"
+                    size="sm"
                   >
-                    + Ingrediente
-                  </button>
+                    <Plus className="w-4 h-4 mr-1" />
+                    Ingrediente
+                  </Button>
                 </div>
               </div>
 
               {/* Tabla de Items */}
-              {(formData.items ?? []).length > 0 && (
-                <div className={`rounded-lg overflow-hidden border ${
-                  isDarkMode ? 'border-gray-700' : 'border-gray-200'
-                }`}>
-                  <table className="w-full">
-                    <thead className={`${
-                      isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
-                    }`}>
-                      <tr>
-                        <th className={`px-4 py-3 text-left text-xs font-semibold w-2/5 ${
-                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                        }`}>
-                          Nombre
-                        </th>
-                        <th className={`px-4 py-3 text-center text-xs font-semibold w-20 ${
-                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                        }`}>
-                          Cant.
-                        </th>
-                        <th className={`px-4 py-3 text-right text-xs font-semibold ${
-                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                        }`}>
-                          Costo Unit.
-                        </th>
-                        <th className={`px-4 py-3 text-right text-xs font-semibold ${
-                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                        }`}>
-                          Precio Venta
-                        </th>
-                        <th className={`px-4 py-3 text-center text-xs font-semibold ${
-                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                        }`}>
-                          
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(formData.items ?? []).map((item, index) => {
-                        const selectedItem = item.type === 'product' 
-                          ? products.find(p => p.id === item.id)
-                          : ingredients.find(i => i.id === item.id)
-                        
-                        // RESET: Calcular costo y precio desde CERO para cada item
-                        let itemCost = 0
-                        let itemPrice = 0
-                        
-                        if (item.type === 'product' && selectedItem) {
-                          // FORZAR CT REAL del producto
-                          itemCost = getProductTotalCost(selectedItem)
-                          itemPrice = parseSafeNumber(selectedItem.realSalePrice)
-                          
-                          console.log(`[UI] ${selectedItem.name}: CT = $${itemCost.toFixed(2)}`)
-                        } else if (selectedItem) {
-                          const costoPorGramo = parseSafeNumber(selectedItem.costoPorGramo)
-                          const costWithWastage = parseSafeNumber(selectedItem.costWithWastage)
-                          
-                          itemCost = costoPorGramo > 0 ? costoPorGramo : costWithWastage
-                          itemPrice = itemCost * 1.4 // Margen 40% para ingredientes
-                        }
-                        
-                        return (
-                          <tr key={index} className={`border-t ${
-                            isDarkMode ? 'border-gray-700 bg-[#111827]' : 'border-gray-200 bg-white'
-                          }`}>
-                            <td className="px-4 py-3">
-                              <SearchSelect
-                                options={item.type === 'product' ? products : ingredients}
-                                value={item.id}
-                                onChange={(value) => handleItemChange(index, 'id', value)}
-                                displayKey="name"
-                                placeholder={`Buscar ${item.type === 'product' ? 'producto' : 'ingrediente'}...`}
-                              />
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <input
-                                type="number"
-                                step="1"
-                                min="0"
-                                value={item.quantity}
-                                onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 1)}
-                                onFocus={(e) => e.target.select()}
-                                className={`w-20 px-3 py-2 rounded border text-center ${
-                                  isDarkMode
-                                    ? 'bg-[#1f2937] border-gray-600 text-white'
-                                    : 'bg-white border-gray-300 text-gray-900'
-                                }`}
-                              />
-                            </td>
-                            <td className={`px-4 py-3 text-right font-semibold ${
-                              isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                            }`}>
-                              {formatMoneyDisplay(itemCost)}
-                            </td>
-                            <td className={`px-4 py-3 text-right font-semibold ${
-                              isDarkMode ? 'text-green-400' : 'text-green-600'
-                            }`}>
-                              {formatMoneyDisplay(itemPrice)}
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <button
-                                onClick={() => handleRemoveItem(index)}
-                                className="p-2 text-red-500 hover:bg-red-500/10 rounded transition-colors"
-                                title="Eliminar"
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Tipo</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Item</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Cantidad</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Costo Unit.</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Precio Venta</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Subtotal</th>
+                      <th className="px-4 py-2"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {formData.items.map((item, index) => {
+                      const quantity = toNumber(item.quantity)
+                      let liveData = { costoTotal: 0, precioVenta: 0, nombre: '', costoPorGramo: 0 }
+                      let costoUnit = 0
+                      let precioVenta = 0
+                      let subtotalCosto = 0
+
+                      if (item.type === 'product') {
+                        liveData = getLiveProductData(item.id)
+                        costoUnit = liveData.costoTotal
+                        precioVenta = liveData.precioVenta
+                        subtotalCosto = costoUnit * quantity
+                      } else {
+                        liveData = getLiveIngredientData(item.id)
+                        costoUnit = liveData.costoPorGramo
+                        precioVenta = 0
+                        subtotalCosto = costoUnit * quantity
+                      }
+
+                      return (
+                        <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                            {item.type === 'product' ? 'Producto' : 'Ingrediente'}
+                          </td>
+                          <td className="px-4 py-2">
+                            <SearchSelect
+                              options={
+                                item.type === 'product'
+                                  ? products.map(p => ({ value: p.id, label: p.name }))
+                                  : ingredients.map(i => ({ value: i.id, label: i.name }))
+                              }
+                              value={item.id}
+                              onChange={(value) => handleItemChange(index, 'id', value)}
+                              placeholder={`Seleccionar ${item.type === 'product' ? 'producto' : 'ingrediente'}`}
+                            />
+                          </td>
+                          <td className="px-4 py-2">
+                            <input
+                              type="number"
+                              value={item.quantity}
+                              onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                              min="1"
+                              step="1"
+                              className="w-20 px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-dark-text dark:text-light-text"
+                            />
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">
+                            {formatMoneyDisplay(costoUnit)}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">
+                            {item.type === 'product' ? formatMoneyDisplay(precioVenta) : '-'}
+                          </td>
+                          <td className="px-4 py-2 text-sm font-semibold text-dark-text dark:text-light-text">
+                            {formatMoneyDisplay(subtotalCosto)}
+                          </td>
+                          <td className="px-4 py-2">
+                            <button
+                              onClick={() => handleRemoveItem(index)}
+                              className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            {/* Dashboard de Totales */}
-            {(formData.items ?? []).length > 0 && (
-              <div className={`p-6 rounded-xl border-2 space-y-4 ${
-                isDarkMode
-                  ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700'
-                  : 'bg-gradient-to-br from-gray-50 to-white border-gray-300'
-              }`}>
-                {/* Título del Dashboard */}
-                <h3 className={`text-lg font-bold border-b pb-2 ${
-                  isDarkMode ? 'text-white border-gray-700' : 'text-gray-900 border-gray-300'
-                }`}>
-                  📊 Resumen del Combo
+            {/* Precio del Combo */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Precio del Combo
+              </label>
+              <input
+                type="number"
+                value={formData.comboPrice}
+                onChange={(e) => setFormData({ ...formData, comboPrice: e.target.value })}
+                min="0"
+                step="100"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-dark-text dark:text-light-text focus:ring-2 focus:ring-primary-blue"
+                placeholder="Dejar en 0 para usar precio sugerido"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Precio sugerido: {formatMoneyDisplay(metrics?.totalSuggestedPrice || 0)}
+              </p>
+            </div>
+
+            {/* Resumen del Combo */}
+            {metrics && (
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 space-y-3">
+                <h3 className="font-semibold text-lg text-dark-text dark:text-light-text mb-4">
+                  Resumen del Combo
                 </h3>
-
-                {/* Grid de Totales */}
+                
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Total Costo Combo */}
-                  <div className={`p-4 rounded-lg ${
-                    isDarkMode ? 'bg-blue-950/50 border border-blue-700' : 'bg-blue-50 border border-blue-300'
-                  }`}>
-                    <div className={`text-xs font-semibold mb-1 ${
-                      isDarkMode ? 'text-blue-300' : 'text-blue-700'
-                    }`}>
-                      💰 Total Costo Combo
-                    </div>
-                    <div className={`text-2xl font-black ${
-                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                    }`}>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Costo Total</p>
+                    <p className="text-xl font-bold text-dark-text dark:text-light-text">
                       {formatMoneyDisplay(metrics.totalCost)}
-                    </div>
-                  </div>
-
-                  {/* Total Precio Carta */}
-                  <div className={`p-4 rounded-lg ${
-                    isDarkMode ? 'bg-green-950/50 border border-green-700' : 'bg-green-50 border border-green-300'
-                  }`}>
-                    <div className={`text-xs font-semibold mb-1 ${
-                      isDarkMode ? 'text-green-300' : 'text-green-700'
-                    }`}>
-                      📋 Total Precio Carta
-                    </div>
-                    <div className={`text-2xl font-black ${
-                      isDarkMode ? 'text-green-400' : 'text-green-600'
-                    }`}>
-                      {formatMoneyDisplay(metrics.totalSuggestedPrice)}
-                    </div>
-                  </div>
-
-                  {/* Valor Descuento */}
-                  <div className={`p-4 rounded-lg ${
-                    isDarkMode ? 'bg-yellow-950/50 border border-yellow-700' : 'bg-yellow-50 border border-yellow-300'
-                  }`}>
-                    <div className={`text-xs font-semibold mb-1 ${
-                      isDarkMode ? 'text-yellow-300' : 'text-yellow-700'
-                    }`}>
-                      🎁 Valor Descuento ($)
-                    </div>
-                    <div className={`text-2xl font-black ${
-                      isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
-                    }`}>
-                      {formatMoneyDisplay(metrics.discountAmount)}
-                    </div>
-                  </div>
-
-                  {/* Porcentaje Descuento */}
-                  <div className={`p-4 rounded-lg ${
-                    isDarkMode ? 'bg-purple-950/50 border border-purple-700' : 'bg-purple-50 border border-purple-300'
-                  }`}>
-                    <div className={`text-xs font-semibold mb-1 ${
-                      isDarkMode ? 'text-purple-300' : 'text-purple-700'
-                    }`}>
-                      📊 Porcentaje Descuento (%)
-                    </div>
-                    <div className={`text-2xl font-black ${
-                      isDarkMode ? 'text-purple-400' : 'text-purple-600'
-                    }`}>
-                      {metrics.discountPercent.toFixed(1)}%
-                    </div>
-                  </div>
-                </div>
-
-                {/* Precio Final del Combo - RESALTADO */}
-                <div className={`p-5 rounded-xl border-4 ${
-                  metrics.isLosing
-                    ? 'bg-red-900/30 border-red-500'
-                    : isDarkMode
-                    ? 'bg-gradient-to-r from-green-900 to-emerald-900 border-green-500'
-                    : 'bg-gradient-to-r from-green-100 to-emerald-100 border-green-500'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <label className={`text-sm font-bold ${
-                      isDarkMode ? 'text-green-300' : 'text-green-700'
-                    }`}>
-                      💵 PRECIO FINAL DEL COMBO
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formData.comboPrice || metrics.totalSuggestedPrice}
-                      onChange={(e) => setFormData({ ...formData, comboPrice: parseFloat(e.target.value) || 0 })}
-                      onFocus={(e) => e.target.select()}
-                      className={`w-48 px-4 py-3 rounded-xl border-4 font-black text-center text-3xl shadow-lg ${
-                        metrics.isLosing
-                          ? 'bg-red-900/50 border-red-500 text-red-300'
-                          : isDarkMode
-                          ? 'bg-[#0a2818] border-green-400 text-green-300'
-                          : 'bg-white border-green-500 text-green-700'
-                      }`}
-                      placeholder="$ 0.00"
-                    />
-                  </div>
-                </div>
-
-                {/* Métricas de Rentabilidad */}
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-600">
-                  {/* Margen de Ganancia % */}
-                  <div className={`p-4 rounded-lg text-center ${
-                    metrics.isLosing
-                      ? 'bg-red-900/30 border border-red-500'
-                      : metrics.isLowMargin
-                      ? 'bg-yellow-900/30 border border-yellow-500'
-                      : isDarkMode
-                      ? 'bg-gray-800/50 border border-gray-600'
-                      : 'bg-gray-100 border border-gray-300'
-                  }`}>
-                    <div className={`text-xs font-bold mb-1 ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      📈 Margen de Ganancia (%)
-                    </div>
-                    <div className={`text-2xl font-black ${
-                      metrics.isLosing
-                        ? 'text-red-400'
-                        : metrics.isLowMargin
-                        ? 'text-yellow-400'
-                        : isDarkMode ? 'text-green-400' : 'text-green-600'
-                    }`}>
-                      {metrics.profitMarginPercent.toFixed(1)}%
-                    </div>
-                  </div>
-
-                  {/* Utilidad $ */}
-                  <div className={`p-4 rounded-lg text-center ${
-                    metrics.isLosing
-                      ? 'bg-red-900/30 border border-red-500'
-                      : isDarkMode
-                      ? 'bg-emerald-950/50 border border-emerald-700'
-                      : 'bg-emerald-50 border border-emerald-300'
-                  }`}>
-                    <div className={`text-xs font-bold mb-1 ${
-                      isDarkMode ? 'text-emerald-300' : 'text-emerald-700'
-                    }`}>
-                      💵 Utilidad ($)
-                    </div>
-                    <div className={`text-2xl font-black ${
-                      metrics.isLosing
-                        ? 'text-red-400'
-                        : isDarkMode ? 'text-emerald-400' : 'text-emerald-600'
-                    }`}>
-                      {formatMoneyDisplay(metrics.profitAmount)}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Alertas */}
-                {metrics.isLosing && (
-                  <div className="p-3 bg-red-900/40 border border-red-700 rounded-lg">
-                    <p className="text-red-400 text-sm font-semibold flex items-center gap-2">
-                      <AlertTriangle size={18} />
-                      ⚠️ Este combo generará PÉRDIDAS. Ajusta el precio o revisa los componentes.
                     </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Precio Combo</p>
+                    <p className="text-xl font-bold text-primary-blue">
+                      {formatMoneyDisplay(metrics.comboPrice)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Descuento</p>
+                    <p className="text-lg font-semibold text-yellow-600">
+                      {formatMoneyDisplay(metrics.discountAmount)} ({metrics.discountPercent.toFixed(1)}%)
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Margen de Ganancia</p>
+                    <p className={`text-lg font-semibold ${
+                      metrics.isLosing ? 'text-red-500' : 
+                      metrics.isLowMargin ? 'text-yellow-500' : 'text-green-500'
+                    }`}>
+                      {formatMoneyDisplay(metrics.profitAmount)} ({metrics.profitMarginPercent.toFixed(1)}%)
+                    </p>
+                  </div>
+                </div>
+
+                {metrics.isLosing && (
+                  <div className="mt-4 flex items-center gap-2 text-red-500 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
+                    <AlertTriangle className="w-5 h-5" />
+                    <span className="font-semibold">¡ADVERTENCIA! Este combo generará pérdidas.</span>
                   </div>
                 )}
 
-                {metrics.isLowMargin && !metrics.isLosing && (
-                  <div className="p-3 bg-yellow-900/40 border border-yellow-700 rounded-lg">
-                    <p className="text-yellow-400 text-sm font-semibold flex items-center gap-2">
-                      <AlertTriangle size={18} />
-                      ⚠️ Margen bajo ({metrics.profitMarginPercent.toFixed(1)}%). Considera aumentar el precio para mejorar rentabilidad.
-                    </p>
+                {!metrics.isLosing && metrics.isLowMargin && (
+                  <div className="mt-4 flex items-center gap-2 text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
+                    <AlertTriangle className="w-5 h-5" />
+                    <span className="font-semibold">Margen bajo (menos del 20%)</span>
                   </div>
                 )}
               </div>
             )}
 
-            <div className="flex justify-end gap-6 mt-10 pt-8 border-t-2 border-gray-600 pb-12 bg-gray-800/50 -mx-8 px-8 -mb-8 rounded-b-2xl">
-              <button
-                onClick={() => setShowModal(false)}
-                className="flex items-center gap-3 px-12 py-5 bg-gray-600 hover:bg-gray-500 text-white rounded-xl transition-all font-bold shadow-2xl text-xl hover:scale-105"
-              >
-                <span className="text-2xl">❌</span> Cancelar
-              </button>
-              <button
-                onClick={handleSave}
-                className="flex items-center gap-3 px-12 py-5 bg-green-600 hover:bg-green-500 text-white rounded-xl transition-all font-bold shadow-2xl text-xl hover:scale-105"
-              >
-                <span className="text-2xl">💾</span> Guardar
-              </button>
+            {/* Botones */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <Button variant="secondary" onClick={handleCloseModal}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSave}>
+                {editingId ? 'Actualizar Combo' : 'Crear Combo'}
+              </Button>
             </div>
           </div>
         </Modal>
@@ -1330,53 +947,30 @@ export default function PromotionsNew() {
       {/* Modal de Categoría */}
       {showCategoryModal && (
         <Modal
-          title={editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
+          isOpen={showCategoryModal}
           onClose={() => setShowCategoryModal(false)}
+          title={editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
         >
           <div className="space-y-4">
             <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-700'
-              }`}>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Nombre de la Categoría
               </label>
               <input
                 type="text"
                 value={categoryName}
                 onChange={(e) => setCategoryName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && categoryName.trim()) {
-                    saveCategory({ name: categoryName.trim() }, editingCategory?.id, 'promotions', 'promotions')
-                    setShowCategoryModal(false)
-                  }
-                }}
-                className={`w-full px-4 py-2 rounded-lg border ${
-                  isDarkMode
-                    ? 'bg-[#111827] border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-                placeholder="Ej: Bebidas, Postres, Principales..."
-                autoFocus
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-dark-text dark:text-light-text focus:ring-2 focus:ring-primary-blue"
+                placeholder="Ej: Combos Familiares"
               />
             </div>
             <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowCategoryModal(false)}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
-              >
+              <Button variant="secondary" onClick={() => setShowCategoryModal(false)}>
                 Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  if (categoryName.trim()) {
-                    saveCategory({ name: categoryName.trim() }, editingCategory?.id, 'promotions', 'promotions')
-                    setShowCategoryModal(false)
-                  }
-                }}
-                className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors"
-              >
-                {editingCategory ? 'Actualizar' : 'Crear'}
-              </button>
+              </Button>
+              <Button onClick={handleSaveCategory}>
+                Guardar
+              </Button>
             </div>
           </div>
         </Modal>
