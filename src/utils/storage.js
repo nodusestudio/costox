@@ -506,9 +506,15 @@ export const saveProduct = async (product, id = null) => {
     const productWithItems = { ...product, items }
     const metrics = await calculateProductMetrics(productWithItems)
     
+    // ASEGURAR que totalCost sea NÚMERO PURO (no string)
     const productData = {
       ...productWithItems,
       ...metrics,
+      // Forzar conversión a número para evitar problemas de formato
+      totalCost: Number(metrics.totalCost) || 0,
+      laborCost: Number(metrics.laborCost) || 0,
+      ingredientsCost: Number(metrics.ingredientsCost) || 0,
+      realSalePrice: Number(productWithItems.realSalePrice) || 0,
       updatedAt: new Date().toISOString()
     }
     

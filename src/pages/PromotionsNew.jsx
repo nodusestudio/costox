@@ -180,15 +180,26 @@ export default function PromotionsNew() {
       return 0
     }
     
-    // PASO 2: Usar el totalCost del estado local (la única fuente de verdad)
-    // Este es el CT de $9.317,1 que se muestra en la pestaña Productos
-    const totalCost = parseFloat(currentProduct.totalCost)
+    // PASO 2: Parsear totalCost de forma robusta (puede venir como string o number)
+    let totalCost = 0
+    
+    if (currentProduct.totalCost !== undefined && currentProduct.totalCost !== null) {
+      // Convertir a string primero para limpiar
+      const costStr = String(currentProduct.totalCost)
+      // Remover separadores de miles (puntos) y convertir coma decimal a punto
+      const cleanCost = costStr.replace(/\./g, '').replace(',', '.')
+      totalCost = parseFloat(cleanCost)
+    }
     
     // DEBUG: Mostrar qué valor se está usando
     if (!isNaN(totalCost) && totalCost > 0) {
-      console.log(`[getProductTotalCost] ${currentProduct.name}: CT = $${totalCost.toFixed(2)} (desde estado local)`)
+      console.log(`[getProductTotalCost] ${currentProduct.name}:`)
+      console.log(`  - totalCost raw: ${currentProduct.totalCost}`)
+      console.log(`  - totalCost parseado: $${totalCost.toFixed(2)}`)
       return totalCost
     }
+    
+    console.warn(`[getProductTotalCost] ${currentProduct.name}: totalCost inválido, calculando fallback...`)
     
     // Fallback: Si no tiene totalCost, intentar calcular localmente desde ingredientes
     const laborCost = parseFloat(currentProduct.laborCost) || 0
