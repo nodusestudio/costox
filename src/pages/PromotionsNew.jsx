@@ -64,38 +64,11 @@ export default function PromotionsNew() {
         getIngredients()
       ])
       
-      // Sincronizar costos en promociones con los costos actuales de productos en Firebase
-      const syncedPromotions = Array.isArray(promotionsData) 
-        ? promotionsData.map(promo => {
-            // Si la promoción tiene items, sincronizar costos
-            if (Array.isArray(promo.items) && promo.items.length > 0) {
-              const syncedItems = promo.items.map(item => {
-                if (item.type === 'product') {
-                  // Buscar el producto actual en Firebase por ID
-                  const currentProduct = productsData.find(p => p.id === item.id)
-                  if (currentProduct) {
-                    // Actualizar referencia con datos actuales del producto
-                    return {
-                      ...item,
-                      // Guardar costos actualizados para referencia (opcional)
-                      _currentTotalCost: currentProduct.totalCost || 0,
-                      _currentSalePrice: currentProduct.realSalePrice || 0
-                    }
-                  }
-                }
-                return item
-              })
-              
-              return {
-                ...promo,
-                items: syncedItems
-              }
-            }
-            return promo
-          })
+      // NO SINCRONIZAR - Solo cargar datos tal cual están en Firebase
+      // Los costos se calcularán LOCALMENTE desde el estado de products
+      const sortedPromotions = Array.isArray(promotionsData)
+        ? promotionsData.sort((a, b) => (a.order || 0) - (b.order || 0))
         : []
-      
-      const sortedPromotions = syncedPromotions.sort((a, b) => (a.order || 0) - (b.order || 0))
       
       setPromotions(sortedPromotions)
       setProducts(Array.isArray(productsData) ? productsData : [])
@@ -125,31 +98,14 @@ export default function PromotionsNew() {
     if (promotion) {
       setEditingId(promotion.id)
       
-      // FORZAR sincronización de costos con el estado actual de productos
-      // Ignorar valores estáticos guardados en el combo
-      const syncedItems = Array.isArray(promotion.items) 
-        ? promotion.items.map(item => {
-            if (item.type === 'product') {
-              // Buscar producto en estado actual para obtener CT real
-              const currentProduct = products.find(p => p.id === item.id)
-              if (currentProduct) {
-                return {
-                  ...item,
-                  // Actualizar referencias con valores REALES del estado
-                  _currentTotalCost: parseFloat(currentProduct.totalCost) || 0,
-                  _currentSalePrice: parseFloat(currentProduct.realSalePrice) || 0
-                }
-              }
-            }
-            return item
-          })
-        : []
-      
+      // NO SINCRONIZAR - Solo cargar estructura básica del combo
+      // Los costos se obtienen SIEMPRE desde el estado local de products
+      // Ignorar CUALQUIER valor guardado en el combo ($5.255,6)
       setFormData({
         name: promotion.name || '',
         description: promotion.description || '',
         categoryId: promotion.categoryId || '',
-        items: syncedItems,
+        items: Array.isArray(promotion.items) ? promotion.items : [],
         comboPrice: promotion.comboPrice || 0,
       })
     } else {
@@ -190,22 +146,25 @@ export default function PromotionsNew() {
     setFormData({ ...formData, items: updated })
   }
 
-  // FORZAR obtención de costo total REAL desde el estado actual de productos
-  // Ignora cualquier valor estático o cacheado en el combo
+  // CÁLCULO 100% LOCAL - NO DEPENDE DE FIREBASE
+  // Busca el producto en el estado local de JavaScript (products array)
+  // Ignora CUALQUIER valor cacheado guardado en el combo ($5.255,6)
+  // Usa SOLO el CT de la pestaña Productos ($9.317,1)
   // CT = Ingredientes + Mano de Obra
   const getProductTotalCost = (productRef) => {
     if (!productRef) return 0
     
-    // FORZAR búsqueda del producto en el estado actual (no usar el objeto pasado directamente)
+    // PASO 1: BUSCAR en el estado LOCAL de JavaScript PRIMERO
+    // NO usar el objeto pasado directamente - puede tener datos viejos
     const currentProduct = products.find(p => p.id === productRef.id)
     
     if (!currentProduct) {
-      console.warn(`Producto ${productRef.id} no encontrado en estado actual`)
+      console.warn(`Producto ${productRef.id} no encontrado en estado local`)
       return 0
     }
     
-    // SIEMPRE usar el totalCost del producto desde el estado actual
-    // Este es el valor REAL y actualizado que se muestra como "COSTO UNIDAD (CT)" en la pantalla de productos
+    // PASO 2: Usar el totalCost del estado local (la única fuente de verdad)
+    // Este es el CT de $9.317,1 que se muestra en la pestaña Productos
     const totalCost = parseFloat(currentProduct.totalCost)
     
     if (!isNaN(totalCost) && totalCost > 0) {
