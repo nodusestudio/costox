@@ -107,6 +107,66 @@ export default function PromotionsNew() {
     setFormData({ ...formData, items: updated })
   }
 
+  // Recalcular métricas de productos para obtener costo real
+  const recalculateProductMetrics = (product) => {
+    try {
+      const items = Array.isArray(product.items) ? product.items : []
+      let costoIngredientes = 0
+
+      items.forEach(item => {
+        if (!item || !item.id) return
+        
+        if (item.type === 'ingredient-embalaje' || item.type === 'ingredient-receta' || item.type === 'ingredient') {
+          const ing = ingredients.find(i => i.id === item.id)
+          if (ing) {
+            const cantidadUsada = parseFloat(item.quantity || 0)
+            
+            if (ing.costoPorGramo && ing.costoPorGramo > 0) {
+              costoIngredientes += ing.costoPorGramo * cantidadUsada
+            } 
+            else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
+              costoIngredientes += calcularCostoProporcional(
+                ing.costWithWastage, 
+                ing.pesoEmpaqueTotal, 
+                cantidadUsada
+              )
+            } 
+            else if (ing.costWithWastage) {
+              costoIngredientes += ing.costWithWastage * cantidadUsada
+            }
+          }
+        } else if (item.type === 'recipe') {
+          const rec = getRecipes().then(recipes => recipes.find(r => r.id === item.id))
+          if (rec) {
+            const cantidadUsada = parseFloat(item.quantity || 0)
+            if (rec.costoPorGramo && rec.costoPorGramo > 0) {
+              costoIngredientes += rec.costoPorGramo * cantidadUsada
+            } else if (rec.totalCost && rec.pesoTotal && rec.pesoTotal > 0) {
+              const costoPorGramo = rec.totalCost / rec.pesoTotal
+              costoIngredientes += costoPorGramo * cantidadUsada
+            } else if (rec.totalCost) {
+              costoIngredientes += rec.totalCost * cantidadUsada
+            }
+          }
+        }
+      })
+
+      const manoDeObra = parseFloat(product.laborCost || 0)
+      const costoTotal = costoIngredientes + manoDeObra
+      const precioVenta = parseFloat(product.realSalePrice) || 0
+
+      return {
+        totalCost: costoTotal,
+        realSalePrice: precioVenta
+      }
+    } catch (error) {
+      return {
+        totalCost: product.totalCost || 0,
+        realSalePrice: product.realSalePrice || 0
+      }
+    }
+  }
+
   const calculateMetrics = () => {
     let totalCost = 0
     let totalSuggestedPrice = 0
@@ -134,9 +194,11 @@ export default function PromotionsNew() {
       
       if (item.type === 'product') {
         const prod = products.find(p => p.id === item.id)
-        if (prod && prod.totalCost && prod.realSalePrice) {
-          totalCost += (prod.totalCost || 0) * quantity
-          totalSuggestedPrice += (prod.realSalePrice || 0) * quantity
+        if (prod) {
+          // Recalcular métricas para obtener el costo real actualizado
+          const metrics = recalculateProductMetrics(prod)
+          totalCost += (metrics.totalCost || 0) * quantity
+          totalSuggestedPrice += (metrics.realSalePrice || 0) * quantity
         }
       } else {
         const ing = ingredients.find(i => i.id === item.id)
@@ -863,12 +925,12 @@ export default function PromotionsNew() {
                       isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
                     }`}>
                       <tr>
-                        <th className={`px-4 py-3 text-left text-xs font-semibold ${
+                        <th className={`px-4 py-3 text-left text-xs font-semibold w-2/5 ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>
                           Nombre
                         </th>
-                        <th className={`px-4 py-3 text-center text-xs font-semibold ${
+                        <th className={`px-4 py-3 text-center text-xs font-semibold w-20 ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>
                           Cant.
@@ -896,13 +958,18 @@ export default function PromotionsNew() {
                           ? products.find(p => p.id === item.id)
                           : ingredients.find(i => i.id === item.id)
                         
-                        const itemCost = item.type === 'product'
-                          ? (selectedItem?.totalCost || 0)
-                          : (selectedItem?.costoPorGramo || selectedItem?.costWithWastage || 0)
+                        // Para productos: recalcular métricas para obtener costo real
+                        let itemCost = 0
+                        let itemPrice = 0
                         
-                        const itemPrice = item.type === 'product'
-                          ? (selectedItem?.realSalePrice || 0)
-                          : (itemCost * 1.4) // Margen 40% para ingredientes
+                        if (item.type === 'product' && selectedItem) {
+                          const metrics = recalculateProductMetrics(selectedItem)
+                          itemCost = metrics.totalCost || 0
+                          itemPrice = metrics.realSalePrice || 0
+                        } else if (selectedItem) {
+                          itemCost = selectedItem?.costoPorGramo || selectedItem?.costWithWastage || 0
+                          itemPrice = itemCost * 1.4 // Margen 40% para ingredientes
+                        }
                         
                         return (
                           <tr key={index} className={`border-t ${
