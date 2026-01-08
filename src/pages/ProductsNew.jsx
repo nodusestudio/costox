@@ -76,14 +76,28 @@ export default function ProductsNew() {
       
       for (const product of products) {
         try {
-          // Guardar el producto (esto ejecuta calculateProductMetrics automáticamente)
+          console.log(`=====================================`)
+          console.log(`📦 RECALCULANDO: ${product.name}`)
+          console.log(`  - CT VIEJO en Firebase: ${product.totalCost}`)
+          
+          // RECALCULAR métricas manualmente
+          const metrics = await recalculateProductMetrics(product)
+          
+          console.log(`  - CT NUEVO calculado: ${metrics.totalCost}`)
+          console.log(`  - Guardando en Firebase...`)
+          
+          // Guardar con las métricas recalculadas
           await saveProduct(product, product.id)
+          
           actualizados++
-          console.log(`✅ Actualizado: ${product.name}`)
+          console.log(`✅ ACTUALIZADO`)
         } catch (error) {
           console.error(`❌ Error al actualizar ${product.name}:`, error)
         }
       }
+      
+      console.log(`=====================================`)
+      console.log(`✅ PROCESO COMPLETADO: ${actualizados} productos actualizados`)
       
       await loadData()
       showToast(`✅ ${actualizados} productos actualizados exitosamente`, 'success')
