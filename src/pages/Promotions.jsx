@@ -7,7 +7,7 @@ import Modal from '@/components/Modal'
 import SearchSelect from '@/components/SearchSelect'
 import Button from '@/components/Button'
 
-export default function Promotions() {
+function Promotions() {
   const [promotions, setPromotions] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -45,10 +45,20 @@ export default function Promotions() {
         getProducts()
       ])
       
-      setPromotions(Array.isArray(promosData) ? promosData : [])
-      setProducts(Array.isArray(prodsData) ? prodsData : [])
+      console.log('📦 Productos cargados:', prodsData?.length || 0)
+      console.log('🎁 Promociones cargadas:', promosData?.length || 0)
+      
+      const productsList = Array.isArray(prodsData) ? prodsData : []
+      const promosList = Array.isArray(promosData) ? promosData : []
+      
+      setPromotions(promosList)
+      setProducts(productsList)
+      
+      if (productsList.length > 0) {
+        console.log('✅ Ejemplo de producto:', productsList[0])
+      }
     } catch (error) {
-      console.error('Error loading data:', error)
+      console.error('❌ Error loading data:', error)
       showToast('⚠️ Error al cargar datos', 'error')
       setPromotions([])
       setProducts([])
@@ -489,11 +499,12 @@ export default function Promotions() {
             <div>
               <div className="flex justify-between items-center mb-3">
                 <label className="block text-sm font-medium text-gray-300">
-                  Productos en el Combo
+                  Productos en el Combo ({products.length} disponibles)
                 </label>
                 <button
                   onClick={handleAddItem}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  disabled={products.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm font-medium"
                 >
                   <Plus size={16} />
                   Agregar Producto
@@ -524,14 +535,21 @@ export default function Promotions() {
                           return (
                             <tr key={index} className="hover:bg-dark-bg/50 transition-colors">
                               <td className="px-4 py-3">
-                                <SearchSelect
-                                  options={products}
-                                  value={item.id}
-                                  onChange={(value) => handleItemChange(index, 'id', value)}
-                                  placeholder="Buscar producto..."
-                                  displayKey="name"
-                                  valueKey="id"
-                                />
+                                {products.length === 0 ? (
+                                  <div className="text-sm text-gray-500 italic">Cargando productos...</div>
+                                ) : (
+                                  <SearchSelect
+                                    options={products}
+                                    value={item.id}
+                                    onChange={(value) => {
+                                      console.log('🔄 Producto seleccionado:', value)
+                                      handleItemChange(index, 'id', value)
+                                    }}
+                                    placeholder="Buscar producto..."
+                                    displayKey="name"
+                                    valueKey="id"
+                                  />
+                                )}
                               </td>
                               <td className="px-4 py-3">
                                 <input
@@ -566,6 +584,12 @@ export default function Promotions() {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="bg-dark-bg/30 border border-dashed border-yellow-600 rounded-lg p-8 text-center">
+                  <Package className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
+                  <p className="text-yellow-500 text-sm font-semibold">⏳ Cargando productos desde la base de datos...</p>
+                  <p className="text-gray-600 text-xs mt-1">Por favor espera un momento</p>
                 </div>
               ) : (
                 <div className="bg-dark-bg/30 border border-dashed border-gray-600 rounded-lg p-8 text-center">
@@ -667,18 +691,21 @@ export default function Promotions() {
             )}
 
             {/* Botones */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-700">
+            <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-700">
               <button
                 onClick={handleCloseModal}
-                className="flex-1 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors font-medium"
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors font-medium shadow-lg"
               >
+                <Trash2 size={18} />
                 Cancelar
               </button>
               <button
                 onClick={handleSave}
-                className="flex-1 px-6 py-3 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                disabled={formData.items.length === 0 || !formData.name.trim()}
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-primary-blue hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium shadow-lg"
               >
-                {editingId ? 'Actualizar Promoción' : 'Crear Promoción'}
+                <DollarSign size={18} />
+                {editingId ? '💾 Actualizar Promoción' : '✅ Crear Promoción'}
               </button>
             </div>
           </div>
@@ -687,3 +714,5 @@ export default function Promotions() {
     </div>
   )
 }
+
+export default Promotions
