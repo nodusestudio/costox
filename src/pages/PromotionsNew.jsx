@@ -102,6 +102,18 @@ export default function PromotionsNew() {
       setIngredients(Array.isArray(ingredientsData) ? ingredientsData : [])
     } catch (error) {
       console.error('Error loading data:', error)
+      
+      // Detectar error de bloqueo de Firebase (ERR_BLOCKED_BY_CLIENT)
+      const isBlockedError = error.message?.includes('blocked') || 
+                             error.code === 'ERR_BLOCKED_BY_CLIENT' ||
+                             error.toString().includes('Failed to fetch')
+      
+      if (isBlockedError) {
+        showToast('⚠️ Error de conexión con la base de datos. Verifica bloqueadores de anuncios o extensiones del navegador.', 'error')
+      } else {
+        showToast('⚠️ Error de conexión con la base de datos', 'error')
+      }
+      
       setPromotions([])
       setProducts([])
       setIngredients([])
@@ -112,11 +124,32 @@ export default function PromotionsNew() {
   const handleOpenModal = (promotion = null) => {
     if (promotion) {
       setEditingId(promotion.id)
+      
+      // FORZAR sincronización de costos con el estado actual de productos
+      // Ignorar valores estáticos guardados en el combo
+      const syncedItems = Array.isArray(promotion.items) 
+        ? promotion.items.map(item => {
+            if (item.type === 'product') {
+              // Buscar producto en estado actual para obtener CT real
+              const currentProduct = products.find(p => p.id === item.id)
+              if (currentProduct) {
+                return {
+                  ...item,
+                  // Actualizar referencias con valores REALES del estado
+                  _currentTotalCost: parseFloat(currentProduct.totalCost) || 0,
+                  _currentSalePrice: parseFloat(currentProduct.realSalePrice) || 0
+                }
+              }
+            }
+            return item
+          })
+        : []
+      
       setFormData({
         name: promotion.name || '',
         description: promotion.description || '',
         categoryId: promotion.categoryId || '',
-        items: Array.isArray(promotion.items) ? promotion.items : [],
+        items: syncedItems,
         comboPrice: promotion.comboPrice || 0,
       })
     } else {
@@ -157,26 +190,35 @@ export default function PromotionsNew() {
     setFormData({ ...formData, items: updated })
   }
 
-  // Obtener costo total real del producto desde Firebase (CT = Ingredientes + Mano de Obra)
-  // Esta función garantiza que siempre se use el costo actualizado de Firebase
-  const getProductTotalCost = (product) => {
-    if (!product) return 0
+  // FORZAR obtención de costo total REAL desde el estado actual de productos
+  // Ignora cualquier valor estático o cacheado en el combo
+  // CT = Ingredientes + Mano de Obra
+  const getProductTotalCost = (productRef) => {
+    if (!productRef) return 0
     
-    // SIEMPRE usar el totalCost del producto desde Firebase
-    // Este es el valor sincronizado que se muestra como "COSTO UNIDAD (CT)" en la pantalla de productos
-    const totalCost = parseFloat(product.totalCost)
+    // FORZAR búsqueda del producto en el estado actual (no usar el objeto pasado directamente)
+    const currentProduct = products.find(p => p.id === productRef.id)
+    
+    if (!currentProduct) {
+      console.warn(`Producto ${productRef.id} no encontrado en estado actual`)
+      return 0
+    }
+    
+    // SIEMPRE usar el totalCost del producto desde el estado actual
+    // Este es el valor REAL y actualizado que se muestra como "COSTO UNIDAD (CT)" en la pantalla de productos
+    const totalCost = parseFloat(currentProduct.totalCost)
     
     if (!isNaN(totalCost) && totalCost > 0) {
       return totalCost
     }
     
-    // Fallback: Si no tiene totalCost en Firebase, intentar calcular localmente
-    const laborCost = parseFloat(product.laborCost) || 0
+    // Fallback: Si no tiene totalCost, intentar calcular localmente desde ingredientes
+    const laborCost = parseFloat(currentProduct.laborCost) || 0
     
     // Si tiene items, intentar calcular costo de ingredientes
-    if (Array.isArray(product.items) && product.items.length > 0) {
+    if (Array.isArray(currentProduct.items) && currentProduct.items.length > 0) {
       let ingredientsCost = 0
-      product.items.forEach(item => {
+      currentProduct.items.forEach(item => {
         if (item.type === 'ingredient' || item.type === 'ingredient-embalaje' || item.type === 'ingredient-receta') {
           const ing = ingredients.find(i => i.id === item.id)
           if (ing) {
