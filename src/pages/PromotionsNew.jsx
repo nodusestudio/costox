@@ -198,11 +198,19 @@ export default function PromotionsNew() {
       return 0
     }
     
+    // DEBUG DETALLADO
+    console.log(`======================================`)
+    console.log(`[PRODUCTO] ${currentProduct.name}`)
+    console.log(`  - totalCost RAW:`, currentProduct.totalCost)
+    console.log(`  - totalCost TYPE:`, typeof currentProduct.totalCost)
+    
     // USAR parseSafeNumber para obtener el CT
     const totalCost = parseSafeNumber(currentProduct.totalCost)
     
+    console.log(`  - totalCost PARSEADO:`, totalCost)
+    console.log(`======================================`)
+    
     if (totalCost > 0) {
-      console.log(`[CT] ${currentProduct.name}: $${totalCost.toFixed(2)}`)
       return totalCost
     }
     
