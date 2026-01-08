@@ -15,7 +15,6 @@ export const useCategories = () => {
 export const CategoriesProvider = ({ children }) => {
   const [categoriesRecipes, setCategoriesRecipes] = useState([])
   const [categoriesProducts, setCategoriesProducts] = useState([])
-  const [categoriesPromotions, setCategoriesPromotions] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -24,19 +23,16 @@ export const CategoriesProvider = ({ children }) => {
 
   const loadAllCategories = async () => {
     try {
-      const [recipes, products, promotions] = await Promise.all([
+      const [recipes, products] = await Promise.all([
         getCategories('recipes'),
-        getCategories('products'),
-        getCategories('promotions')
+        getCategories('products')
       ])
       setCategoriesRecipes(Array.isArray(recipes) ? recipes : [])
       setCategoriesProducts(Array.isArray(products) ? products : [])
-      setCategoriesPromotions(Array.isArray(promotions) ? promotions : [])
     } catch (error) {
       console.error('Error loading categories:', error)
       setCategoriesRecipes([])
       setCategoriesProducts([])
-      setCategoriesPromotions([])
     } finally {
       setLoading(false)
     }
@@ -73,7 +69,6 @@ export const CategoriesProvider = ({ children }) => {
       value={{
         categoriesRecipes,
         categoriesProducts,
-        categoriesPromotions,
         loading,
         saveCategory: handleSaveCategory,
         deleteCategory: handleDeleteCategory,

@@ -24,10 +24,8 @@ const COLLECTIONS = {
   ingredients: 'ingredients',
   recipes: 'recipes',
   products: 'products',
-  promotions: 'promotions',
   categoriesRecipes: 'categoriesRecipes',
-  categoriesProducts: 'categoriesProducts',
-  categoriesPromotions: 'categoriesPromotions'
+  categoriesProducts: 'categoriesProducts'
 }
 
 /**
@@ -150,37 +148,34 @@ export const deleteSupplier = async (id) => {
 }
 
 /**
- * Obtiene todas las categorías por tipo (recipes, products, promotions)
+ * Obtiene todas las categorías por tipo (recipes, products)
  */
 export const getCategories = async (type = 'recipes') => {
   const collectionMap = {
     recipes: COLLECTIONS.categoriesRecipes,
-    products: COLLECTIONS.categoriesProducts,
-    promotions: COLLECTIONS.categoriesPromotions
+    products: COLLECTIONS.categoriesProducts
   }
   return await getAllDocs(collectionMap[type] || COLLECTIONS.categoriesRecipes)
 }
 
 /**
- * Guarda categoría por tipo (recipes, products, promotions)
+ * Guarda categoría por tipo (recipes, products)
  */
 export const saveCategory = async (category, id = null, type = 'recipes') => {
   const collectionMap = {
     recipes: COLLECTIONS.categoriesRecipes,
-    products: COLLECTIONS.categoriesProducts,
-    promotions: COLLECTIONS.categoriesPromotions
+    products: COLLECTIONS.categoriesProducts
   }
   return await saveDoc(collectionMap[type] || COLLECTIONS.categoriesRecipes, category, id)
 }
 
 /**
- * Elimina categoría por tipo (recipes, products, promotions)
+ * Elimina categoría por tipo (recipes, products)
  */
 export const deleteCategory = async (id, type = 'recipes') => {
   const collectionMap = {
     recipes: COLLECTIONS.categoriesRecipes,
-    products: COLLECTIONS.categoriesProducts,
-    promotions: COLLECTIONS.categoriesPromotions
+    products: COLLECTIONS.categoriesProducts
   }
   return await deleteDocument(collectionMap[type] || COLLECTIONS.categoriesRecipes, id)
 }
@@ -542,118 +537,6 @@ export const saveProduct = async (product, id = null) => {
  */
 export const deleteProduct = async (id) => {
   return await deleteDocument(COLLECTIONS.products, id)
-}
-
-/**
- * Obtiene todas las promociones/combos
- */
-export const getPromotions = async () => {
-  return await getAllDocs(COLLECTIONS.promotions)
-}
-
-/**
- * Calcula métricas inteligentes de un combo
- */
-export const calculateComboMetrics = async (comboData) => {
-  if (!comboData) {
-    return {
-      totalCost: 0,
-      totalSuggestedPrice: 0,
-      comboPrice: 0,
-      discountAmount: 0,
-      discountPercent: 0,
-      profitAmount: 0,
-      profitMarginPercent: 0,
-      isLosing: false
-    }
-  }
-  
-  let totalCost = 0
-  let totalSuggestedPrice = 0
-  const items = comboData.items || []
-  
-  // Validar que items sea un array
-  if (!Array.isArray(items)) {
-    return {
-      totalCost: 0,
-      totalSuggestedPrice: 0,
-      comboPrice: 0,
-      discountAmount: 0,
-      discountPercent: 0,
-      profitAmount: 0,
-      profitMarginPercent: 0,
-      isLosing: false
-    }
-  }
-  
-  // Calcular costos y precios de productos e ingredientes
-  for (const item of items) {
-    if (!item || !item.id) continue
-    
-    const quantity = parseFloat(item.quantity || 1)
-    
-    if (item.type === 'product') {
-      const product = await getDocById(COLLECTIONS.products, item.id)
-      if (product && product.totalCost && product.realSalePrice) {
-        totalCost += (product.totalCost || 0) * quantity
-        totalSuggestedPrice += (product.realSalePrice || 0) * quantity
-      }
-    } else if (item.type === 'ingredient') {
-      const ingredient = await getDocById(COLLECTIONS.ingredients, item.id)
-      if (ingredient && ingredient.costWithWastage) {
-        totalCost += ingredient.costWithWastage * quantity
-        // Para ingredientes sueltos, aplicar margen estándar del 40%
-        totalSuggestedPrice += ingredient.costWithWastage * 1.4 * quantity
-      }
-    }
-  }
-  
-  const comboPrice = parseFloat(comboData.comboPrice || totalSuggestedPrice)
-  const discountAmount = totalSuggestedPrice - comboPrice
-  const discountPercent = totalSuggestedPrice > 0 ? (discountAmount / totalSuggestedPrice) * 100 : 0
-  const profitAmount = comboPrice - totalCost
-  const profitMarginPercent = comboPrice > 0 ? (profitAmount / comboPrice) * 100 : 0
-  
-  return {
-    totalCost,
-    totalSuggestedPrice,
-    comboPrice,
-    discountAmount,
-    discountPercent,
-    profitAmount,
-    profitMarginPercent,
-    isLosing: profitAmount < 0
-  }
-}
-
-/**
- * Guarda combo/promoción
- */
-export const savePromotion = async (promotion, id = null) => {
-  try {
-    const items = Array.isArray(promotion.items) ? promotion.items : []
-    const promotionWithItems = { ...promotion, items }
-    const metrics = await calculateComboMetrics(promotionWithItems)
-    
-    const promotionData = {
-      ...promotionWithItems,
-      ...metrics,
-      updatedAt: new Date().toISOString()
-    }
-    
-    console.log(`🎉 Guardando promoción: ${promotion.name} - Precio Combo: $${metrics.comboPrice.toFixed(2)} - Descuento: ${metrics.discountPercent.toFixed(1)}%`)
-    return await saveDoc(COLLECTIONS.promotions, promotionData, id)
-  } catch (error) {
-    console.error('Error saving promotion:', error)
-    throw error
-  }
-}
-
-/**
- * Elimina promoción
- */
-export const deletePromotion = async (id) => {
-  return await deleteDocument(COLLECTIONS.promotions, id)
 }
 
 // Mantener compatibilidad con código existente (legacy)

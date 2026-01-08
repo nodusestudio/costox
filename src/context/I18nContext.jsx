@@ -9,7 +9,6 @@ const translations = {
     ingredients: 'Ingredientes',
     recipes: 'Recetas',
     products: 'Productos',
-    promotions: 'Promociones',
     settings: 'Configuración',
 
     // Dashboard/Panel
@@ -21,7 +20,6 @@ const translations = {
     averageMargin: 'Margen Promedio',
     profitabilityAlert: 'Alerta de Rentabilidad',
     lowMarginProducts: 'producto(s) con margen < 30%',
-    lowMarginPromotions: 'promoción(es) con margen < 30%',
 
     // Configuración
     pageTitle: 'Configuración Global',
@@ -57,7 +55,6 @@ const translations = {
     ingredients: 'Ingredients',
     recipes: 'Recipes',
     products: 'Products',
-    promotions: 'Promotions',
     settings: 'Settings',
 
     // Dashboard/Panel
@@ -69,7 +66,6 @@ const translations = {
     averageMargin: 'Average Margin',
     profitabilityAlert: 'Profitability Alert',
     lowMarginProducts: 'product(s) with margin < 30%',
-    lowMarginPromotions: 'promotion(s) with margin < 30%',
 
     // Settings
     pageTitle: 'Global Settings',

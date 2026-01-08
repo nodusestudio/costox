@@ -6,7 +6,6 @@ import Suppliers from '@/pages/Suppliers'
 import IngredientsNew from '@/pages/IngredientsNew'
 import RecipesNew from '@/pages/RecipesNew'
 import ProductsNew from '@/pages/ProductsNew'
-import PromotionsNew from '@/pages/PromotionsNew'
 import SettingsPage from '@/pages/Settings'
 import CategoriesManager from '@/pages/CategoriesManager'
 import { getConfig } from '@/utils/storage'
@@ -48,7 +47,6 @@ function AppContent() {
     { id: 'ingredients', label: t('ingredients'), icon: Package, component: IngredientsNew },
     { id: 'recipes', label: t('recipes'), icon: BookOpen, component: RecipesNew },
     { id: 'products', label: t('products'), icon: ShoppingCart, component: ProductsNew },
-    { id: 'promotions', label: t('promotions'), icon: Tags, component: PromotionsNew },
     { id: 'settings', label: t('settings'), icon: Settings, component: SettingsPage },
   ]
 
