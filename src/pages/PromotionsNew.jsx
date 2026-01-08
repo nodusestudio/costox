@@ -63,9 +63,40 @@ export default function PromotionsNew() {
         getProducts(),
         getIngredients()
       ])
-      const sortedPromotions = Array.isArray(promotionsData) 
-        ? promotionsData.sort((a, b) => (a.order || 0) - (b.order || 0))
+      
+      // Sincronizar costos en promociones con los costos actuales de productos en Firebase
+      const syncedPromotions = Array.isArray(promotionsData) 
+        ? promotionsData.map(promo => {
+            // Si la promoción tiene items, sincronizar costos
+            if (Array.isArray(promo.items) && promo.items.length > 0) {
+              const syncedItems = promo.items.map(item => {
+                if (item.type === 'product') {
+                  // Buscar el producto actual en Firebase por ID
+                  const currentProduct = productsData.find(p => p.id === item.id)
+                  if (currentProduct) {
+                    // Actualizar referencia con datos actuales del producto
+                    return {
+                      ...item,
+                      // Guardar costos actualizados para referencia (opcional)
+                      _currentTotalCost: currentProduct.totalCost || 0,
+                      _currentSalePrice: currentProduct.realSalePrice || 0
+                    }
+                  }
+                }
+                return item
+              })
+              
+              return {
+                ...promo,
+                items: syncedItems
+              }
+            }
+            return promo
+          })
         : []
+      
+      const sortedPromotions = syncedPromotions.sort((a, b) => (a.order || 0) - (b.order || 0))
+      
       setPromotions(sortedPromotions)
       setProducts(Array.isArray(productsData) ? productsData : [])
       setIngredients(Array.isArray(ingredientsData) ? ingredientsData : [])
@@ -126,19 +157,20 @@ export default function PromotionsNew() {
     setFormData({ ...formData, items: updated })
   }
 
-  // Obtener costo total real del producto (CT = Ingredientes + Mano de Obra)
+  // Obtener costo total real del producto desde Firebase (CT = Ingredientes + Mano de Obra)
+  // Esta función garantiza que siempre se use el costo actualizado de Firebase
   const getProductTotalCost = (product) => {
     if (!product) return 0
     
-    // SIEMPRE usar el totalCost del producto si existe
-    // Este es el valor que se muestra como "COSTO UNIDAD (CT)" en la pantalla de productos
+    // SIEMPRE usar el totalCost del producto desde Firebase
+    // Este es el valor sincronizado que se muestra como "COSTO UNIDAD (CT)" en la pantalla de productos
     const totalCost = parseFloat(product.totalCost)
     
     if (!isNaN(totalCost) && totalCost > 0) {
       return totalCost
     }
     
-    // Fallback: Si no tiene totalCost, intentar sumar laborCost a ingredientes
+    // Fallback: Si no tiene totalCost en Firebase, intentar calcular localmente
     const laborCost = parseFloat(product.laborCost) || 0
     
     // Si tiene items, intentar calcular costo de ingredientes
