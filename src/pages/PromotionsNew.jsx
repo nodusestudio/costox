@@ -36,6 +36,25 @@ export default function PromotionsNew() {
     loadData()
   }, [])
 
+  // Sincronizar costos de items del combo cuando cambian los productos
+  useEffect(() => {
+    if (formData.items && formData.items.length > 0 && products.length > 0) {
+      // Forzar actualización de costos verificando contra lista de productos actual
+      const needsUpdate = formData.items.some(item => {
+        if (item.type === 'product') {
+          const product = products.find(p => p.id === item.id)
+          return product && product.totalCost !== undefined
+        }
+        return false
+      })
+      
+      if (needsUpdate) {
+        // Disparar re-render para actualizar costos en tabla
+        setFormData({ ...formData })
+      }
+    }
+  }, [products])
+
   const loadData = async () => {
     setLoading(true)
     try {
@@ -107,66 +126,39 @@ export default function PromotionsNew() {
     setFormData({ ...formData, items: updated })
   }
 
-  // Recalcular métricas de productos para obtener costo real (CT = Ingredientes + Mano de Obra)
-  const recalculateProductMetrics = (product) => {
-    try {
-      // Si el producto ya tiene totalCost guardado, usarlo directamente
-      if (product.totalCost !== undefined && product.totalCost > 0) {
-        return {
-          totalCost: parseFloat(product.totalCost) || 0,
-          realSalePrice: parseFloat(product.realSalePrice) || 0
-        }
-      }
-
-      // Si no tiene totalCost, calcularlo desde los items
-      const items = Array.isArray(product.items) ? product.items : []
-      let costoIngredientes = 0
-
-      items.forEach(item => {
-        if (!item || !item.id) return
-        
-        if (item.type === 'ingredient-embalaje' || item.type === 'ingredient-receta' || item.type === 'ingredient') {
+  // Obtener costo total real del producto (CT = Ingredientes + Mano de Obra)
+  const getProductTotalCost = (product) => {
+    if (!product) return 0
+    
+    // SIEMPRE usar el totalCost del producto si existe
+    // Este es el valor que se muestra como "COSTO UNIDAD (CT)" en la pantalla de productos
+    const totalCost = parseFloat(product.totalCost)
+    
+    if (!isNaN(totalCost) && totalCost > 0) {
+      return totalCost
+    }
+    
+    // Fallback: Si no tiene totalCost, intentar sumar laborCost a ingredientes
+    const laborCost = parseFloat(product.laborCost) || 0
+    
+    // Si tiene items, intentar calcular costo de ingredientes
+    if (Array.isArray(product.items) && product.items.length > 0) {
+      let ingredientsCost = 0
+      product.items.forEach(item => {
+        if (item.type === 'ingredient' || item.type === 'ingredient-embalaje' || item.type === 'ingredient-receta') {
           const ing = ingredients.find(i => i.id === item.id)
           if (ing) {
-            const cantidadUsada = parseFloat(item.quantity || 0)
-            
-            if (ing.costoPorGramo && ing.costoPorGramo > 0) {
-              costoIngredientes += ing.costoPorGramo * cantidadUsada
-            } 
-            else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
-              costoIngredientes += calcularCostoProporcional(
-                ing.costWithWastage, 
-                ing.pesoEmpaqueTotal, 
-                cantidadUsada
-              )
-            } 
-            else if (ing.costWithWastage) {
-              costoIngredientes += ing.costWithWastage * cantidadUsada
-            }
+            const qty = parseFloat(item.quantity) || 0
+            const cost = ing.costoPorGramo || ing.costWithWastage || 0
+            ingredientsCost += cost * qty
           }
         }
-        // Las recetas no se usan típicamente en productos, pero por compatibilidad:
-        else if (item.type === 'recipe') {
-          // Nota: recipes no está disponible en este contexto, solo ingredients y products
-          console.warn('Recipes not supported in product calculation within promotions')
-        }
       })
-
-      const manoDeObra = parseFloat(product.laborCost || 0)
-      const costoTotal = costoIngredientes + manoDeObra
-      const precioVenta = parseFloat(product.realSalePrice) || 0
-
-      return {
-        totalCost: costoTotal,
-        realSalePrice: precioVenta
-      }
-    } catch (error) {
-      console.error('Error recalculando métricas de producto:', error)
-      return {
-        totalCost: parseFloat(product.totalCost) || 0,
-        realSalePrice: parseFloat(product.realSalePrice) || 0
-      }
+      return ingredientsCost + laborCost
     }
+    
+    // Si no hay nada, retornar 0
+    return 0
   }
 
   const calculateMetrics = () => {
@@ -197,10 +189,11 @@ export default function PromotionsNew() {
       if (item.type === 'product') {
         const prod = products.find(p => p.id === item.id)
         if (prod) {
-          // Recalcular métricas para obtener el costo real actualizado
-          const metrics = recalculateProductMetrics(prod)
-          totalCost += (metrics.totalCost || 0) * quantity
-          totalSuggestedPrice += (metrics.realSalePrice || 0) * quantity
+          // Usar el costo total real del producto (CT)
+          const productCost = getProductTotalCost(prod)
+          const productPrice = parseFloat(prod.realSalePrice) || 0
+          totalCost += productCost * quantity
+          totalSuggestedPrice += productPrice * quantity
         }
       } else {
         const ing = ingredients.find(i => i.id === item.id)
@@ -507,10 +500,11 @@ export default function PromotionsNew() {
         const product = products.find(p => p.id === item.id)
         if (product) {
           const quantity = parseInt(item.quantity) || 1
-          // Usar recalculateProductMetrics para obtener el costo total real
-          const metrics = recalculateProductMetrics(product)
-          totalCost += (metrics.totalCost || 0) * quantity
-          totalSuggestedPrice += (metrics.realSalePrice || 0) * quantity
+          // Usar el costo total (CT) del producto directamente
+          const productCost = getProductTotalCost(product)
+          const productPrice = parseFloat(product.realSalePrice) || 0
+          totalCost += productCost * quantity
+          totalSuggestedPrice += productPrice * quantity
         }
       } else if (item.type === 'ingredient') {
         const ing = ingredients.find(i => i.id === item.id)
@@ -962,14 +956,14 @@ export default function PromotionsNew() {
                           ? products.find(p => p.id === item.id)
                           : ingredients.find(i => i.id === item.id)
                         
-                        // Para productos: recalcular métricas para obtener costo real
+                        // Obtener costo y precio del item
                         let itemCost = 0
                         let itemPrice = 0
                         
                         if (item.type === 'product' && selectedItem) {
-                          const metrics = recalculateProductMetrics(selectedItem)
-                          itemCost = metrics.totalCost || 0
-                          itemPrice = metrics.realSalePrice || 0
+                          // USAR EL COSTO TOTAL (CT) DEL PRODUCTO DIRECTAMENTE
+                          itemCost = getProductTotalCost(selectedItem)
+                          itemPrice = parseFloat(selectedItem.realSalePrice) || 0
                         } else if (selectedItem) {
                           itemCost = selectedItem?.costoPorGramo || selectedItem?.costWithWastage || 0
                           itemPrice = itemCost * 1.4 // Margen 40% para ingredientes
