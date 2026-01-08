@@ -831,7 +831,7 @@ export default function PromotionsNew() {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-4">
                 <label className={`block text-sm font-medium ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>
@@ -842,178 +842,304 @@ export default function PromotionsNew() {
                     onClick={() => handleAddItem('product')}
                     className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md font-medium"
                   >
-                    Producto
+                    + Producto
                   </button>
                   <button
                     onClick={() => handleAddItem('ingredient')}
                     className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-md font-medium"
                   >
-                    Ingrediente
+                    + Ingrediente
                   </button>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                {(formData.items ?? []).map((item, index) => (
-                  <div key={index} className={`p-4 rounded-lg flex gap-3 items-center ${
-                    isDarkMode ? 'bg-[#111827] border border-gray-700' : 'bg-gray-50 border border-gray-200'
-                  }`}>
-                    <SearchSelect
-                      options={item.type === 'product' ? products : ingredients}
-                      value={item.id}
-                      onChange={(value) => handleItemChange(index, 'id', value)}
-                      displayKey="name"
-                      placeholder={`Buscar ${item.type === 'product' ? 'producto' : 'ingrediente'}...`}
-                    />
-
-                    <input
-                      type="number"
-                      step="1"
-                      min="0"
-                      value={item.quantity}
-                      onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value))}
-                      onFocus={(e) => e.target.select()}
-                      className={`w-20 px-3 py-1 rounded border ${
-                        isDarkMode
-                          ? 'bg-[#1f2937] border-gray-600 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    />
-
-                    <button
-                      onClick={() => handleRemoveItem(index)}
-                      className="p-1 text-red-500 hover:bg-red-500/10 rounded"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
+              {/* Tabla de Items */}
+              {(formData.items ?? []).length > 0 && (
+                <div className={`rounded-lg overflow-hidden border ${
+                  isDarkMode ? 'border-gray-700' : 'border-gray-200'
+                }`}>
+                  <table className="w-full">
+                    <thead className={`${
+                      isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+                    }`}>
+                      <tr>
+                        <th className={`px-4 py-3 text-left text-xs font-semibold ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Nombre
+                        </th>
+                        <th className={`px-4 py-3 text-center text-xs font-semibold ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Cant.
+                        </th>
+                        <th className={`px-4 py-3 text-right text-xs font-semibold ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Costo Unit.
+                        </th>
+                        <th className={`px-4 py-3 text-right text-xs font-semibold ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Precio Venta
+                        </th>
+                        <th className={`px-4 py-3 text-center text-xs font-semibold ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(formData.items ?? []).map((item, index) => {
+                        const selectedItem = item.type === 'product' 
+                          ? products.find(p => p.id === item.id)
+                          : ingredients.find(i => i.id === item.id)
+                        
+                        const itemCost = item.type === 'product'
+                          ? (selectedItem?.totalCost || 0)
+                          : (selectedItem?.costoPorGramo || selectedItem?.costWithWastage || 0)
+                        
+                        const itemPrice = item.type === 'product'
+                          ? (selectedItem?.realSalePrice || 0)
+                          : (itemCost * 1.4) // Margen 40% para ingredientes
+                        
+                        return (
+                          <tr key={index} className={`border-t ${
+                            isDarkMode ? 'border-gray-700 bg-[#111827]' : 'border-gray-200 bg-white'
+                          }`}>
+                            <td className="px-4 py-3">
+                              <SearchSelect
+                                options={item.type === 'product' ? products : ingredients}
+                                value={item.id}
+                                onChange={(value) => handleItemChange(index, 'id', value)}
+                                displayKey="name"
+                                placeholder={`Buscar ${item.type === 'product' ? 'producto' : 'ingrediente'}...`}
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <input
+                                type="number"
+                                step="1"
+                                min="0"
+                                value={item.quantity}
+                                onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 1)}
+                                onFocus={(e) => e.target.select()}
+                                className={`w-20 px-3 py-2 rounded border text-center ${
+                                  isDarkMode
+                                    ? 'bg-[#1f2937] border-gray-600 text-white'
+                                    : 'bg-white border-gray-300 text-gray-900'
+                                }`}
+                              />
+                            </td>
+                            <td className={`px-4 py-3 text-right font-semibold ${
+                              isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                            }`}>
+                              {formatMoneyDisplay(itemCost)}
+                            </td>
+                            <td className={`px-4 py-3 text-right font-semibold ${
+                              isDarkMode ? 'text-green-400' : 'text-green-600'
+                            }`}>
+                              {formatMoneyDisplay(itemPrice)}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <button
+                                onClick={() => handleRemoveItem(index)}
+                                className="p-2 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                                title="Eliminar"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
-            {/* Dashboard Compacto */}
+            {/* Dashboard de Totales */}
             {(formData.items ?? []).length > 0 && (
-              <div className={`p-4 rounded-xl border-2 ${
-                metrics.isLosing
-                  ? 'bg-red-900/20 border-red-500'
-                  : metrics.isLowMargin
-                  ? 'bg-yellow-900/20 border-yellow-500'
-                  : isDarkMode
-                  ? 'bg-gradient-to-br from-green-950 to-gray-900 border-green-700'
-                  : 'bg-gradient-to-br from-green-50 to-white border-green-300'
+              <div className={`p-6 rounded-xl border-2 space-y-4 ${
+                isDarkMode
+                  ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700'
+                  : 'bg-gradient-to-br from-gray-50 to-white border-gray-300'
               }`}>
-                {/* Cabecera: Nombre + Precio en MISMA LÍNEA */}
-                <div className="flex items-center justify-between gap-4 mb-3">
-                  <h3 className={`text-lg font-bold ${
-                    isDarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    {formData.name || 'Nuevo Combo'}
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <label className={`text-xs font-bold whitespace-nowrap ${
-                      isDarkMode ? 'text-green-300' : 'text-green-700'
-                    }`}>
-                      💵 PRECIO:
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formData.comboPrice || metrics.totalSuggestedPrice}
-                      onChange={(e) => setFormData({ ...formData, comboPrice: parseFloat(e.target.value) })}
-                      onFocus={(e) => e.target.select()}
-                      className={`w-32 px-3 py-1 rounded-lg border-2 font-black text-center ${
-                        isDarkMode
-                          ? 'bg-[#0a2818] border-green-500 text-green-300'
-                          : 'bg-white border-green-500 text-green-700'
-                      }`}
-                      style={{ fontSize: '2rem' }}
-                      placeholder="$ 0"
-                    />
-                  </div>
-                </div>
+                {/* Título del Dashboard */}
+                <h3 className={`text-lg font-bold border-b pb-2 ${
+                  isDarkMode ? 'text-white border-gray-700' : 'text-gray-900 border-gray-300'
+                }`}>
+                  📊 Resumen del Combo
+                </h3>
 
-                {/* Tres Cajas de Métricas - MÁS COMPACTAS */}
-                <div className="grid grid-cols-3 gap-2">
-                  {/* Costo Total */}
-                  <div className={`p-2 rounded-lg text-center ${
+                {/* Grid de Totales */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Total Costo Combo */}
+                  <div className={`p-4 rounded-lg ${
                     isDarkMode ? 'bg-blue-950/50 border border-blue-700' : 'bg-blue-50 border border-blue-300'
                   }`}>
-                    <div className={`text-xs font-bold mb-1 ${
+                    <div className={`text-xs font-semibold mb-1 ${
                       isDarkMode ? 'text-blue-300' : 'text-blue-700'
                     }`}>
-                      COSTO
+                      💰 Total Costo Combo
                     </div>
-                    <div className={`text-lg font-black ${
+                    <div className={`text-2xl font-black ${
                       isDarkMode ? 'text-blue-400' : 'text-blue-600'
                     }`}>
                       {formatMoneyDisplay(metrics.totalCost)}
                     </div>
                   </div>
 
-                  {/* P-Contribución */}
-                  <div className={`p-2 rounded-lg text-center ${
-                    isDarkMode ? 'bg-gray-800/50 border border-gray-600' : 'bg-gray-100 border border-gray-300'
+                  {/* Total Precio Carta */}
+                  <div className={`p-4 rounded-lg ${
+                    isDarkMode ? 'bg-green-950/50 border border-green-700' : 'bg-green-50 border border-green-300'
+                  }`}>
+                    <div className={`text-xs font-semibold mb-1 ${
+                      isDarkMode ? 'text-green-300' : 'text-green-700'
+                    }`}>
+                      📋 Total Precio Carta
+                    </div>
+                    <div className={`text-2xl font-black ${
+                      isDarkMode ? 'text-green-400' : 'text-green-600'
+                    }`}>
+                      {formatMoneyDisplay(metrics.totalSuggestedPrice)}
+                    </div>
+                  </div>
+
+                  {/* Valor Descuento */}
+                  <div className={`p-4 rounded-lg ${
+                    isDarkMode ? 'bg-yellow-950/50 border border-yellow-700' : 'bg-yellow-50 border border-yellow-300'
+                  }`}>
+                    <div className={`text-xs font-semibold mb-1 ${
+                      isDarkMode ? 'text-yellow-300' : 'text-yellow-700'
+                    }`}>
+                      🎁 Valor Descuento ($)
+                    </div>
+                    <div className={`text-2xl font-black ${
+                      isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
+                    }`}>
+                      {formatMoneyDisplay(metrics.discountAmount)}
+                    </div>
+                  </div>
+
+                  {/* Porcentaje Descuento */}
+                  <div className={`p-4 rounded-lg ${
+                    isDarkMode ? 'bg-purple-950/50 border border-purple-700' : 'bg-purple-50 border border-purple-300'
+                  }`}>
+                    <div className={`text-xs font-semibold mb-1 ${
+                      isDarkMode ? 'text-purple-300' : 'text-purple-700'
+                    }`}>
+                      📊 Porcentaje Descuento (%)
+                    </div>
+                    <div className={`text-2xl font-black ${
+                      isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                    }`}>
+                      {metrics.discountPercent.toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Precio Final del Combo - RESALTADO */}
+                <div className={`p-5 rounded-xl border-4 ${
+                  metrics.isLosing
+                    ? 'bg-red-900/30 border-red-500'
+                    : isDarkMode
+                    ? 'bg-gradient-to-r from-green-900 to-emerald-900 border-green-500'
+                    : 'bg-gradient-to-r from-green-100 to-emerald-100 border-green-500'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <label className={`text-sm font-bold ${
+                      isDarkMode ? 'text-green-300' : 'text-green-700'
+                    }`}>
+                      💵 PRECIO FINAL DEL COMBO
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.comboPrice || metrics.totalSuggestedPrice}
+                      onChange={(e) => setFormData({ ...formData, comboPrice: parseFloat(e.target.value) || 0 })}
+                      onFocus={(e) => e.target.select()}
+                      className={`w-48 px-4 py-3 rounded-xl border-4 font-black text-center text-3xl shadow-lg ${
+                        metrics.isLosing
+                          ? 'bg-red-900/50 border-red-500 text-red-300'
+                          : isDarkMode
+                          ? 'bg-[#0a2818] border-green-400 text-green-300'
+                          : 'bg-white border-green-500 text-green-700'
+                      }`}
+                      placeholder="$ 0.00"
+                    />
+                  </div>
+                </div>
+
+                {/* Métricas de Rentabilidad */}
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-600">
+                  {/* Margen de Ganancia % */}
+                  <div className={`p-4 rounded-lg text-center ${
+                    metrics.isLosing
+                      ? 'bg-red-900/30 border border-red-500'
+                      : metrics.isLowMargin
+                      ? 'bg-yellow-900/30 border border-yellow-500'
+                      : isDarkMode
+                      ? 'bg-gray-800/50 border border-gray-600'
+                      : 'bg-gray-100 border border-gray-300'
                   }`}>
                     <div className={`text-xs font-bold mb-1 ${
                       isDarkMode ? 'text-gray-300' : 'text-gray-700'
                     }`}>
-                      P-CONTRIB.
+                      📈 Margen de Ganancia (%)
                     </div>
-                    <div className={`text-lg font-black ${
+                    <div className={`text-2xl font-black ${
                       metrics.isLosing
                         ? 'text-red-400'
                         : metrics.isLowMargin
                         ? 'text-yellow-400'
-                        : isDarkMode ? 'text-white' : 'text-gray-900'
+                        : isDarkMode ? 'text-green-400' : 'text-green-600'
                     }`}>
                       {metrics.profitMarginPercent.toFixed(1)}%
                     </div>
                   </div>
 
-                  {/* M-Contribución (Ganancia $) */}
-                  <div className={`p-2 rounded-lg text-center ${
-                    isDarkMode ? 'bg-purple-950/50 border border-purple-700' : 'bg-purple-50 border border-purple-300'
+                  {/* Utilidad $ */}
+                  <div className={`p-4 rounded-lg text-center ${
+                    metrics.isLosing
+                      ? 'bg-red-900/30 border border-red-500'
+                      : isDarkMode
+                      ? 'bg-emerald-950/50 border border-emerald-700'
+                      : 'bg-emerald-50 border border-emerald-300'
                   }`}>
                     <div className={`text-xs font-bold mb-1 ${
-                      isDarkMode ? 'text-purple-300' : 'text-purple-700'
+                      isDarkMode ? 'text-emerald-300' : 'text-emerald-700'
                     }`}>
-                      M-CONTRIB.
+                      💵 Utilidad ($)
                     </div>
-                    <div className={`text-lg font-black ${
-                      metrics.isLosing ? 'text-red-400' : isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                    <div className={`text-2xl font-black ${
+                      metrics.isLosing
+                        ? 'text-red-400'
+                        : isDarkMode ? 'text-emerald-400' : 'text-emerald-600'
                     }`}>
                       {formatMoneyDisplay(metrics.profitAmount)}
                     </div>
                   </div>
                 </div>
 
-                {/* Info adicional: Precio Normal y Descuento */}
-                {metrics.discountAmount > 0 && (
-                  <div className="mt-3 pt-2 border-t border-gray-600">
-                    <div className="flex justify-between text-xs">
-                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                        Precio Normal: <span className="line-through">{formatMoneyDisplay(metrics.totalSuggestedPrice)}</span>
-                      </span>
-                      <span className="text-yellow-400 font-semibold">
-                        Descuento: {metrics.discountPercent.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                )}
-
+                {/* Alertas */}
                 {metrics.isLosing && (
-                  <div className="mt-2 p-2 bg-red-900/40 border border-red-700 rounded">
-                    <p className="text-red-400 text-xs font-semibold">
+                  <div className="p-3 bg-red-900/40 border border-red-700 rounded-lg">
+                    <p className="text-red-400 text-sm font-semibold flex items-center gap-2">
+                      <AlertTriangle size={18} />
                       ⚠️ Este combo generará PÉRDIDAS. Ajusta el precio o revisa los componentes.
                     </p>
                   </div>
                 )}
 
                 {metrics.isLowMargin && !metrics.isLosing && (
-                  <div className="mt-2 p-2 bg-yellow-900/40 border border-yellow-700 rounded">
-                    <p className="text-yellow-400 text-xs font-semibold">
-                      ⚠️ Margen bajo. Considera aumentar el precio para mejorar rentabilidad.
+                  <div className="p-3 bg-yellow-900/40 border border-yellow-700 rounded-lg">
+                    <p className="text-yellow-400 text-sm font-semibold flex items-center gap-2">
+                      <AlertTriangle size={18} />
+                      ⚠️ Margen bajo ({metrics.profitMarginPercent.toFixed(1)}%). Considera aumentar el precio para mejorar rentabilidad.
                     </p>
                   </div>
                 )}
