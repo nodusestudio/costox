@@ -107,9 +107,18 @@ export default function PromotionsNew() {
     setFormData({ ...formData, items: updated })
   }
 
-  // Recalcular métricas de productos para obtener costo real
+  // Recalcular métricas de productos para obtener costo real (CT = Ingredientes + Mano de Obra)
   const recalculateProductMetrics = (product) => {
     try {
+      // Si el producto ya tiene totalCost guardado, usarlo directamente
+      if (product.totalCost !== undefined && product.totalCost > 0) {
+        return {
+          totalCost: parseFloat(product.totalCost) || 0,
+          realSalePrice: parseFloat(product.realSalePrice) || 0
+        }
+      }
+
+      // Si no tiene totalCost, calcularlo desde los items
       const items = Array.isArray(product.items) ? product.items : []
       let costoIngredientes = 0
 
@@ -135,19 +144,11 @@ export default function PromotionsNew() {
               costoIngredientes += ing.costWithWastage * cantidadUsada
             }
           }
-        } else if (item.type === 'recipe') {
-          const rec = getRecipes().then(recipes => recipes.find(r => r.id === item.id))
-          if (rec) {
-            const cantidadUsada = parseFloat(item.quantity || 0)
-            if (rec.costoPorGramo && rec.costoPorGramo > 0) {
-              costoIngredientes += rec.costoPorGramo * cantidadUsada
-            } else if (rec.totalCost && rec.pesoTotal && rec.pesoTotal > 0) {
-              const costoPorGramo = rec.totalCost / rec.pesoTotal
-              costoIngredientes += costoPorGramo * cantidadUsada
-            } else if (rec.totalCost) {
-              costoIngredientes += rec.totalCost * cantidadUsada
-            }
-          }
+        }
+        // Las recetas no se usan típicamente en productos, pero por compatibilidad:
+        else if (item.type === 'recipe') {
+          // Nota: recipes no está disponible en este contexto, solo ingredients y products
+          console.warn('Recipes not supported in product calculation within promotions')
         }
       })
 
@@ -160,9 +161,10 @@ export default function PromotionsNew() {
         realSalePrice: precioVenta
       }
     } catch (error) {
+      console.error('Error recalculando métricas de producto:', error)
       return {
-        totalCost: product.totalCost || 0,
-        realSalePrice: product.realSalePrice || 0
+        totalCost: parseFloat(product.totalCost) || 0,
+        realSalePrice: parseFloat(product.realSalePrice) || 0
       }
     }
   }
@@ -505,8 +507,10 @@ export default function PromotionsNew() {
         const product = products.find(p => p.id === item.id)
         if (product) {
           const quantity = parseInt(item.quantity) || 1
-          totalCost += (product.totalCost || 0) * quantity
-          totalSuggestedPrice += (product.realSalePrice || 0) * quantity
+          // Usar recalculateProductMetrics para obtener el costo total real
+          const metrics = recalculateProductMetrics(product)
+          totalCost += (metrics.totalCost || 0) * quantity
+          totalSuggestedPrice += (metrics.realSalePrice || 0) * quantity
         }
       } else if (item.type === 'ingredient') {
         const ing = ingredients.find(i => i.id === item.id)
