@@ -36,6 +36,27 @@ export default function PromotionsNew() {
     loadData()
   }, [])
 
+  // FUNCIÓN DE LIMPIEZA DE NÚMEROS
+  // Convierte cualquier valor a número válido o devuelve 0
+  const parseSafeNumber = (val) => {
+    if (val === null || val === undefined || val === '') return 0
+    
+    // Si ya es número
+    if (typeof val === 'number') {
+      return isFinite(val) ? val : 0
+    }
+    
+    // Si es string, limpiar y convertir
+    if (typeof val === 'string') {
+      // Remover separadores de miles y convertir coma a punto
+      const cleaned = val.replace(/\./g, '').replace(',', '.')
+      const parsed = parseFloat(cleaned)
+      return isFinite(parsed) ? parsed : 0
+    }
+    
+    return 0
+  }
+
   // Sincronizar costos de items del combo cuando cambian los productos
   useEffect(() => {
     if (formData.items && formData.items.length > 0 && products.length > 0) {
@@ -163,16 +184,13 @@ export default function PromotionsNew() {
     setFormData({ ...formData, items: updated })
   }
 
-  // CÁLCULO 100% LOCAL - NO DEPENDE DE FIREBASE
-  // Busca el producto en el estado local de JavaScript (products array)
-  // Ignora CUALQUIER valor cacheado guardado en el combo ($5.255,6)
-  // Usa SOLO el CT de la pestaña Productos ($9.317,1)
-  // CT = Ingredientes + Mano de Obra
+  // FORZAR CT REAL DEL PRODUCTO
+  // El costo DEBE ser exactamente el costoTotal del producto original
+  // Si es 'BURGER CLASICA NORMAL PEQUEÑA', debe ser $9.317,1 EXACTO
   const getProductTotalCost = (productRef) => {
-    if (!productRef) return 0
+    if (!productRef || !productRef.id) return 0
     
-    // PASO 1: BUSCAR en el estado LOCAL de JavaScript PRIMERO
-    // NO usar el objeto pasado directamente - puede tener datos viejos
+    // Buscar producto en estado local
     const currentProduct = products.find(p => p.id === productRef.id)
     
     if (!currentProduct) {
@@ -180,51 +198,40 @@ export default function PromotionsNew() {
       return 0
     }
     
-    // PASO 2: Parsear totalCost de forma robusta (puede venir como string o number)
-    let totalCost = 0
+    // USAR parseSafeNumber para obtener el CT
+    const totalCost = parseSafeNumber(currentProduct.totalCost)
     
-    if (currentProduct.totalCost !== undefined && currentProduct.totalCost !== null) {
-      // Convertir a string primero para limpiar
-      const costStr = String(currentProduct.totalCost)
-      // Remover separadores de miles (puntos) y convertir coma decimal a punto
-      const cleanCost = costStr.replace(/\./g, '').replace(',', '.')
-      totalCost = parseFloat(cleanCost)
-    }
-    
-    // DEBUG: Mostrar qué valor se está usando
-    if (!isNaN(totalCost) && totalCost > 0) {
-      console.log(`[getProductTotalCost] ${currentProduct.name}:`)
-      console.log(`  - totalCost raw: ${currentProduct.totalCost}`)
-      console.log(`  - totalCost parseado: $${totalCost.toFixed(2)}`)
+    if (totalCost > 0) {
+      console.log(`[CT] ${currentProduct.name}: $${totalCost.toFixed(2)}`)
       return totalCost
     }
     
-    console.warn(`[getProductTotalCost] ${currentProduct.name}: totalCost inválido, calculando fallback...`)
+    console.warn(`[CT] ${currentProduct.name}: totalCost inválido, usando fallback`)
     
-    // Fallback: Si no tiene totalCost, intentar calcular localmente desde ingredientes
-    const laborCost = parseFloat(currentProduct.laborCost) || 0
+    // Fallback: calcular desde ingredientes + mano de obra
+    const laborCost = parseSafeNumber(currentProduct.laborCost)
+    let ingredientsCost = 0
     
-    // Si tiene items, intentar calcular costo de ingredientes
-    if (Array.isArray(currentProduct.items) && currentProduct.items.length > 0) {
-      let ingredientsCost = 0
+    if (Array.isArray(currentProduct.items)) {
       currentProduct.items.forEach(item => {
         if (item.type === 'ingredient' || item.type === 'ingredient-embalaje' || item.type === 'ingredient-receta') {
           const ing = ingredients.find(i => i.id === item.id)
           if (ing) {
-            const qty = parseFloat(item.quantity) || 0
-            const cost = ing.costoPorGramo || ing.costWithWastage || 0
+            const qty = parseSafeNumber(item.quantity)
+            const cost = parseSafeNumber(ing.costoPorGramo || ing.costWithWastage)
             ingredientsCost += cost * qty
           }
         }
       })
-      return ingredientsCost + laborCost
     }
     
-    // Si no hay nada, retornar 0
-    return 0
+    return ingredientsCost + laborCost
   }
 
+  // RESET DE CÁLCULOS - Recalcular desde CERO en cada renderizado
+  // Sumar SOLO números válidos para evitar billones
   const calculateMetrics = () => {
+    // RESET: Iniciar desde cero
     let totalCost = 0
     let totalSuggestedPrice = 0
     const items = formData.items || []
@@ -244,62 +251,77 @@ export default function PromotionsNew() {
       }
     }
 
+    // Sumar item por item con validación estricta
     items.forEach(item => {
       if (!item || !item.id) return
       
-      const quantity = parseFloat(item.quantity || 1)
+      const quantity = parseSafeNumber(item.quantity)
+      if (quantity <= 0) return // Ignorar cantidades inválidas
       
       if (item.type === 'product') {
         const prod = products.find(p => p.id === item.id)
         if (prod) {
-          // Usar el costo total real del producto (CT)
+          // FORZAR CT REAL del producto
           const productCost = getProductTotalCost(prod)
-          const productPrice = parseFloat(prod.realSalePrice) || 0
-          totalCost += productCost * quantity
-          totalSuggestedPrice += productPrice * quantity
+          const productPrice = parseSafeNumber(prod.realSalePrice)
+          
+          // Validar antes de sumar
+          if (isFinite(productCost) && productCost >= 0) {
+            totalCost += productCost * quantity
+          }
+          if (isFinite(productPrice) && productPrice >= 0) {
+            totalSuggestedPrice += productPrice * quantity
+          }
         }
       } else {
         const ing = ingredients.find(i => i.id === item.id)
         if (ing) {
           let costoProporcional = 0
           
-          // Usar costoPorGramo si está disponible (recomendado)
-          if (ing.costoPorGramo && ing.costoPorGramo > 0) {
-            costoProporcional = ing.costoPorGramo * quantity
+          // Usar costoPorGramo si está disponible
+          const costoPorGramo = parseSafeNumber(ing.costoPorGramo)
+          if (costoPorGramo > 0) {
+            costoProporcional = costoPorGramo * quantity
           } 
           // Fallback 1: Calcular usando pesoEmpaqueTotal
-          else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
-            costoProporcional = calcularCostoProporcional(
-              ing.costWithWastage, 
-              ing.pesoEmpaqueTotal, 
-              quantity
-            )
-          } 
-          // Fallback 2: Ingredientes muy antiguos
-          else if (ing.costWithWastage) {
-            costoProporcional = ing.costWithWastage * quantity
+          else {
+            const costWithWastage = parseSafeNumber(ing.costWithWastage)
+            const pesoEmpaqueTotal = parseSafeNumber(ing.pesoEmpaqueTotal)
+            
+            if (pesoEmpaqueTotal > 0 && costWithWastage > 0) {
+              costoProporcional = calcularCostoProporcional(
+                costWithWastage, 
+                pesoEmpaqueTotal, 
+                quantity
+              )
+            } else if (costWithWastage > 0) {
+              costoProporcional = costWithWastage * quantity
+            }
           }
           
-          totalCost += costoProporcional
-          totalSuggestedPrice += costoProporcional * 1.4 // Margen 40%
+          // Validar antes de sumar
+          if (isFinite(costoProporcional) && costoProporcional >= 0) {
+            totalCost += costoProporcional
+            totalSuggestedPrice += costoProporcional * 1.4 // Margen 40%
+          }
         }
       }
     })
 
-    const comboPrice = parseFloat(formData.comboPrice) || totalSuggestedPrice
+    const comboPrice = parseSafeNumber(formData.comboPrice) || totalSuggestedPrice
     const discountAmount = totalSuggestedPrice - comboPrice
     const discountPercent = totalSuggestedPrice > 0 ? (discountAmount / totalSuggestedPrice) * 100 : 0
     const profitAmount = comboPrice - totalCost
     const profitMarginPercent = comboPrice > 0 ? (profitAmount / comboPrice) * 100 : 0
 
     return {
-      totalCost,
-      totalSuggestedPrice,
-      comboPrice,
-      discountAmount,
-      discountPercent,
-      profitAmount,
-      profitMarginPercent,
+      totalCost: parseSafeNumber(totalCost),
+      totalSuggestedPrice: parseSafeNumber(totalSuggestedPrice),
+      comboPrice: parseSafeNumber(comboPrice),
+      discountAmount: parseSafeNumber(discountAmount),
+      discountPercent: parseSafeNumber(discountPercent),
+      profitAmount: parseSafeNumber(profitAmount),
+      profitMarginPercent: parseSafeNumber(profitMarginPercent),
       isLosing: profitAmount < 0,
       isLowMargin: profitMarginPercent < 20
     }
@@ -1019,24 +1041,21 @@ export default function PromotionsNew() {
                           ? products.find(p => p.id === item.id)
                           : ingredients.find(i => i.id === item.id)
                         
-                        // Obtener costo y precio del item
+                        // RESET: Calcular costo y precio desde CERO para cada item
                         let itemCost = 0
                         let itemPrice = 0
                         
                         if (item.type === 'product' && selectedItem) {
-                          // BÚSQUEDA DINÁMICA - Buscar el producto en el estado local
-                          const freshProduct = products.find(p => p.id === item.id)
-                          if (freshProduct) {
-                            itemCost = getProductTotalCost(freshProduct)
-                            itemPrice = parseFloat(freshProduct.realSalePrice) || 0
-                            
-                            // DEBUG: Mostrar en consola el costo usado
-                            console.log(`[UI] Mostrando ${freshProduct.name}: CT = $${itemCost.toFixed(2)}`)
-                          } else {
-                            console.error(`[UI] NO SE ENCONTRÓ PRODUCTO CON ID: ${item.id}`)
-                          }
+                          // FORZAR CT REAL del producto
+                          itemCost = getProductTotalCost(selectedItem)
+                          itemPrice = parseSafeNumber(selectedItem.realSalePrice)
+                          
+                          console.log(`[UI] ${selectedItem.name}: CT = $${itemCost.toFixed(2)}`)
                         } else if (selectedItem) {
-                          itemCost = selectedItem?.costoPorGramo || selectedItem?.costWithWastage || 0
+                          const costoPorGramo = parseSafeNumber(selectedItem.costoPorGramo)
+                          const costWithWastage = parseSafeNumber(selectedItem.costWithWastage)
+                          
+                          itemCost = costoPorGramo > 0 ? costoPorGramo : costWithWastage
                           itemPrice = itemCost * 1.4 // Margen 40% para ingredientes
                         }
                         
