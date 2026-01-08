@@ -403,6 +403,10 @@ export const calculateProductMetrics = async (productData) => {
     }
   }
   
+  console.log(`🔍 CALCULANDO MÉTRICAS PARA: ${productData.name}`)
+  console.log(`  - Items:`, productData.items)
+  console.log(`  - Labor Cost:`, productData.laborCost)
+  
   // VALIDACIÓN CRÍTICA: Asegurar que items sea SIEMPRE un array
   const items = Array.isArray(productData.items) ? productData.items : []
   
@@ -469,11 +473,18 @@ export const calculateProductMetrics = async (productData) => {
 
   const costoIngredientes = costos.reduce((acc, costo) => acc + costo, 0)
   
+  console.log(`  - Costo Ingredientes: $${costoIngredientes.toFixed(2)}`)
+  
   // PASO 2: Mano de Obra (Operario)
   const manoDeObra = parseFloat(productData.laborCost || 0)
   
+  console.log(`  - Mano de Obra: $${manoDeObra.toFixed(2)}`)
+  
   // PASO 3: COSTO TOTAL (CT) = Ingredientes + Mano de Obra
   const costoTotal = costoIngredientes + manoDeObra
+  
+  console.log(`  - COSTO TOTAL (CT): $${costoTotal.toFixed(2)}`)
+  console.log(`  ====================================`)
   
   // PASO 4: Precio de Venta
   const precioVenta = parseFloat(productData.realSalePrice || 0)
