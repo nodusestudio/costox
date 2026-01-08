@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BarChart3, Users, Package, BookOpen, ShoppingCart, Tags, Settings, Folder } from 'lucide-react'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import Dashboard from '@/pages/Dashboard'
 import Suppliers from '@/pages/Suppliers'
 import IngredientsNew from '@/pages/IngredientsNew'
@@ -153,6 +154,7 @@ export default function App() {
     <I18nProvider>
       <CategoriesProvider>
         <AppContent />
+        <SpeedInsights />
       </CategoriesProvider>
     </I18nProvider>
   )
