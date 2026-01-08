@@ -101,6 +101,23 @@ export default function PromotionsNew() {
       // NO SINCRONIZAR - Solo cargar estructura básica del combo
       // Los costos se obtienen SIEMPRE desde el estado local de products
       // Ignorar CUALQUIER valor guardado en el combo ($5.255,6)
+      
+      // DEBUG: Verificar costos en el estado local
+      if (Array.isArray(promotion.items) && promotion.items.length > 0) {
+        console.log('=== ABRIENDO COMBO: VERIFICACIÓN DE COSTOS ===')
+        promotion.items.forEach(item => {
+          if (item.type === 'product') {
+            const localProduct = products.find(p => p.id === item.id)
+            if (localProduct) {
+              console.log(`Producto: ${localProduct.name}`)
+              console.log(`  - CT en estado local: $${parseFloat(localProduct.totalCost).toFixed(2)}`)
+              console.log(`  - Usar SIEMPRE este valor, NO el guardado en combo`)
+            }
+          }
+        })
+        console.log('===============================================')
+      }
+      
       setFormData({
         name: promotion.name || '',
         description: promotion.description || '',
@@ -167,7 +184,9 @@ export default function PromotionsNew() {
     // Este es el CT de $9.317,1 que se muestra en la pestaña Productos
     const totalCost = parseFloat(currentProduct.totalCost)
     
+    // DEBUG: Mostrar qué valor se está usando
     if (!isNaN(totalCost) && totalCost > 0) {
+      console.log(`[getProductTotalCost] ${currentProduct.name}: CT = $${totalCost.toFixed(2)} (desde estado local)`)
       return totalCost
     }
     
@@ -994,9 +1013,17 @@ export default function PromotionsNew() {
                         let itemPrice = 0
                         
                         if (item.type === 'product' && selectedItem) {
-                          // USAR EL COSTO TOTAL (CT) DEL PRODUCTO DIRECTAMENTE
-                          itemCost = getProductTotalCost(selectedItem)
-                          itemPrice = parseFloat(selectedItem.realSalePrice) || 0
+                          // BÚSQUEDA DINÁMICA - Buscar el producto en el estado local
+                          const freshProduct = products.find(p => p.id === item.id)
+                          if (freshProduct) {
+                            itemCost = getProductTotalCost(freshProduct)
+                            itemPrice = parseFloat(freshProduct.realSalePrice) || 0
+                            
+                            // DEBUG: Mostrar en consola el costo usado
+                            console.log(`[UI] Mostrando ${freshProduct.name}: CT = $${itemCost.toFixed(2)}`)
+                          } else {
+                            console.error(`[UI] NO SE ENCONTRÓ PRODUCTO CON ID: ${item.id}`)
+                          }
                         } else if (selectedItem) {
                           itemCost = selectedItem?.costoPorGramo || selectedItem?.costWithWastage || 0
                           itemPrice = itemCost * 1.4 // Margen 40% para ingredientes
