@@ -1021,6 +1021,14 @@ export default function ProductsNew() {
                           <div key={index} className={`flex gap-2 p-3 border-b text-sm ${
                             isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                           }`}>
+                            {/* Icono de Tipo */}
+                            <div className="flex items-center flex-shrink-0">
+                              <span className={`w-6 h-6 flex items-center justify-center rounded text-xs font-bold ${
+                                isDarkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                I
+                              </span>
+                            </div>
                             <div style={{ width: '75%' }} className={`flex items-center ${
                               isDarkMode ? 'text-gray-300' : 'text-gray-700'
                             }`}>
@@ -1174,6 +1182,16 @@ export default function ProductsNew() {
                           <div key={index} className={`flex gap-2 p-3 border-b text-sm ${
                             isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                           }`}>
+                            {/* Icono de Tipo */}
+                            <div className="flex items-center flex-shrink-0">
+                              <span className={`w-6 h-6 flex items-center justify-center rounded text-xs font-bold ${
+                                item.type === 'recipe'
+                                  ? isDarkMode ? 'bg-purple-900 text-purple-300' : 'bg-purple-100 text-purple-700'
+                                  : isDarkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                {item.type === 'recipe' ? 'R' : 'I'}
+                              </span>
+                            </div>
                             <div style={{ width: '75%' }} className={`flex items-center ${
                               isDarkMode ? 'text-gray-300' : 'text-gray-700'
                             }`}>
