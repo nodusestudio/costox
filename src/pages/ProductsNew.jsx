@@ -70,6 +70,13 @@ export default function ProductsNew() {
 
 
   const handleOpenModal = (product = null) => {
+    // Calcular % sugerido de costos indirectos desde la configuración
+    let suggestedIndirectCostsPercent = 0
+    if (config && config.estimatedMonthlySales > 0) {
+      const totalFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)
+      suggestedIndirectCostsPercent = (totalFixedCosts / config.estimatedMonthlySales) * 100
+    }
+
     if (product) {
       setEditingId(product.id)
       setFormData({
@@ -91,7 +98,7 @@ export default function ProductsNew() {
         items: [],
         laborCost: 0,
         preparationTimeMinutes: 0,
-        indirectCostsPercent: 0,
+        indirectCostsPercent: suggestedIndirectCostsPercent, // Pre-cargar con valor sugerido
         realSalePrice: 0,
       })
     }
@@ -168,8 +175,27 @@ export default function ProductsNew() {
         }
       })
 
-      const manoDeObra = parseFloat(product.laborCost || 0)
-      const costoTotal = costoIngredientes + manoDeObra
+      // INTELIGENCIA FINANCIERA: Calcular mano de obra desde tiempo de preparación
+      let manoDeObra = 0
+      const preparationTime = parseFloat(product.preparationTimeMinutes || 0)
+      
+      if (config && preparationTime > 0) {
+        const payroll = parseFloat(config.payrollCost || 0)
+        const monthlyHours = parseFloat(config.monthlyWorkHours || 176)
+        const costPerMinute = payroll / (monthlyHours * 60)
+        manoDeObra = costPerMinute * preparationTime
+      } else if (product.laborCost) {
+        // Fallback: usar laborCost manual si existe (compatibilidad hacia atrás)
+        manoDeObra = parseFloat(product.laborCost || 0)
+      }
+
+      const costoBase = costoIngredientes + manoDeObra
+      
+      // INTELIGENCIA FINANCIERA: Aplicar costos indirectos
+      const indirectCostsPercent = parseFloat(product.indirectCostsPercent || 0)
+      const costosIndirectos = costoBase * (indirectCostsPercent / 100)
+      const costoTotal = costoBase + costosIndirectos
+
       const precioVenta = parseFloat(product.realSalePrice) || 0
 
       // Fórmula Excel: P-CONTRIBUCIÓN = (1 - Costo/Venta) * 100
@@ -179,6 +205,7 @@ export default function ProductsNew() {
       return {
         ingredientsCost: costoIngredientes,
         laborCost: manoDeObra,
+        indirectCosts: costosIndirectos,
         totalCost: costoTotal,
         realSalePrice: precioVenta,
         pContribucion: pContribucion,
@@ -189,6 +216,7 @@ export default function ProductsNew() {
       return {
         ingredientsCost: 0,
         laborCost: 0,
+        indirectCosts: 0,
         totalCost: 0,
         realSalePrice: 0,
         pContribucion: 0,
@@ -1242,20 +1270,20 @@ export default function ProductsNew() {
             <div className={`p-4 rounded-lg border ${
               isDarkMode ? 'bg-orange-950/50 border-orange-700' : 'bg-orange-50 border-orange-300'
             }`}>
-              <div className="grid grid-cols-2 gap-4 items-center">
-                <div>
-                  <label className={`block text-sm font-bold ${
-                    isDarkMode ? 'text-orange-300' : 'text-orange-700'
-                  }`}>
-                    ⏱️ TIEMPO DE PREPARACIÓN
-                  </label>
-                  <p className={`text-xs mt-1 ${
-                    isDarkMode ? 'text-orange-400' : 'text-orange-600'
-                  }`}>
-                    Tiempo en minutos para preparar este producto
-                  </p>
-                </div>
-                <div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className={`block text-sm font-bold ${
+                      isDarkMode ? 'text-orange-300' : 'text-orange-700'
+                    }`}>
+                      ⏱️ TIEMPO DE PREPARACIÓN
+                    </label>
+                    <p className={`text-xs mt-1 ${
+                      isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                    }`}>
+                      Calcula automáticamente la MANO DE OBRA
+                    </p>
+                  </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
@@ -1264,7 +1292,7 @@ export default function ProductsNew() {
                       value={formData.preparationTimeMinutes}
                       onChange={(e) => setFormData({ ...formData, preparationTimeMinutes: parseFloat(e.target.value) || 0 })}
                       onFocus={(e) => e.target.select()}
-                      className={`flex-1 px-4 py-3 rounded-lg border-2 font-bold text-xl text-center ${
+                      className={`w-24 px-4 py-3 rounded-lg border-2 font-bold text-xl text-center ${
                         isDarkMode
                           ? 'bg-[#1f2937] border-orange-600 text-orange-300'
                           : 'bg-white border-orange-500 text-orange-700'
@@ -1275,22 +1303,47 @@ export default function ProductsNew() {
                       min
                     </span>
                   </div>
-                  {config && formData.preparationTimeMinutes > 0 && (
-                    <div className={`mt-2 p-2 rounded text-xs ${isDarkMode ? 'bg-orange-900/30 text-orange-300' : 'bg-orange-100 text-orange-700'}`}>
-                      💰 Costo: {(() => {
-                        const payroll = parseFloat(config.payrollCost || 0)
-                        const hours = parseFloat(config.monthlyWorkHours || 176)
-                        const costPerMinute = payroll / (hours * 60)
-                        const laborCost = costPerMinute * formData.preparationTimeMinutes
-                        return formatMoneyDisplay(laborCost)
-                      })()} ({formatMoneyDisplay((() => {
-                        const payroll = parseFloat(config.payrollCost || 0)
-                        const hours = parseFloat(config.monthlyWorkHours || 176)
-                        return payroll / (hours * 60)
-                      })())}/min)
-                    </div>
-                  )}
                 </div>
+                
+                {config && (
+                  <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-orange-900/40 border border-orange-700' : 'bg-orange-100 border border-orange-400'}`}>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <div className={`${isDarkMode ? 'text-orange-400' : 'text-orange-600'} font-medium`}>Nómina Mensual</div>
+                        <div className={`font-bold ${isDarkMode ? 'text-orange-200' : 'text-orange-800'}`}>
+                          {formatMoneyDisplay(config.payrollCost || 0)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className={`${isDarkMode ? 'text-orange-400' : 'text-orange-600'} font-medium`}>Costo/Minuto</div>
+                        <div className={`font-bold ${isDarkMode ? 'text-orange-200' : 'text-orange-800'}`}>
+                          {formatMoneyDisplay((() => {
+                            const payroll = parseFloat(config.payrollCost || 0)
+                            const hours = parseFloat(config.monthlyWorkHours || 176)
+                            return payroll / (hours * 60)
+                          })())}
+                        </div>
+                      </div>
+                      <div className={`${isDarkMode ? 'bg-green-900/40' : 'bg-green-200'} p-2 rounded`}>
+                        <div className={`${isDarkMode ? 'text-green-400' : 'text-green-700'} font-medium`}>💰 OPERARIO</div>
+                        <div className={`font-black text-base ${isDarkMode ? 'text-green-300' : 'text-green-800'}`}>
+                          {formData.preparationTimeMinutes > 0 ? formatMoneyDisplay((() => {
+                            const payroll = parseFloat(config.payrollCost || 0)
+                            const hours = parseFloat(config.monthlyWorkHours || 176)
+                            const costPerMinute = payroll / (hours * 60)
+                            return costPerMinute * formData.preparationTimeMinutes
+                          })()) : '$0.00'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {!config && (
+                  <p className={`text-xs text-center ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                    ⚠️ Configura la nómina en Ajustes para calcular automáticamente
+                  </p>
+                )}
               </div>
             </div>
 
@@ -1310,6 +1363,25 @@ export default function ProductsNew() {
                   }`}>
                     Luz, gas, alquiler, etc.
                   </p>
+                  {config && config.estimatedMonthlySales > 0 && (
+                    <div className={`mt-2 p-2 rounded text-xs ${isDarkMode ? 'bg-purple-900/30 text-purple-300' : 'bg-purple-100 text-purple-700'}`}>
+                      💡 Sugerido: {(() => {
+                        const totalFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)
+                        const suggestedPercent = (totalFixedCosts / config.estimatedMonthlySales) * 100
+                        return suggestedPercent.toFixed(2)
+                      })()}% 
+                      <button
+                        onClick={() => {
+                          const totalFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)
+                          const suggestedPercent = (totalFixedCosts / config.estimatedMonthlySales) * 100
+                          setFormData({ ...formData, indirectCostsPercent: parseFloat(suggestedPercent.toFixed(2)) })
+                        }}
+                        className={`ml-2 px-2 py-0.5 rounded ${isDarkMode ? 'bg-purple-700 hover:bg-purple-600' : 'bg-purple-600 hover:bg-purple-500'} text-white font-medium text-xs`}
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <input

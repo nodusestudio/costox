@@ -414,6 +414,72 @@ export default function Settings() {
             </div>
           </div>
 
+          {/* Ventas Estimadas Mensuales */}
+          <div className={`rounded-lg border p-6 space-y-4 transition-colors duration-300 ${isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-gray-50 border-gray-300'}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold">📊 Proyección de Ventas</h3>
+              <span className={`text-sm px-3 py-1 rounded-full ${isDarkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700'}`}>
+                Para Costos Indirectos
+              </span>
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                💰 Ventas Estimadas Mensuales
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={config.estimatedMonthlySales || 0}
+                onChange={(e) => handleChange('estimatedMonthlySales', parseFloat(e.target.value) || 0)}
+                className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20' : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'}`}
+                placeholder="Ej: 50000"
+              />
+              <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+                Estimación de ventas mensuales en {config.currency || 'USD'}
+              </p>
+            </div>
+
+            {/* Cálculo de % Costos Indirectos Sugerido */}
+            {config.estimatedMonthlySales > 0 && (
+              <div className={`rounded-lg border p-4 ${isDarkMode ? 'bg-green-900/20 border-green-700' : 'bg-green-50 border-green-300'}`}>
+                <h4 className={`text-sm font-semibold mb-3 ${isDarkMode ? 'text-green-400' : 'text-green-700'}`}>
+                  💡 % Costos Indirectos Sugerido
+                </h4>
+                <div className="grid grid-cols-1 gap-2">
+                  <div className={`flex justify-between text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <span>Total Gastos Fijos:</span>
+                    <span className="font-bold">
+                      ${((config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className={`flex justify-between text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <span>Ventas Estimadas:</span>
+                    <span className="font-bold">
+                      ${(config.estimatedMonthlySales || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className={`mt-2 pt-2 border-t ${isDarkMode ? 'border-green-700' : 'border-green-300'}`}>
+                    <div className="flex justify-between items-center">
+                      <span className={`font-semibold ${isDarkMode ? 'text-green-300' : 'text-green-700'}`}>
+                        % Sugerido para Productos:
+                      </span>
+                      <span className={`text-2xl font-black ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                        {(((config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)) / (config.estimatedMonthlySales || 1) * 100).toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className={`p-3 rounded-lg mt-3 ${isDarkMode ? 'bg-green-900/30' : 'bg-green-100'}`}>
+                  <p className={`text-xs ${isDarkMode ? 'text-green-300' : 'text-green-700'}`}>
+                    💡 <strong>Uso:</strong> Este porcentaje aparecerá como valor sugerido en el campo "Costos Indirectos %" de cada producto.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Botón de Guardar */}
           <div className="flex gap-4">
             <Button
