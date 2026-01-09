@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { TrendingUp, AlertCircle, DollarSign, TrendingDown, Save, Edit2 } from 'lucide-react'
-import { getProducts } from '@/utils/storage'
+import { TrendingUp, AlertCircle, DollarSign, TrendingDown } from 'lucide-react'
+import { getProducts, getConfig } from '@/utils/storage'
 import { useI18n } from '@/context/I18nContext'
 import { formatMoneyDisplay } from '@/utils/formatters'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js'
@@ -11,24 +11,21 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 export default function Dashboard() {
   const { t, isDarkMode } = useI18n()
   const [products, setProducts] = useState([])
+  const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [fixedCosts, setFixedCosts] = useState({
-    payroll: 0,
-    rent: 0,
-    utilities: 0
-  })
-  const [isEditingCosts, setIsEditingCosts] = useState(false)
-  const [tempFixedCosts, setTempFixedCosts] = useState({ ...fixedCosts })
 
   useEffect(() => {
     loadData()
-    loadFixedCosts()
   }, [])
 
   const loadData = async () => {
     try {
-      const productsData = await getProducts()
+      const [productsData, configData] = await Promise.all([
+        getProducts(),
+        getConfig()
+      ])
       setProducts(Array.isArray(productsData) ? productsData : [])
+      setConfig(configData)
     } catch (error) {
       console.error('Error loading dashboard data:', error)
       setProducts([])
@@ -37,22 +34,7 @@ export default function Dashboard() {
     }
   }
 
-  const loadFixedCosts = () => {
-    const saved = localStorage.getItem('fixedCosts')
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      setFixedCosts(parsed)
-      setTempFixedCosts(parsed)
-    }
-  }
-
-  const saveFixedCosts = () => {
-    localStorage.setItem('fixedCosts', JSON.stringify(tempFixedCosts))
-    setFixedCosts(tempFixedCosts)
-    setIsEditingCosts(false)
-  }
-
-  if (loading) {
+  if (loading || !config) {
     return (
       <div className={`p-4 md:p-6 flex items-center justify-center min-h-screen ${isDarkMode ? 'bg-[#111827] text-white' : 'bg-white text-[#111827]'}`}>
         <p className="text-lg">Cargando...</p>
@@ -92,8 +74,8 @@ export default function Dashboard() {
     ? productsWithMargin.reduce((sum, p) => sum + p.price, 0) / productsWithMargin.length
     : 0
 
-  // Costos Fijos Totales
-  const totalFixedCosts = fixedCosts.payroll + fixedCosts.rent + fixedCosts.utilities
+  // Costos Fijos Totales desde Config
+  const totalFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)
 
   // Margen de Contribución Promedio por Producto
   const avgContributionMargin = productsWithMargin.length > 0
@@ -389,91 +371,48 @@ export default function Dashboard() {
       <div className={`rounded-lg p-6 border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold">💼 Costos Fijos Mensuales</h3>
-          {!isEditingCosts ? (
-            <button
-              onClick={() => setIsEditingCosts(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
-            >
-              <Edit2 size={16} />
-              Editar
-            </button>
-          ) : (
-            <button
-              onClick={saveFixedCosts}
-              className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm"
-            >
-              <Save size={16} />
-              Guardar
-            </button>
-          )}
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('navigate-to-settings')) }}
+            className={`text-sm px-3 py-1 rounded-full ${isDarkMode ? 'bg-blue-900/30 text-blue-400 hover:bg-blue-900/50' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'} transition-colors`}
+          >
+            ⚙️ Editar en Configuración
+          </a>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Nómina
-            </label>
-            <input
-              type="number"
-              value={isEditingCosts ? tempFixedCosts.payroll : fixedCosts.payroll}
-              onChange={(e) => setTempFixedCosts({...tempFixedCosts, payroll: Number(e.target.value)})}
-              disabled={!isEditingCosts}
-              className={`w-full px-3 py-2 rounded-lg border ${
-                isDarkMode 
-                  ? 'bg-gray-700 border-gray-600 text-white' 
-                  : 'bg-white border-gray-300 text-gray-900'
-              } ${!isEditingCosts ? 'opacity-60 cursor-not-allowed' : ''}`}
-            />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
+            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>🏢 Arriendo</p>
+            <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              {formatMoneyDisplay(config.rentCost || 0)}
+            </p>
           </div>
-          <div>
-            <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Arriendo
-            </label>
-            <input
-              type="number"
-              value={isEditingCosts ? tempFixedCosts.rent : fixedCosts.rent}
-              onChange={(e) => setTempFixedCosts({...tempFixedCosts, rent: Number(e.target.value)})}
-              disabled={!isEditingCosts}
-              className={`w-full px-3 py-2 rounded-lg border ${
-                isDarkMode 
-                  ? 'bg-gray-700 border-gray-600 text-white' 
-                  : 'bg-white border-gray-300 text-gray-900'
-              } ${!isEditingCosts ? 'opacity-60 cursor-not-allowed' : ''}`}
-            />
+          <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
+            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>⚡ Servicios</p>
+            <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              {formatMoneyDisplay(config.utilitiesCost || 0)}
+            </p>
           </div>
-          <div>
-            <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Servicios (Luz, Gas, Agua)
-            </label>
-            <input
-              type="number"
-              value={isEditingCosts ? tempFixedCosts.utilities : fixedCosts.utilities}
-              onChange={(e) => setTempFixedCosts({...tempFixedCosts, utilities: Number(e.target.value)})}
-              disabled={!isEditingCosts}
-              className={`w-full px-3 py-2 rounded-lg border ${
-                isDarkMode 
-                  ? 'bg-gray-700 border-gray-600 text-white' 
-                  : 'bg-white border-gray-300 text-gray-900'
-              } ${!isEditingCosts ? 'opacity-60 cursor-not-allowed' : ''}`}
-            />
+          <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
+            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>👥 Nómina</p>
+            <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              {formatMoneyDisplay(config.payrollCost || 0)}
+            </p>
           </div>
-          <div>
-            <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Total Costos Fijos
-            </label>
-            <div className={`w-full px-3 py-2 rounded-lg border font-bold text-lg ${
-              isDarkMode 
-                ? 'bg-purple-900/30 border-purple-700 text-purple-400' 
-                : 'bg-purple-50 border-purple-300 text-purple-700'
-            }`}>
+          <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-purple-900/30 border border-purple-700' : 'bg-purple-50 border border-purple-300'}`}>
+            <p className={`text-xs font-semibold ${isDarkMode ? 'text-purple-400' : 'text-purple-700'}`}>💼 TOTAL</p>
+            <p className={`text-lg font-bold ${isDarkMode ? 'text-purple-300' : 'text-purple-600'}`}>
               {formatMoneyDisplay(totalFixedCosts)}
-            </div>
+            </p>
           </div>
         </div>
 
-        <div className={`mt-4 p-4 rounded-lg ${isDarkMode ? 'bg-blue-900/20 border border-blue-700' : 'bg-blue-50 border border-blue-200'}`}>
+        <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-blue-900/20 border border-blue-700' : 'bg-blue-50 border border-blue-200'}`}>
           <p className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-            💡 <strong>Punto de Equilibrio:</strong> Necesitas vender <strong>{breakEvenUnits} unidades</strong> al mes (aproximadamente <strong>{Math.ceil(breakEvenUnits / 30)} unidades/día</strong>) para cubrir tus costos fijos con un margen promedio de {avgContributionMargin.toFixed(0)} por producto.
+            💡 <strong>Punto de Equilibrio:</strong> Necesitas vender <strong>{breakEvenUnits} unidades</strong> al mes (aproximadamente <strong>{Math.ceil(breakEvenUnits / 30)} unidades/día</strong>) para cubrir tus costos fijos. 
+            {totalFixedCosts > 0 && avgContributionMargin > 0 && (
+              <span> Con un margen promedio de {formatMoneyDisplay(avgContributionMargin)} por producto, debes alcanzar ventas de <strong>{formatMoneyDisplay(breakEvenSales)}</strong> mensuales.</span>
+            )}
           </p>
         </div>
       </div>

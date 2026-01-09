@@ -108,6 +108,11 @@ export const getConfig = async () => {
       currency: 'USD',
       language: 'es',
       globalWastagePercent: 30, // Merma del 30% por defecto
+      rentCost: 0,
+      utilitiesCost: 0,
+      payrollCost: 0,
+      otherFixedCosts: 0,
+      monthlyWorkHours: 176, // 22 días × 8 horas
     }
   } catch (error) {
     console.error('Error getting config:', error)
@@ -117,6 +122,11 @@ export const getConfig = async () => {
       currency: 'USD',
       language: 'es',
       globalWastagePercent: 30,
+      rentCost: 0,
+      utilitiesCost: 0,
+      payrollCost: 0,
+      otherFixedCosts: 0,
+      monthlyWorkHours: 176,
     }
   }
 }

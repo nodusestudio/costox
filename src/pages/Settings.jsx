@@ -246,6 +246,174 @@ export default function Settings() {
             </div>
           </div>
 
+          {/* Configuración de Gastos Fijos Mensuales */}
+          <div className={`rounded-lg border p-6 space-y-4 transition-colors duration-300 ${
+            isDarkMode 
+              ? 'bg-[#1f2937] border-gray-700' 
+              : 'bg-gray-50 border-gray-300'
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold">💼 Gastos Fijos Mensuales</h3>
+              <span className={`text-sm px-3 py-1 rounded-full ${isDarkMode ? 'bg-purple-900/30 text-purple-400' : 'bg-purple-100 text-purple-700'}`}>
+                Para Punto de Equilibrio
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  🏢 Arriendo / Alquiler
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={config.rentCost || 0}
+                  onChange={(e) => handleChange('rentCost', parseFloat(e.target.value) || 0)}
+                  className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
+                    isDarkMode
+                      ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
+                      : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
+                  }`}
+                  placeholder="Ej: 1500"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  ⚡ Servicios Públicos (Luz, Gas, Agua)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={config.utilitiesCost || 0}
+                  onChange={(e) => handleChange('utilitiesCost', parseFloat(e.target.value) || 0)}
+                  className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
+                    isDarkMode
+                      ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
+                      : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
+                  }`}
+                  placeholder="Ej: 500"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  👥 Nómina Total Mensual
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={config.payrollCost || 0}
+                  onChange={(e) => handleChange('payrollCost', parseFloat(e.target.value) || 0)}
+                  className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
+                    isDarkMode
+                      ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
+                      : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
+                  }`}
+                  placeholder="Ej: 3000"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  📋 Otros Gastos Fijos
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={config.otherFixedCosts || 0}
+                  onChange={(e) => handleChange('otherFixedCosts', parseFloat(e.target.value) || 0)}
+                  className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
+                    isDarkMode
+                      ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
+                      : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
+                  }`}
+                  placeholder="Ej: 200"
+                />
+                <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+                  Seguros, licencias, mantenimiento, etc.
+                </p>
+              </div>
+            </div>
+
+            {/* Cálculo de Costo por Minuto */}
+            <div className={`rounded-lg border p-4 mt-4 ${isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-300'}`}>
+              <h4 className={`text-sm font-semibold mb-3 ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
+                ⏱️ Cálculo de Costo por Minuto (Mano de Obra)
+              </h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div>
+                  <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Horas Laborales Mensuales
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="1"
+                    value={config.monthlyWorkHours || 176}
+                    onChange={(e) => handleChange('monthlyWorkHours', parseFloat(e.target.value) || 176)}
+                    className={`w-full rounded-lg px-3 py-2 border text-sm ${
+                      isDarkMode
+                        ? 'bg-[#111827] border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                    placeholder="176"
+                  />
+                  <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+                    Default: 176h (22 días × 8h)
+                  </p>
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    💰 Costo por Minuto
+                  </label>
+                  <div className={`w-full rounded-lg px-3 py-2 border text-sm font-bold ${
+                    isDarkMode
+                      ? 'bg-green-900/30 border-green-700 text-green-400'
+                      : 'bg-green-50 border-green-300 text-green-700'
+                  }`}>
+                    {(() => {
+                      const payroll = config.payrollCost || 0
+                      const hours = config.monthlyWorkHours || 176
+                      const costPerMinute = payroll / (hours * 60)
+                      return `$${costPerMinute.toFixed(4)} / min`
+                    })()}
+                  </div>
+                  <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+                    Nómina ÷ (Horas × 60)
+                  </p>
+                </div>
+              </div>
+
+              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
+                <p className={`text-xs ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                  💡 <strong>Uso:</strong> Este costo por minuto se aplicará automáticamente en Productos según el tiempo de preparación configurado.
+                </p>
+              </div>
+            </div>
+
+            {/* Resumen Total */}
+            <div className={`rounded-lg border-2 p-4 ${isDarkMode ? 'bg-purple-900/20 border-purple-700' : 'bg-purple-50 border-purple-300'}`}>
+              <div className="flex items-center justify-between">
+                <span className={`font-semibold ${isDarkMode ? 'text-purple-300' : 'text-purple-700'}`}>
+                  💼 Total Gastos Fijos Mensuales:
+                </span>
+                <span className={`text-2xl font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+                  ${((config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <p className={`text-xs mt-2 ${isDarkMode ? 'text-purple-400/70' : 'text-purple-600/70'}`}>
+                Este monto se usará en el Dashboard para calcular tu Punto de Equilibrio
+              </p>
+            </div>
+          </div>
+
           {/* Botón de Guardar */}
           <div className="flex gap-4">
             <Button

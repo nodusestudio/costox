@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Plus, Edit2, Trash2, TrendingUp, DollarSign, Upload, Download } from 'lucide-react'
-import { getProducts, saveProduct, deleteProduct, getIngredients, getRecipes } from '@/utils/storage'
+import { getProducts, saveProduct, deleteProduct, getIngredients, getRecipes, getConfig } from '@/utils/storage'
 import { formatMoneyDisplay, calcularCostoProporcional } from '@/utils/formatters'
 import { showToast } from '@/utils/toast'
 import Modal from '@/components/Modal'
@@ -16,6 +16,7 @@ export default function ProductsNew() {
   const [products, setProducts] = useState([])
   const [ingredients, setIngredients] = useState([])
   const [recipes, setRecipes] = useState([])
+  const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -29,7 +30,8 @@ export default function ProductsNew() {
     description: '',
     categoryId: '',
     items: [], // { type: 'ingredient' | 'recipe', id, quantity }
-    laborCost: 0, // Mano de Obra (Operario)
+    laborCost: 0, // Mano de Obra (Operario) - DEPRECATED, ahora se calcula automáticamente
+    preparationTimeMinutes: 0, // Tiempo de preparación en minutos (NUEVO)
     indirectCostsPercent: 0, // Costos Indirectos % (luz, gas, etc.)
     realSalePrice: 0, // Precio de Venta
   })
@@ -42,10 +44,11 @@ export default function ProductsNew() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [productsData, ingredientsData, recipesData] = await Promise.all([
+      const [productsData, ingredientsData, recipesData, configData] = await Promise.all([
         getProducts(),
         getIngredients(),
-        getRecipes()
+        getRecipes(),
+        getConfig()
       ])
       // Ordenar productos por campo order
       const sortedProducts = Array.isArray(productsData) 
@@ -54,6 +57,7 @@ export default function ProductsNew() {
       setProducts(sortedProducts)
       setIngredients(Array.isArray(ingredientsData) ? ingredientsData : [])
       setRecipes(Array.isArray(recipesData) ? recipesData : [])
+      setConfig(configData)
     } catch (error) {
       console.error('Error loading data:', error)
       setProducts([])
@@ -74,6 +78,7 @@ export default function ProductsNew() {
         categoryId: product.categoryId || '',
         items: Array.isArray(product.items) ? product.items : [],
         laborCost: product.laborCost || 0,
+        preparationTimeMinutes: product.preparationTimeMinutes || 0,
         indirectCostsPercent: product.indirectCostsPercent || 0,
         realSalePrice: product.realSalePrice || 0,
       })
@@ -85,6 +90,7 @@ export default function ProductsNew() {
         categoryId: '',
         items: [],
         laborCost: 0,
+        preparationTimeMinutes: 0,
         indirectCostsPercent: 0,
         realSalePrice: 0,
       })
@@ -247,7 +253,23 @@ export default function ProductsNew() {
     })
 
     // COSTO TOTAL (CT): Ingredientes + Mano de Obra + Costos Indirectos
-    const manoDeObra = parseFloat(formData.laborCost || 0)
+    
+    // Calcular costo de mano de obra basado en tiempo de preparación
+    let manoDeObra = 0
+    const preparationTime = parseFloat(formData.preparationTimeMinutes || 0)
+    
+    if (config && preparationTime > 0) {
+      const payroll = parseFloat(config.payrollCost || 0)
+      const monthlyHours = parseFloat(config.monthlyWorkHours || 176)
+      const costPerMinute = payroll / (monthlyHours * 60)
+      manoDeObra = costPerMinute * preparationTime
+      
+      console.log(`⏱️ Costo Mano de Obra: ${preparationTime}min × $${costPerMinute.toFixed(4)}/min = $${manoDeObra.toFixed(2)}`)
+    } else if (formData.laborCost) {
+      // Fallback: usar laborCost manual si existe (compatibilidad hacia atrás)
+      manoDeObra = parseFloat(formData.laborCost || 0)
+    }
+    
     const costoBase = costoIngredientes + manoDeObra
     
     // Costos Indirectos (luz, gas, etc.) aplicados sobre el costo base
@@ -1216,7 +1238,7 @@ export default function ProductsNew() {
               </div>
             </div>
 
-            {/* MANO DE OBRA */}
+            {/* TIEMPO DE PREPARACIÓN */}
             <div className={`p-4 rounded-lg border ${
               isDarkMode ? 'bg-orange-950/50 border-orange-700' : 'bg-orange-50 border-orange-300'
             }`}>
@@ -1225,28 +1247,50 @@ export default function ProductsNew() {
                   <label className={`block text-sm font-bold ${
                     isDarkMode ? 'text-orange-300' : 'text-orange-700'
                   }`}>
-                    👷 OPERARIO (Mano de Obra)
+                    ⏱️ TIEMPO DE PREPARACIÓN
                   </label>
                   <p className={`text-xs mt-1 ${
                     isDarkMode ? 'text-orange-400' : 'text-orange-600'
                   }`}>
-                    Costo fijo de operación
+                    Tiempo en minutos para preparar este producto
                   </p>
                 </div>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.laborCost}
-                  onChange={(e) => setFormData({ ...formData, laborCost: parseFloat(e.target.value) || 0 })}
-                  onFocus={(e) => e.target.select()}
-                  className={`px-4 py-3 rounded-lg border-2 font-bold text-xl text-center ${
-                    isDarkMode
-                      ? 'bg-[#1f2937] border-orange-600 text-orange-300'
-                      : 'bg-white border-orange-500 text-orange-700'
-                  }`}
-                  placeholder="$ 0"
-                />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      value={formData.preparationTimeMinutes}
+                      onChange={(e) => setFormData({ ...formData, preparationTimeMinutes: parseFloat(e.target.value) || 0 })}
+                      onFocus={(e) => e.target.select()}
+                      className={`flex-1 px-4 py-3 rounded-lg border-2 font-bold text-xl text-center ${
+                        isDarkMode
+                          ? 'bg-[#1f2937] border-orange-600 text-orange-300'
+                          : 'bg-white border-orange-500 text-orange-700'
+                      }`}
+                      placeholder="0"
+                    />
+                    <span className={`text-sm font-medium ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                      min
+                    </span>
+                  </div>
+                  {config && formData.preparationTimeMinutes > 0 && (
+                    <div className={`mt-2 p-2 rounded text-xs ${isDarkMode ? 'bg-orange-900/30 text-orange-300' : 'bg-orange-100 text-orange-700'}`}>
+                      💰 Costo: {(() => {
+                        const payroll = parseFloat(config.payrollCost || 0)
+                        const hours = parseFloat(config.monthlyWorkHours || 176)
+                        const costPerMinute = payroll / (hours * 60)
+                        const laborCost = costPerMinute * formData.preparationTimeMinutes
+                        return formatMoneyDisplay(laborCost)
+                      })()} ({formatMoneyDisplay((() => {
+                        const payroll = parseFloat(config.payrollCost || 0)
+                        const hours = parseFloat(config.monthlyWorkHours || 176)
+                        return payroll / (hours * 60)
+                      })())}/min)
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
