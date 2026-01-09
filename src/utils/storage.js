@@ -103,7 +103,7 @@ export const getConfig = async () => {
   try {
     const configDoc = await getDocById(COLLECTIONS.config, 'global')
     return configDoc || {
-      companyName: 'Mi Empresa',
+      companyName: 'Roal Burger',
       chefName: 'Chef',
       currency: 'USD',
       language: 'es',
@@ -112,7 +112,7 @@ export const getConfig = async () => {
   } catch (error) {
     console.error('Error getting config:', error)
     return {
-      companyName: 'Mi Empresa',
+      companyName: 'Roal Burger',
       chefName: 'Chef',
       currency: 'USD',
       language: 'es',
