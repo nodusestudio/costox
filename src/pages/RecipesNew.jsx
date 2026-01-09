@@ -756,11 +756,11 @@ export default function RecipesNew() {
                         isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                       }`}>
                         {/* Icono de Tipo */}
-                        <div className="flex items-center flex-shrink-0">
-                          <span className={`w-6 h-6 flex items-center justify-center rounded text-xs font-bold ${
+                        <div className="flex items-center flex-shrink-0 mr-2">
+                          <span className={`w-7 h-7 flex items-center justify-center rounded-md text-xs font-bold text-white shadow-sm ${
                             item.type === 'recipe'
-                              ? isDarkMode ? 'bg-purple-900 text-purple-300' : 'bg-purple-100 text-purple-700'
-                              : isDarkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-700'
+                              ? 'bg-purple-600'
+                              : 'bg-orange-500'
                           }`}>
                             {item.type === 'recipe' ? 'R' : 'I'}
                           </span>
