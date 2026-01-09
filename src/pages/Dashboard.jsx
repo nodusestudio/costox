@@ -111,6 +111,23 @@ export default function Dashboard() {
   // Productos con margen bajo (< 30%)
   const lowMarginProducts = productsWithMargin.filter(p => p.contributionMarginPercent < 30)
 
+  // ========== TERMÓMETRO DE RENTABILIDAD ==========
+  // Food Cost Ideal: Costo base de ingredientes sin merma (asumiendo 0% merma)
+  // Food Cost Real: Costo con merma incluida (el que realmente pagamos)
+  
+  const totalIdealCost = productsWithMargin.reduce((sum, p) => {
+    // Costo ideal sin merma (dividimos el costo real entre 1.30 para quitar el 30% de merma)
+    const idealCost = p.cost / 1.30 // Asumiendo 30% merma promedio
+    return sum + idealCost
+  }, 0)
+
+  const totalRealCost = productsWithMargin.reduce((sum, p) => sum + p.cost, 0)
+  const totalRevenue = productsWithMargin.reduce((sum, p) => sum + p.price, 0)
+
+  const foodCostIdealPercent = totalRevenue > 0 ? (totalIdealCost / totalRevenue) * 100 : 0
+  const foodCostRealPercent = totalRevenue > 0 ? (totalRealCost / totalRevenue) * 100 : 0
+  const wastageImpact = foodCostRealPercent - foodCostIdealPercent
+
   // Clasificación de productos por rentabilidad (Ingeniería de Menú)
   const productsByProfitability = {
     stars: productsWithMargin.filter(p => p.contributionMarginPercent >= 50), // Estrellas
@@ -260,6 +277,112 @@ export default function Dashboard() {
           color="info"
           isDarkMode={isDarkMode}
         />
+      </div>
+
+      {/* Termómetro de Rentabilidad */}
+      <div className={`rounded-lg p-6 border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          🌡️ Termómetro de Rentabilidad
+          <span className={`text-sm font-normal ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            (Food Cost Real vs Ideal)
+          </span>
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className={`p-4 rounded-lg border ${isDarkMode ? 'bg-green-900/20 border-green-700' : 'bg-green-50 border-green-300'}`}>
+            <p className={`text-sm font-medium mb-2 ${isDarkMode ? 'text-green-300' : 'text-green-700'}`}>
+              💚 Food Cost Ideal (sin merma)
+            </p>
+            <p className={`text-3xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+              {foodCostIdealPercent.toFixed(1)}%
+            </p>
+            <p className={`text-xs mt-1 ${isDarkMode ? 'text-green-400/70' : 'text-green-600/70'}`}>
+              Costo teórico de insumos
+            </p>
+          </div>
+
+          <div className={`p-4 rounded-lg border ${isDarkMode ? 'bg-orange-900/20 border-orange-700' : 'bg-orange-50 border-orange-300'}`}>
+            <p className={`text-sm font-medium mb-2 ${isDarkMode ? 'text-orange-300' : 'text-orange-700'}`}>
+              🔶 Food Cost Real (con merma)
+            </p>
+            <p className={`text-3xl font-bold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+              {foodCostRealPercent.toFixed(1)}%
+            </p>
+            <p className={`text-xs mt-1 ${isDarkMode ? 'text-orange-400/70' : 'text-orange-600/70'}`}>
+              Costo real con desperdicio
+            </p>
+          </div>
+
+          <div className={`p-4 rounded-lg border ${
+            wastageImpact >= 10 
+              ? isDarkMode ? 'bg-red-900/20 border-red-700' : 'bg-red-50 border-red-300'
+              : isDarkMode ? 'bg-yellow-900/20 border-yellow-700' : 'bg-yellow-50 border-yellow-300'
+          }`}>
+            <p className={`text-sm font-medium mb-2 ${
+              wastageImpact >= 10
+                ? isDarkMode ? 'text-red-300' : 'text-red-700'
+                : isDarkMode ? 'text-yellow-300' : 'text-yellow-700'
+            }`}>
+              ⚠️ Impacto de Merma
+            </p>
+            <p className={`text-3xl font-bold ${
+              wastageImpact >= 10
+                ? isDarkMode ? 'text-red-400' : 'text-red-600'
+                : isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
+            }`}>
+              +{wastageImpact.toFixed(1)}%
+            </p>
+            <p className={`text-xs mt-1 ${
+              wastageImpact >= 10
+                ? isDarkMode ? 'text-red-400/70' : 'text-red-600/70'
+                : isDarkMode ? 'text-yellow-400/70' : 'text-yellow-600/70'
+            }`}>
+              Pérdida por desperdicio
+            </p>
+          </div>
+        </div>
+
+        {/* Barra de progreso visual */}
+        <div className="space-y-3">
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Food Cost Ideal</span>
+              <span className={`text-sm font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                {foodCostIdealPercent.toFixed(1)}%
+              </span>
+            </div>
+            <div className={`w-full h-3 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+              <div 
+                className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+                style={{ width: `${Math.min(foodCostIdealPercent, 100)}%` }}
+              ></div>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Food Cost Real</span>
+              <span className={`text-sm font-bold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                {foodCostRealPercent.toFixed(1)}%
+              </span>
+            </div>
+            <div className={`w-full h-3 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+              <div 
+                className="h-full bg-gradient-to-r from-orange-500 to-orange-600 transition-all duration-500"
+                style={{ width: `${Math.min(foodCostRealPercent, 100)}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div className={`mt-4 p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/20 border border-blue-700' : 'bg-blue-50 border border-blue-200'}`}>
+          <p className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+            💡 <strong>Interpretación:</strong> La diferencia de {wastageImpact.toFixed(1)}% representa el costo adicional debido a merma y desperdicios. 
+            {wastageImpact >= 10 
+              ? ' 🚨 Nivel crítico: Considera revisar prácticas de almacenamiento y preparación.'
+              : ' ✅ Nivel controlado: Continúa monitoreando tus procesos.'}
+          </p>
+        </div>
       </div>
 
       {/* Costos Fijos y Punto de Equilibrio */}
