@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Tag } from 'lucide-react'
-import { getProducts, getRecipes, getAllDocs, saveDoc, deleteDoc } from '@/utils/storage'
+import { getProducts, getRecipes, getAllDocs, saveDoc, deleteDocument } from '@/utils/storage'
 import { formatMoneyDisplay } from '@/utils/formatters'
 import Modal from '@/components/Modal'
 import Button from '@/components/Button'
@@ -147,7 +147,7 @@ export default function Promotions() {
   const handleDelete = async (id) => {
     if (!confirm('¿Eliminar este combo?')) return
     try {
-      await deleteDoc('promotions', id)
+      await deleteDocument('promotions', id)
       await loadData()
     } catch (error) {
       console.error('Error deleting promotion:', error)
