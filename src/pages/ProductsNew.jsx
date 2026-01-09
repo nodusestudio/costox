@@ -38,9 +38,9 @@ export default function ProductsNew() {
   })
   const searchSelectRefs = useRef({})
 
-  // Función para redondear al millar más cercano
+  // Función para redondear al millar superior
   const roundToNearestThousand = (value) => {
-    return Math.round(value / 1000) * 1000
+    return Math.ceil(value / 1000) * 1000
   }
 
   useEffect(() => {
@@ -826,7 +826,7 @@ export default function ProductsNew() {
               
               {/* P-CONTRIBUCIÓN (% Utilidad) */}
               <div className={`mt-2 p-3 rounded-lg border-2 ${
-                recalculated.pContribucion < 30
+                recalculated.pContribucion < (product.desiredProfitPercent || 20)
                   ? isDarkMode ? 'bg-red-900/40 border-red-600' : 'bg-red-100 border-red-400'
                   : isDarkMode ? 'bg-green-900/40 border-green-700' : 'bg-green-100 border-green-400'
               }`}>
@@ -837,7 +837,7 @@ export default function ProductsNew() {
                     P-CONTRIBUCIÓN
                   </span>
                   <span className={`text-2xl font-black ${
-                    recalculated.pContribucion < 30
+                    recalculated.pContribucion < (product.desiredProfitPercent || 20)
                       ? isDarkMode ? 'text-red-400' : 'text-red-600'
                       : isDarkMode ? 'text-green-400' : 'text-green-600'
                   }`}>
