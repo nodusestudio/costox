@@ -9,6 +9,7 @@ const translations = {
     ingredients: 'Ingredientes',
     recipes: 'Recetas',
     products: 'Productos',
+    promotions: 'Promociones',
     settings: 'Configuración',
 
     // Dashboard/Panel
@@ -55,6 +56,7 @@ const translations = {
     ingredients: 'Ingredients',
     recipes: 'Recipes',
     products: 'Products',
+    promotions: 'Promotions',
     settings: 'Settings',
 
     // Dashboard/Panel
