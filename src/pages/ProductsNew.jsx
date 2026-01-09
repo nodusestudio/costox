@@ -30,6 +30,7 @@ export default function ProductsNew() {
     categoryId: '',
     items: [], // { type: 'ingredient' | 'recipe', id, quantity }
     laborCost: 0, // Mano de Obra (Operario)
+    indirectCostsPercent: 0, // Costos Indirectos % (luz, gas, etc.)
     realSalePrice: 0, // Precio de Venta
   })
   const searchSelectRefs = useRef({})
@@ -118,6 +119,7 @@ export default function ProductsNew() {
         categoryId: product.categoryId || '',
         items: Array.isArray(product.items) ? product.items : [],
         laborCost: product.laborCost || 0,
+        indirectCostsPercent: product.indirectCostsPercent || 0,
         realSalePrice: product.realSalePrice || 0,
       })
     } else {
@@ -128,6 +130,7 @@ export default function ProductsNew() {
         categoryId: '',
         items: [],
         laborCost: 0,
+        indirectCostsPercent: 0,
         realSalePrice: 0,
       })
     }
@@ -288,9 +291,14 @@ export default function ProductsNew() {
       }
     })
 
-    // COSTO TOTAL (CT): Ingredientes + Mano de Obra
+    // COSTO TOTAL (CT): Ingredientes + Mano de Obra + Costos Indirectos
     const manoDeObra = parseFloat(formData.laborCost || 0)
-    const costoTotal = costoIngredientes + manoDeObra
+    const costoBase = costoIngredientes + manoDeObra
+    
+    // Costos Indirectos (luz, gas, etc.) aplicados sobre el costo base
+    const indirectCostsPercent = parseFloat(formData.indirectCostsPercent || 0)
+    const costosIndirectos = costoBase * (indirectCostsPercent / 100)
+    const costoTotal = costoBase + costosIndirectos
     
     // PRECIO DE VENTA (el usuario lo define)
     const precioVenta = parseFloat(formData.realSalePrice) || 0
@@ -304,6 +312,7 @@ export default function ProductsNew() {
     return {
       ingredientsCost: costoIngredientes,
       laborCost: manoDeObra,
+      indirectCosts: costosIndirectos,
       totalCost: costoTotal,
       realSalePrice: precioVenta,
       pContribucion: pContribucion, // Food Cost %
@@ -1291,6 +1300,53 @@ export default function ProductsNew() {
                   placeholder="$ 0"
                 />
               </div>
+            </div>
+
+            {/* COSTOS INDIRECTOS */}
+            <div className={`p-4 rounded-lg border ${
+              isDarkMode ? 'bg-purple-950/50 border-purple-700' : 'bg-purple-50 border-purple-300'
+            }`}>
+              <div className="grid grid-cols-2 gap-4 items-center">
+                <div>
+                  <label className={`block text-sm font-bold ${
+                    isDarkMode ? 'text-purple-300' : 'text-purple-700'
+                  }`}>
+                    ⚡ COSTOS INDIRECTOS %
+                  </label>
+                  <p className={`text-xs mt-1 ${
+                    isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                  }`}>
+                    Luz, gas, alquiler, etc.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={formData.indirectCostsPercent}
+                    onChange={(e) => setFormData({ ...formData, indirectCostsPercent: parseFloat(e.target.value) || 0 })}
+                    onFocus={(e) => e.target.select()}
+                    className={`flex-1 px-4 py-3 rounded-lg border-2 font-bold text-xl text-center ${
+                      isDarkMode
+                        ? 'bg-[#1f2937] border-purple-600 text-purple-300'
+                        : 'bg-white border-purple-500 text-purple-700'
+                    }`}
+                    placeholder="0"
+                  />
+                  <span className={`text-2xl font-bold ${
+                    isDarkMode ? 'text-purple-300' : 'text-purple-700'
+                  }`}>%</span>
+                </div>
+              </div>
+              {formData.indirectCostsPercent > 0 && (
+                <p className={`text-xs mt-2 text-center ${
+                  isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                }`}>
+                  Monto aprox: {formatMoneyDisplay(metrics.indirectCosts || 0)}
+                </p>
+              )}
             </div>
 
             {/* Descripción - Movida al final */}

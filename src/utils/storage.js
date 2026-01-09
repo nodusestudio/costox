@@ -24,8 +24,10 @@ const COLLECTIONS = {
   ingredients: 'ingredients',
   recipes: 'recipes',
   products: 'products',
+  promotions: 'promotions',
   categoriesRecipes: 'categoriesRecipes',
-  categoriesProducts: 'categoriesProducts'
+  categoriesProducts: 'categoriesProducts',
+  categoriesPromotions: 'categoriesPromotions'
 }
 
 /**
@@ -553,4 +555,36 @@ export const saveIngredients = async (ingredients) => {
 export const saveRecipes = async (recipes) => {
   // Deprecated: usar saveRecipe individualmente
   console.warn('saveRecipes is deprecated')
+}
+
+/**
+ * Obtiene todas las promociones
+ */
+export const getPromotions = async () => {
+  return await getAllDocs(COLLECTIONS.promotions)
+}
+
+/**
+ * Guarda promoción/combo
+ */
+export const savePromotion = async (promotion, id = null) => {
+  try {
+    const promotionData = {
+      ...promotion,
+      updatedAt: new Date().toISOString()
+    }
+    
+    console.log(`🎁 Guardando promoción: ${promotion.name}`)
+    return await saveDoc(COLLECTIONS.promotions, promotionData, id)
+  } catch (error) {
+    console.error('Error saving promotion:', error)
+    throw error
+  }
+}
+
+/**
+ * Elimina promoción
+ */
+export const deletePromotion = async (id) => {
+  return await deleteDocument(COLLECTIONS.promotions, id)
 }

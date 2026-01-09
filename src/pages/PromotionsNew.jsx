@@ -809,8 +809,17 @@ export default function PromotionsNew() {
 
                       return (
                         <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                          <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
-                            {item.type === 'product' ? 'Producto' : 'Ingrediente'}
+                          <td className="px-4 py-2 text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-7 h-7 flex items-center justify-center rounded-md text-xs font-bold text-white shadow-sm ${
+                                item.type === 'product' ? 'bg-blue-600' : 'bg-orange-500'
+                              }`}>
+                                {item.type === 'product' ? 'P' : 'I'}
+                              </span>
+                              <span className="text-gray-600 dark:text-gray-400">
+                                {item.type === 'product' ? 'Producto' : 'Ingrediente'}
+                              </span>
+                            </div>
                           </td>
                           <td className="px-4 py-2">
                             <SearchSelect

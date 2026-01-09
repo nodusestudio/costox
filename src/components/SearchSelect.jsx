@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle, useMemo, memo } from 'react'
 import { Search, X } from 'lucide-react'
 
-const SearchSelect = forwardRef(({ 
+const SearchSelect = memo(forwardRef(({ 
   options = [], 
   value, 
   onChange, 
@@ -35,11 +35,17 @@ const SearchSelect = forwardRef(({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const filteredOptions = (options ?? []).filter(option =>
-    option[displayKey]?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Memoizar filtrado de opciones para evitar recalcular en cada render
+  const filteredOptions = useMemo(() => {
+    return (options ?? []).filter(option =>
+      option[displayKey]?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }, [options, searchTerm, displayKey])
 
-  const selectedOption = (options ?? []).find(opt => opt[valueKey] === value)
+  // Memoizar opción seleccionada
+  const selectedOption = useMemo(() => {
+    return (options ?? []).find(opt => opt[valueKey] === value)
+  }, [options, value, valueKey])
 
   const handleSelect = (option) => {
     onChange(option[valueKey])
@@ -127,7 +133,7 @@ const SearchSelect = forwardRef(({
       )}
     </div>
   )
-})
+}))
 
 SearchSelect.displayName = 'SearchSelect'
 
