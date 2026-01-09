@@ -96,8 +96,7 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Resumen de Productos y Promociones */}
-      <div className="grid grid*/}
+      {/* Resumen de Productos */}
       <div className="bg-dark-card rounded-lg p-6 border border-gray-700">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold">Productos Finales</h3>
