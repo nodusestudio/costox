@@ -443,8 +443,10 @@ export default function Settings() {
 
             {/* Cálculo de % Costos Indirectos Sugerido */}
             {config.estimatedMonthlySales > 0 && (() => {
-              const totalFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)
-              const suggestedPercent = (totalFixedCosts / (config.estimatedMonthlySales || 1)) * 100
+              // CORREGIDO: Excluir nómina porque ya se calcula por separado con Tiempo de Preparación
+              const indirectFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.otherFixedCosts || 0)
+              const totalFixedCosts = indirectFixedCosts + (config.payrollCost || 0) // Solo para mostrar
+              const suggestedPercent = (indirectFixedCosts / (config.estimatedMonthlySales || 1)) * 100
               const isHighPercent = suggestedPercent > 35
               
               return (
@@ -461,10 +463,21 @@ export default function Settings() {
                     {isHighPercent ? '⚠️' : '💡'} % Costos Indirectos Sugerido
                   </h4>
                   <div className="grid grid-cols-1 gap-2">
+                    <div className={`p-2 rounded-lg mb-2 ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
+                      <p className={`text-xs ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                        💡 <strong>Nota:</strong> Este % NO incluye nómina (se calcula por separado con Tiempo de Preparación)
+                      </p>
+                    </div>
                     <div className={`flex justify-between text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      <span>Total Gastos Fijos:</span>
+                      <span>🏢 Arriendo + ⚡ Servicios + 📋 Otros:</span>
                       <span className="font-bold">
-                        ${totalFixedCosts.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        ${indirectFixedCosts.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className={`flex justify-between text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} text-xs`}>
+                      <span>👥 Nómina (separada):</span>
+                      <span className="font-bold">
+                        ${(config.payrollCost || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className={`flex justify-between text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>

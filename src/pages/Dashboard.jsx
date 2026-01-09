@@ -417,6 +417,189 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Meta de Eficiencia */}
+      {(() => {
+        // Calcular ventas necesarias para que gastos fijos sean 20%
+        const targetEfficiencyPercent = 20
+        const salesNeededForEfficiency = totalFixedCosts > 0 ? totalFixedCosts / (targetEfficiencyPercent / 100) : 0
+        
+        // Ventas estimadas actuales desde config
+        const currentEstimatedSales = config.estimatedMonthlySales || 0
+        
+        // Déficit de ventas
+        const salesDeficit = Math.max(0, salesNeededForEfficiency - currentEstimatedSales)
+        
+        // Meta diaria
+        const dailyTarget = salesDeficit / 30
+        
+        // % actual de gastos sobre ventas
+        const currentCostPercent = currentEstimatedSales > 0 ? (totalFixedCosts / currentEstimatedSales) * 100 : 0
+        
+        // Solo mostrar si hay déficit
+        const hasDeficit = salesDeficit > 0 && currentEstimatedSales > 0
+        
+        return (
+          <div className={`rounded-lg p-6 border ${
+            hasDeficit
+              ? isDarkMode ? 'bg-orange-900/20 border-orange-700' : 'bg-orange-50 border-orange-300'
+              : isDarkMode ? 'bg-green-900/20 border-green-700' : 'bg-green-50 border-green-300'
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className={`p-3 rounded-full ${
+                  hasDeficit
+                    ? isDarkMode ? 'bg-orange-700' : 'bg-orange-500'
+                    : isDarkMode ? 'bg-green-700' : 'bg-green-500'
+                }`}>
+                  <TrendingUp className="text-white" size={24} />
+                </div>
+                <div>
+                  <h3 className={`text-xl font-semibold ${
+                    hasDeficit
+                      ? isDarkMode ? 'text-orange-300' : 'text-orange-700'
+                      : isDarkMode ? 'text-green-300' : 'text-green-700'
+                  }`}>
+                    🎯 Meta de Eficiencia Financiera
+                  </h3>
+                  <p className={`text-sm ${
+                    hasDeficit
+                      ? isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                      : isDarkMode ? 'text-green-400' : 'text-green-600'
+                  }`}>
+                    Objetivo: Gastos Fijos = 20% de Ventas (Saludable)
+                  </p>
+                </div>
+              </div>
+              {currentEstimatedSales > 0 && (
+                <div className={`px-4 py-2 rounded-full text-center ${
+                  currentCostPercent > 35
+                    ? isDarkMode ? 'bg-red-900/50 border-2 border-red-600' : 'bg-red-100 border-2 border-red-400'
+                    : currentCostPercent > 20
+                    ? isDarkMode ? 'bg-orange-900/50 border-2 border-orange-600' : 'bg-orange-100 border-2 border-orange-400'
+                    : isDarkMode ? 'bg-green-900/50 border-2 border-green-600' : 'bg-green-100 border-2 border-green-400'
+                }`}>
+                  <p className={`text-xs font-medium ${
+                    currentCostPercent > 35
+                      ? 'text-red-500'
+                      : currentCostPercent > 20
+                      ? isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                      : isDarkMode ? 'text-green-400' : 'text-green-600'
+                  }`}>
+                    % Actual
+                  </p>
+                  <p className={`text-2xl font-black ${
+                    currentCostPercent > 35
+                      ? 'text-red-500 animate-pulse'
+                      : currentCostPercent > 20
+                      ? isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                      : isDarkMode ? 'text-green-400' : 'text-green-600'
+                  }`}>
+                    {currentCostPercent.toFixed(1)}%
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {currentEstimatedSales === 0 ? (
+              <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-yellow-900/20 border border-yellow-700' : 'bg-yellow-50 border border-yellow-200'}`}>
+                <p className={`text-sm ${isDarkMode ? 'text-yellow-300' : 'text-yellow-700'}`}>
+                  ⚠️ <strong>Configura tus Ventas Estimadas</strong> en la sección de Configuración para ver tu meta de eficiencia y el déficit de ventas.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white border border-gray-200'}`}>
+                    <p className={`text-xs mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>💼 Gastos Fijos Totales</p>
+                    <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {formatMoneyDisplay(totalFixedCosts)}
+                    </p>
+                  </div>
+
+                  <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-blue-900/30 border border-blue-700' : 'bg-blue-50 border border-blue-300'}`}>
+                    <p className={`text-xs mb-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>📊 Ventas Estimadas Actuales</p>
+                    <p className={`text-2xl font-bold ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                      {formatMoneyDisplay(currentEstimatedSales)}
+                    </p>
+                  </div>
+
+                  <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-green-900/30 border border-green-700' : 'bg-green-50 border border-green-300'}`}>
+                    <p className={`text-xs mb-2 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>🎯 Ventas Necesarias (20%)</p>
+                    <p className={`text-2xl font-bold ${isDarkMode ? 'text-green-300' : 'text-green-700'}`}>
+                      {formatMoneyDisplay(salesNeededForEfficiency)}
+                    </p>
+                  </div>
+                </div>
+
+                {hasDeficit ? (
+                  <>
+                    <div className={`p-5 rounded-lg mb-4 ${isDarkMode ? 'bg-orange-900/40 border-2 border-orange-600' : 'bg-orange-100 border-2 border-orange-400'}`}>
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className={`flex-shrink-0 mt-1 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} size={28} />
+                        <div className="flex-1">
+                          <p className={`text-lg font-bold mb-2 ${isDarkMode ? 'text-orange-300' : 'text-orange-700'}`}>
+                            📈 Para llegar a un 20% de costos indirectos (saludable):
+                          </p>
+                          <p className={`text-3xl font-black mb-3 ${isDarkMode ? 'text-orange-200' : 'text-orange-800'}`}>
+                            Necesitas vender {formatMoneyDisplay(salesDeficit)} adicionales al mes
+                          </p>
+                          <div className={`inline-block px-4 py-2 rounded-lg ${isDarkMode ? 'bg-orange-700' : 'bg-orange-500'}`}>
+                            <p className="text-white text-sm font-medium">⏰ Meta Diaria para Recuperación</p>
+                            <p className="text-white text-2xl font-black">
+                              {formatMoneyDisplay(dailyTarget)} / día
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Barra de Progreso */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Progreso hacia meta saludable
+                        </span>
+                        <span className={`text-sm font-bold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                          {((currentEstimatedSales / salesNeededForEfficiency) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className={`w-full h-4 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                        <div 
+                          className={`h-full transition-all duration-500 ${
+                            (currentEstimatedSales / salesNeededForEfficiency) * 100 < 50
+                              ? 'bg-gradient-to-r from-red-500 to-red-600'
+                              : (currentEstimatedSales / salesNeededForEfficiency) * 100 < 80
+                              ? 'bg-gradient-to-r from-orange-500 to-orange-600'
+                              : 'bg-gradient-to-r from-green-500 to-green-600'
+                          }`}
+                          style={{ width: `${Math.min((currentEstimatedSales / salesNeededForEfficiency) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className={`p-5 rounded-lg ${isDarkMode ? 'bg-green-900/40 border-2 border-green-600' : 'bg-green-100 border-2 border-green-400'}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-full ${isDarkMode ? 'bg-green-700' : 'bg-green-500'}`}>
+                        <TrendingUp className="text-white" size={24} />
+                      </div>
+                      <div>
+                        <p className={`text-xl font-bold ${isDarkMode ? 'text-green-300' : 'text-green-700'}`}>
+                          ✅ ¡Excelente! Ya alcanzaste la meta de eficiencia
+                        </p>
+                        <p className={`text-sm ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                          Tus gastos fijos representan solo el {currentCostPercent.toFixed(1)}% de tus ventas estimadas, lo cual es saludable para tu negocio.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )
+      })()}
+
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Gráfico de Barras */}

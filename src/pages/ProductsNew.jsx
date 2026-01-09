@@ -33,6 +33,7 @@ export default function ProductsNew() {
     laborCost: 0, // Mano de Obra (Operario) - DEPRECATED, ahora se calcula automáticamente
     preparationTimeMinutes: 0, // Tiempo de preparación en minutos (NUEVO)
     indirectCostsPercent: 0, // Costos Indirectos % (luz, gas, etc.)
+    desiredProfitPercent: 20, // Utilidad Deseada % (NUEVO)
     realSalePrice: 0, // Precio de Venta
   })
   const searchSelectRefs = useRef({})
@@ -87,6 +88,7 @@ export default function ProductsNew() {
         laborCost: product.laborCost || 0,
         preparationTimeMinutes: product.preparationTimeMinutes || 0,
         indirectCostsPercent: product.indirectCostsPercent || 0,
+        desiredProfitPercent: product.desiredProfitPercent || 20,
         realSalePrice: product.realSalePrice || 0,
       })
     } else {
@@ -99,6 +101,7 @@ export default function ProductsNew() {
         laborCost: 0,
         preparationTimeMinutes: 0,
         indirectCostsPercent: suggestedIndirectCostsPercent, // Pre-cargar con valor sugerido
+        desiredProfitPercent: 20, // Utilidad deseada por defecto
         realSalePrice: 0,
       })
     }
@@ -189,12 +192,10 @@ export default function ProductsNew() {
         manoDeObra = parseFloat(product.laborCost || 0)
       }
 
-      const costoBase = costoIngredientes + manoDeObra
-      
-      // INTELIGENCIA FINANCIERA: Aplicar costos indirectos
+      // INTELIGENCIA FINANCIERA: Aplicar costos indirectos SOLO sobre ingredientes
       const indirectCostsPercent = parseFloat(product.indirectCostsPercent || 0)
-      const costosIndirectos = costoBase * (indirectCostsPercent / 100)
-      const costoTotal = costoBase + costosIndirectos
+      const costosIndirectos = costoIngredientes * (indirectCostsPercent / 100)
+      const costoTotal = costoIngredientes + manoDeObra + costosIndirectos
 
       const precioVenta = parseFloat(product.realSalePrice) || 0
 
@@ -298,12 +299,20 @@ export default function ProductsNew() {
       manoDeObra = parseFloat(formData.laborCost || 0)
     }
     
-    const costoBase = costoIngredientes + manoDeObra
-    
-    // Costos Indirectos (luz, gas, etc.) aplicados sobre el costo base
+    // FÓRMULA CORREGIDA: Costos Indirectos solo sobre (Insumos + Embalaje), NO sobre mano de obra
+    // CT = (Insumos + Embalaje) + (Tiempo * CostoMinuto) + ((Insumos + Embalaje) * %Indirectos / 100)
     const indirectCostsPercent = parseFloat(formData.indirectCostsPercent || 0)
-    const costosIndirectos = costoBase * (indirectCostsPercent / 100)
-    const costoTotal = costoBase + costosIndirectos
+    const costosIndirectos = costoIngredientes * (indirectCostsPercent / 100)
+    const costoTotal = costoIngredientes + manoDeObra + costosIndirectos
+    
+    // PRECIO SUGERIDO basado en Utilidad Deseada
+    // Fórmula: Precio = (Costo Insumos + Costo Labor) / (1 - (Utilidad Deseada % + % Costos Indirectos))
+    const desiredProfitPercent = parseFloat(formData.desiredProfitPercent || 20)
+    const totalMarginPercent = desiredProfitPercent + indirectCostsPercent
+    const costoBaseParaPrecio = costoIngredientes + manoDeObra
+    const suggestedPrice = totalMarginPercent < 100 
+      ? costoBaseParaPrecio / (1 - (totalMarginPercent / 100))
+      : costoBaseParaPrecio * 2 // Fallback si el margen es >= 100%
     
     // PRECIO DE VENTA (el usuario lo define)
     const precioVenta = parseFloat(formData.realSalePrice) || 0
@@ -319,6 +328,7 @@ export default function ProductsNew() {
       laborCost: manoDeObra,
       indirectCosts: costosIndirectos,
       totalCost: costoTotal,
+      suggestedPrice: suggestedPrice,
       realSalePrice: precioVenta,
       pContribucion: pContribucion, // Food Cost %
       mContribucion: mContribucion, // Utilidad $
@@ -962,6 +972,115 @@ export default function ProductsNew() {
                   }`}>
                     {formatMoneyDisplay(metrics.mContribucion)}
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* PRECIO SUGERIDO POR UTILIDAD */}
+            <div className={`p-4 rounded-xl border-2 ${
+              isDarkMode 
+                ? 'bg-gradient-to-br from-blue-950 to-gray-900 border-blue-700' 
+                : 'bg-gradient-to-br from-blue-50 to-white border-blue-300'
+            }`}>
+              <div className="space-y-3">
+                {/* Input de Utilidad Deseada */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className={`block text-sm font-bold ${
+                      isDarkMode ? 'text-blue-300' : 'text-blue-700'
+                    }`}>
+                      🎯 UTILIDAD DESEADA
+                    </label>
+                    <p className={`text-xs mt-1 ${
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                    }`}>
+                      Meta de ganancia sobre el costo
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      max="100"
+                      value={formData.desiredProfitPercent}
+                      onChange={(e) => setFormData({ ...formData, desiredProfitPercent: parseFloat(e.target.value) || 20 })}
+                      onFocus={(e) => e.target.select()}
+                      className={`w-20 px-3 py-2 rounded-lg border-2 font-bold text-lg text-center ${
+                        isDarkMode
+                          ? 'bg-[#1f2937] border-blue-600 text-blue-300'
+                          : 'bg-white border-blue-500 text-blue-700'
+                      }`}
+                      placeholder="20"
+                    />
+                    <span className={`text-xl font-bold ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>%</span>
+                  </div>
+                </div>
+
+                {/* Comparativa de Precios */}
+                <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/40 border border-blue-700' : 'bg-blue-100 border border-blue-400'}`}>
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Precio Sugerido */}
+                    <div>
+                      <div className={`text-xs font-medium mb-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                        💡 PRECIO SUGERIDO
+                      </div>
+                      <div className={`text-2xl font-black ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                        {formatMoneyDisplay(metrics.suggestedPrice || 0)}
+                      </div>
+                      <div className={`text-xs mt-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                        Para {formData.desiredProfitPercent}% utilidad
+                      </div>
+                    </div>
+
+                    {/* Precio Actual */}
+                    <div className={`${
+                      formData.realSalePrice > 0 && formData.realSalePrice < metrics.suggestedPrice
+                        ? isDarkMode ? 'bg-red-900/40 border-2 border-red-700' : 'bg-red-100 border-2 border-red-400'
+                        : ''
+                    } p-2 rounded-lg`}>
+                      <div className={`text-xs font-medium mb-1 ${
+                        formData.realSalePrice > 0 && formData.realSalePrice < metrics.suggestedPrice
+                          ? 'text-red-500'
+                          : isDarkMode ? 'text-green-400' : 'text-green-600'
+                      }`}>
+                        {formData.realSalePrice > 0 && formData.realSalePrice < metrics.suggestedPrice ? '⚠️ PRECIO ACTUAL' : '✅ PRECIO ACTUAL'}
+                      </div>
+                      <div className={`text-2xl font-black ${
+                        formData.realSalePrice > 0 && formData.realSalePrice < metrics.suggestedPrice
+                          ? 'text-red-500 animate-pulse'
+                          : isDarkMode ? 'text-green-300' : 'text-green-700'
+                      }`}>
+                        {formatMoneyDisplay(formData.realSalePrice || 0)}
+                      </div>
+                      {formData.realSalePrice > 0 && formData.realSalePrice < metrics.suggestedPrice && (
+                        <div className="text-xs mt-1 text-red-500 font-semibold">
+                          Muy bajo (-{formatMoneyDisplay(metrics.suggestedPrice - formData.realSalePrice)})
+                        </div>
+                      )}
+                      {formData.realSalePrice >= metrics.suggestedPrice && formData.realSalePrice > 0 && (
+                        <div className={`text-xs mt-1 ${isDarkMode ? 'text-green-400' : 'text-green-600'} font-semibold`}>
+                          Bien (+{formatMoneyDisplay(formData.realSalePrice - metrics.suggestedPrice)})
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Botón para aplicar precio sugerido */}
+                  {formData.realSalePrice !== metrics.suggestedPrice && (
+                    <div className="mt-3 text-center">
+                      <button
+                        onClick={() => setFormData({ ...formData, realSalePrice: parseFloat(metrics.suggestedPrice.toFixed(2)) })}
+                        className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                          isDarkMode
+                            ? 'bg-blue-700 hover:bg-blue-600 text-white'
+                            : 'bg-blue-600 hover:bg-blue-500 text-white'
+                        }`}
+                      >
+                        📋 Aplicar Precio Sugerido
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
