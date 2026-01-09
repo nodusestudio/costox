@@ -71,11 +71,12 @@ export default function ProductsNew() {
 
 
   const handleOpenModal = (product = null) => {
-    // Calcular % sugerido de costos indirectos desde la configuración
+    // Calcular % sugerido de costos indirectos desde la configuración (EXCLUYE NÓMINA)
     let suggestedIndirectCostsPercent = 0
     if (config && config.estimatedMonthlySales > 0) {
-      const totalFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)
-      suggestedIndirectCostsPercent = (totalFixedCosts / config.estimatedMonthlySales) * 100
+      // Solo gastos indirectos: arriendo + servicios + otros (SIN nómina)
+      const indirectFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.otherFixedCosts || 0)
+      suggestedIndirectCostsPercent = (indirectFixedCosts / config.estimatedMonthlySales) * 100
     }
 
     if (product) {
@@ -310,9 +311,10 @@ export default function ProductsNew() {
     const desiredProfitPercent = parseFloat(formData.desiredProfitPercent || 20)
     const totalMarginPercent = desiredProfitPercent + indirectCostsPercent
     const costoBaseParaPrecio = costoIngredientes + manoDeObra
-    const suggestedPrice = totalMarginPercent < 100 
+    const suggestedPriceRaw = totalMarginPercent < 100 
       ? costoBaseParaPrecio / (1 - (totalMarginPercent / 100))
       : costoBaseParaPrecio * 2 // Fallback si el margen es >= 100%
+    const suggestedPrice = roundToNearestThousand(suggestedPriceRaw)
     
     // PRECIO DE VENTA (el usuario lo define)
     const precioVenta = parseFloat(formData.realSalePrice) || 0
@@ -1037,19 +1039,25 @@ export default function ProductsNew() {
                     <div className={`${
                       formData.realSalePrice > 0 && formData.realSalePrice < metrics.suggestedPrice
                         ? isDarkMode ? 'bg-red-900/40 border-2 border-red-700' : 'bg-red-100 border-2 border-red-400'
+                        : formData.realSalePrice >= metrics.suggestedPrice && formData.realSalePrice > 0
+                        ? isDarkMode ? 'bg-green-900/40 border-2 border-green-700' : 'bg-green-100 border-2 border-green-400'
                         : ''
                     } p-2 rounded-lg`}>
                       <div className={`text-xs font-medium mb-1 ${
                         formData.realSalePrice > 0 && formData.realSalePrice < metrics.suggestedPrice
                           ? 'text-red-500'
-                          : isDarkMode ? 'text-green-400' : 'text-green-600'
+                          : formData.realSalePrice >= metrics.suggestedPrice && formData.realSalePrice > 0
+                          ? isDarkMode ? 'text-green-400' : 'text-green-600'
+                          : isDarkMode ? 'text-gray-400' : 'text-gray-600'
                       }`}>
-                        {formData.realSalePrice > 0 && formData.realSalePrice < metrics.suggestedPrice ? '⚠️ PRECIO ACTUAL' : '✅ PRECIO ACTUAL'}
+                        {formData.realSalePrice > 0 && formData.realSalePrice < metrics.suggestedPrice ? '⚠️ PRECIO ACTUAL' : formData.realSalePrice >= metrics.suggestedPrice ? '✅ PRECIO ACTUAL' : 'PRECIO ACTUAL'}
                       </div>
                       <div className={`text-2xl font-black ${
                         formData.realSalePrice > 0 && formData.realSalePrice < metrics.suggestedPrice
                           ? 'text-red-500 animate-pulse'
-                          : isDarkMode ? 'text-green-300' : 'text-green-700'
+                          : formData.realSalePrice >= metrics.suggestedPrice && formData.realSalePrice > 0
+                          ? isDarkMode ? 'text-green-300' : 'text-green-700'
+                          : isDarkMode ? 'text-gray-300' : 'text-gray-700'
                       }`}>
                         {formatMoneyDisplay(formData.realSalePrice || 0)}
                       </div>
@@ -1387,18 +1395,18 @@ export default function ProductsNew() {
 
             {/* TIEMPO DE PREPARACIÓN */}
             <div className={`p-4 rounded-lg border ${
-              isDarkMode ? 'bg-orange-950/50 border-orange-700' : 'bg-orange-50 border-orange-300'
+              isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-300'
             }`}>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <label className={`block text-sm font-bold ${
-                      isDarkMode ? 'text-orange-300' : 'text-orange-700'
+                      isDarkMode ? 'text-slate-300' : 'text-slate-700'
                     }`}>
                       ⏱️ TIEMPO DE PREPARACIÓN
                     </label>
                     <p className={`text-xs mt-1 ${
-                      isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                      isDarkMode ? 'text-slate-400' : 'text-slate-600'
                     }`}>
                       Calcula automáticamente la MANO DE OBRA
                     </p>
@@ -1413,29 +1421,29 @@ export default function ProductsNew() {
                       onFocus={(e) => e.target.select()}
                       className={`w-24 px-4 py-3 rounded-lg border-2 font-bold text-xl text-center ${
                         isDarkMode
-                          ? 'bg-[#1f2937] border-orange-600 text-orange-300'
-                          : 'bg-white border-orange-500 text-orange-700'
+                          ? 'bg-[#1f2937] border-slate-600 text-slate-300'
+                          : 'bg-white border-slate-500 text-slate-700'
                       }`}
                       placeholder="0"
                     />
-                    <span className={`text-sm font-medium ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                    <span className={`text-sm font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                       min
                     </span>
                   </div>
                 </div>
                 
                 {config && (
-                  <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-orange-900/40 border border-orange-700' : 'bg-orange-100 border border-orange-400'}`}>
+                  <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-slate-800/40 border border-slate-700' : 'bg-slate-100 border border-slate-400'}`}>
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div>
-                        <div className={`${isDarkMode ? 'text-orange-400' : 'text-orange-600'} font-medium`}>Nómina Mensual</div>
-                        <div className={`font-bold ${isDarkMode ? 'text-orange-200' : 'text-orange-800'}`}>
+                        <div className={`${isDarkMode ? 'text-slate-400' : 'text-slate-600'} font-medium`}>Nómina Mensual</div>
+                        <div className={`font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                           {formatMoneyDisplay(config.payrollCost || 0)}
                         </div>
                       </div>
                       <div>
-                        <div className={`${isDarkMode ? 'text-orange-400' : 'text-orange-600'} font-medium`}>Costo/Minuto</div>
-                        <div className={`font-bold ${isDarkMode ? 'text-orange-200' : 'text-orange-800'}`}>
+                        <div className={`${isDarkMode ? 'text-slate-400' : 'text-slate-600'} font-medium`}>Costo/Minuto</div>
+                        <div className={`font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                           {formatMoneyDisplay((() => {
                             const payroll = parseFloat(config.payrollCost || 0)
                             const hours = parseFloat(config.monthlyWorkHours || 176)
@@ -1459,7 +1467,7 @@ export default function ProductsNew() {
                 )}
                 
                 {!config && (
-                  <p className={`text-xs text-center ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                  <p className={`text-xs text-center ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                     ⚠️ Configura la nómina en Ajustes para calcular automáticamente
                   </p>
                 )}

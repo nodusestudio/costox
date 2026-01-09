@@ -30,6 +30,20 @@ export default function Settings() {
     setConfig({ ...config, [field]: value })
   }
 
+  // Formatear número con puntos de miles para mostrar
+  const formatNumberWithThousands = (num) => {
+    if (!num && num !== 0) return ''
+    return num.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+  }
+
+  // Manejar cambio de campos numéricos con formato de miles
+  const handleNumericChange = (field, displayValue) => {
+    // Remover puntos de miles y reemplazar coma por punto si existe
+    const cleanValue = displayValue.replace(/\./g, '').replace(',', '.')
+    const numericValue = parseFloat(cleanValue) || 0
+    setConfig({ ...config, [field]: numericValue })
+  }
+
   const handleLanguageChange = (newLang) => {
     changeLanguage(newLang)
   }
@@ -265,17 +279,15 @@ export default function Settings() {
                   🏢 Arriendo / Alquiler
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={config.rentCost || 0}
-                  onChange={(e) => handleChange('rentCost', parseFloat(e.target.value) || 0)}
+                  type="text"
+                  value={formatNumberWithThousands(config.rentCost || 0)}
+                  onChange={(e) => handleNumericChange('rentCost', e.target.value)}
                   className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
                     isDarkMode
                       ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
                       : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
                   }`}
-                  placeholder="Ej: 1500"
+                  placeholder="Ej: 1.500"
                 />
               </div>
 
@@ -284,11 +296,9 @@ export default function Settings() {
                   ⚡ Servicios Públicos (Luz, Gas, Agua)
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={config.utilitiesCost || 0}
-                  onChange={(e) => handleChange('utilitiesCost', parseFloat(e.target.value) || 0)}
+                  type="text"
+                  value={formatNumberWithThousands(config.utilitiesCost || 0)}
+                  onChange={(e) => handleNumericChange('utilitiesCost', e.target.value)}
                   className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
                     isDarkMode
                       ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
@@ -303,17 +313,15 @@ export default function Settings() {
                   👥 Nómina Total Mensual
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={config.payrollCost || 0}
-                  onChange={(e) => handleChange('payrollCost', parseFloat(e.target.value) || 0)}
+                  type="text"
+                  value={formatNumberWithThousands(config.payrollCost || 0)}
+                  onChange={(e) => handleNumericChange('payrollCost', e.target.value)}
                   className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
                     isDarkMode
                       ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
                       : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
                   }`}
-                  placeholder="Ej: 3000"
+                  placeholder="Ej: 3.000"
                 />
               </div>
 
@@ -322,11 +330,9 @@ export default function Settings() {
                   📋 Otros Gastos Fijos
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={config.otherFixedCosts || 0}
-                  onChange={(e) => handleChange('otherFixedCosts', parseFloat(e.target.value) || 0)}
+                  type="text"
+                  value={formatNumberWithThousands(config.otherFixedCosts || 0)}
+                  onChange={(e) => handleNumericChange('otherFixedCosts', e.target.value)}
                   className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
                     isDarkMode
                       ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
@@ -428,13 +434,11 @@ export default function Settings() {
                 💰 Ventas Estimadas Mensuales
               </label>
               <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={config.estimatedMonthlySales || 0}
-                onChange={(e) => handleChange('estimatedMonthlySales', parseFloat(e.target.value) || 0)}
+                type="text"
+                value={formatNumberWithThousands(config.estimatedMonthlySales || 0)}
+                onChange={(e) => handleNumericChange('estimatedMonthlySales', e.target.value)}
                 className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20' : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'}`}
-                placeholder="Ej: 50000"
+                placeholder="Ej: 50.000"
               />
               <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
                 Estimación de ventas mensuales en {config.currency || 'USD'}
