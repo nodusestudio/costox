@@ -182,67 +182,150 @@ export default function Promotions() {
       </div>
 
       {promotions.length === 0 ? (
-        <div className="bg-dark-card rounded-lg p-12 text-center border border-gray-700">
+        <div className={`rounded-lg p-12 text-center border ${isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'}`}>
           <Tag size={48} className="mx-auto mb-4 text-gray-500" />
-          <p className="text-gray-400">No hay combos registrados</p>
+          <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>No hay combos registrados</p>
         </div>
       ) : (
-        <div className="bg-dark-card rounded-lg overflow-hidden border border-gray-700">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="text-left py-3 px-4 font-semibold text-gray-300">Combo</th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-300">Costo Total</th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-300">PVP Regular</th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-300">Precio Promo</th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-300">Descuento $</th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-300">Descuento %</th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-300">Margen</th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-300">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {promotions.map(promo => {
-                const totals = calculateTotals(promo.items || [])
-                const promoPrice = Number(promo.promoPrice) || 0
-                const discountAmount = (totals.totalRegularPrice - promoPrice) || 0
-                const discountPercent = totals.totalRegularPrice > 0 
-                  ? ((discountAmount / totals.totalRegularPrice) * 100) 
-                  : 0
-                const margin = promoPrice > 0
-                  ? (((promoPrice - totals.totalCost) / promoPrice) * 100)
-                  : 0
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {promotions.map(promo => {
+            const totals = calculateTotals(promo.items || [])
+            const promoPrice = Number(promo.promoPrice) || 0
+            const discountAmount = (totals.totalRegularPrice - promoPrice) || 0
+            const discountPercent = totals.totalRegularPrice > 0 
+              ? ((discountAmount / totals.totalRegularPrice) * 100) 
+              : 0
+            const margin = promoPrice > 0
+              ? (((promoPrice - totals.totalCost) / promoPrice) * 100)
+              : 0
+            const profit = promoPrice - totals.totalCost
 
-                return (
-                  <tr key={promo.id} className="border-b border-gray-700 hover:bg-dark-bg/50">
-                    <td className="py-3 px-4 font-medium">{promo.name}</td>
-                    <td className="py-3 px-4 text-right text-gray-400">{formatMoneyDisplay(totals.totalCost)}</td>
-                    <td className="py-3 px-4 text-right text-gray-400 line-through">{formatMoneyDisplay(totals.totalRegularPrice)}</td>
-                    <td className="py-3 px-4 text-right text-primary-blue font-semibold text-lg">{formatMoneyDisplay(promoPrice)}</td>
-                    <td className="py-3 px-4 text-right text-yellow-400 font-semibold">{formatMoneyDisplay(discountAmount)}</td>
-                    <td className="py-3 px-4 text-right text-yellow-400 font-semibold">{discountPercent.toFixed(1)}%</td>
-                    <td className={`py-3 px-4 text-right font-semibold ${margin >= 25 ? 'text-success-green' : 'text-red-400'}`}>
-                      {margin.toFixed(1)}%
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <button
-                        onClick={() => handleOpenModal(promo)}
-                        className="inline-flex items-center gap-1 bg-primary-blue/20 hover:bg-primary-blue/30 text-primary-blue px-2 py-1 rounded text-xs mr-2"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(promo.id)}
-                        className="inline-flex items-center gap-1 bg-red-900/20 hover:bg-red-900/30 text-red-400 px-2 py-1 rounded text-xs"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+            return (
+              <div 
+                key={promo.id}
+                className={`p-4 rounded-xl border ${
+                  isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {promo.name}
+                    </h3>
+                    <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {(promo.items || []).length} item(s)
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => handleOpenModal(promo)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        isDarkMode
+                          ? 'hover:bg-[#111827] text-blue-400'
+                          : 'hover:bg-gray-100 text-blue-600'
+                      }`}
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(promo.id)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        isDarkMode
+                          ? 'hover:bg-[#111827] text-red-400'
+                          : 'hover:bg-gray-100 text-red-600'
+                      }`}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2 mb-3">
+                  <div className="flex justify-between text-sm">
+                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                      PVP Regular
+                    </span>
+                    <span className={`font-semibold line-through ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                      {formatMoneyDisplay(totals.totalRegularPrice)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                      Descuento
+                    </span>
+                    <span className={`font-semibold ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
+                      -{formatMoneyDisplay(discountAmount)} ({discountPercent.toFixed(1)}%)
+                    </span>
+                  </div>
+                  <div className={`flex justify-between text-sm pt-2 border-t ${
+                    isDarkMode ? 'border-gray-700' : 'border-gray-300'
+                  }`}>
+                    <span className={`font-bold ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                      COSTO UNIDAD (CT)
+                    </span>
+                    <span className={`font-bold text-xl ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                      {formatMoneyDisplay(totals.totalCost)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className={`pt-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} space-y-2`}>
+                  <div className="flex justify-between items-center">
+                    <span className={`text-sm font-bold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      💵 PRECIO DE VENTA
+                    </span>
+                    <span className={`font-bold text-2xl ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                      {formatMoneyDisplay(promoPrice)}
+                    </span>
+                  </div>
+                  
+                  {/* P-CONTRIBUCIÓN (% Utilidad) */}
+                  <div className={`mt-2 p-3 rounded-lg border-2 ${
+                    margin < 25
+                      ? isDarkMode ? 'bg-red-900/40 border-red-600' : 'bg-red-100 border-red-400'
+                      : isDarkMode ? 'bg-green-900/40 border-green-700' : 'bg-green-100 border-green-400'
+                  }`}>
+                    <div className="flex justify-between items-center">
+                      <span className={`text-xs font-bold ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        P-CONTRIBUCIÓN
+                      </span>
+                      <span className={`text-2xl font-black ${
+                        margin < 25
+                          ? isDarkMode ? 'text-red-400' : 'text-red-600'
+                          : isDarkMode ? 'text-green-400' : 'text-green-600'
+                      }`}>
+                        {margin.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* M-CONTRIBUCIÓN (Utilidad $) */}
+                  <div className={`p-3 rounded-lg ${
+                    profit >= 0
+                      ? isDarkMode ? 'bg-green-900/40' : 'bg-green-100'
+                      : isDarkMode ? 'bg-red-900/40' : 'bg-red-100'
+                  }`}>
+                    <div className="flex justify-between items-center">
+                      <span className={`text-xs font-bold ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        M-CONTRIBUCIÓN
+                      </span>
+                      <span className={`text-xl font-black ${
+                        profit >= 0
+                          ? isDarkMode ? 'text-green-400' : 'text-green-600'
+                          : isDarkMode ? 'text-red-400' : 'text-red-600'
+                      }`}>
+                        {formatMoneyDisplay(profit)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
