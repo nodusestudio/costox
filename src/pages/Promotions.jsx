@@ -575,9 +575,11 @@ export default function Promotions() {
                 <div className={`grid grid-cols-12 gap-2 p-3 border-b font-bold text-xs ${
                   isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
                 }`}>
-                  <div className="col-span-7">NOMBRE</div>
+                  <div className="col-span-4">NOMBRE</div>
                   <div className="col-span-2 text-center">CANT</div>
-                  <div className="col-span-3 text-right">COSTO</div>
+                  <div className="col-span-2 text-right">COSTO</div>
+                  <div className="col-span-3 text-right">PRECIO VENTA</div>
+                  <div className="col-span-1"></div>
                 </div>
 
                 {/* Lista de Items */}
@@ -588,11 +590,13 @@ export default function Promotions() {
                     const itemCost = liveData.cost * qty
                     const sourceList = item.type === 'product' ? products : recipes
 
+                    const itemPrice = liveData.price * qty
+
                     return (
                       <div key={index} className={`grid grid-cols-12 gap-2 p-3 border-b text-sm ${
                         isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                       }`}>
-                        <div className="col-span-7 flex items-center gap-2">
+                        <div className="col-span-4 flex items-center gap-2">
                           <span className={`text-xs font-semibold px-2 py-1 rounded ${
                             item.type === 'product'
                               ? 'bg-blue-500/20 text-blue-400'
@@ -628,10 +632,19 @@ export default function Promotions() {
                           />
                         </div>
 
-                        <div className={`col-span-3 flex items-center justify-end gap-1 ${
-                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        <div className={`col-span-2 flex items-center justify-end ${
+                          isDarkMode ? 'text-blue-300' : 'text-blue-600'
                         }`}>
                           <span className="font-semibold text-xs truncate">{formatMoneyDisplay(itemCost)}</span>
+                        </div>
+
+                        <div className={`col-span-3 flex items-center justify-end ${
+                          isDarkMode ? 'text-green-400' : 'text-green-600'
+                        }`}>
+                          <span className="font-semibold text-xs truncate">{formatMoneyDisplay(itemPrice)}</span>
+                        </div>
+
+                        <div className="col-span-1 flex items-center justify-end">
                           <button
                             onClick={() => handleRemoveItem(index)}
                             className="p-1 text-red-500 hover:bg-red-500/10 rounded flex-shrink-0"
