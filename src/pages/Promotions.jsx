@@ -334,43 +334,171 @@ export default function Promotions() {
           title={editingId ? 'Editar Combo' : 'Nuevo Combo'}
           onClose={() => setShowModal(false)}
         >
-          <div className="space-y-4">
+          <div className="space-y-6">
+            {/* Nombre del Combo */}
             <div>
-              <label className="block text-sm font-medium mb-1">Nombre del Combo</label>
+              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                📋 Nombre del Combo *
+              </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full bg-dark-bg border border-gray-700 rounded px-3 py-2"
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  isDarkMode
+                    ? 'bg-[#111827] border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
                 placeholder="Ej: Combo Familiar"
               />
             </div>
 
+            {/* Precio de Venta - Centro con recuadro verde */}
+            <div className={`p-6 rounded-xl border-2 text-center ${
+              isDarkMode
+                ? 'bg-green-950/50 border-green-600'
+                : 'bg-green-50 border-green-400'
+            }`}>
+              <label className={`block text-sm font-bold mb-3 ${
+                isDarkMode ? 'text-green-300' : 'text-green-700'
+              }`}>
+                💵 PRECIO DE VENTA
+              </label>
+              <input
+                type="number"
+                step="100"
+                min="0"
+                value={formData.promoPrice}
+                onChange={(e) => setFormData(prev => ({ ...prev, promoPrice: e.target.value }))}
+                onFocus={(e) => e.target.select()}
+                className={`w-40 px-3 py-1 rounded-lg border-2 font-black text-center ${
+                  isDarkMode
+                    ? 'bg-[#0a2818] border-green-500 text-green-300'
+                    : 'bg-white border-green-500 text-green-700'
+                }`}
+                style={{ fontSize: '2rem' }}
+                placeholder="$ 0"
+              />
+            </div>
+
+            {/* Tres Bloques de Métricas */}
+            {(() => {
+              const totals = calculateTotals(formData.items)
+              const promoPrice = Number(formData.promoPrice) || 0
+              const profit = promoPrice - totals.totalCost
+              const margin = promoPrice > 0
+                ? (((promoPrice - totals.totalCost) / promoPrice) * 100)
+                : 0
+
+              return (
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Costo Unidad */}
+                  <div className={`p-2 rounded-lg text-center ${
+                    isDarkMode ? 'bg-blue-950/50 border border-blue-700' : 'bg-blue-50 border border-blue-300'
+                  }`}>
+                    <div className={`text-xs font-bold mb-1 ${
+                      isDarkMode ? 'text-blue-300' : 'text-blue-700'
+                    }`}>
+                      COSTO
+                    </div>
+                    <div className={`text-lg font-black ${
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                    }`}>
+                      {formatMoneyDisplay(totals.totalCost)}
+                    </div>
+                  </div>
+
+                  {/* P-Contribución */}
+                  <div className={`p-2 rounded-lg text-center ${
+                    isDarkMode ? 'bg-gray-800/50 border border-gray-600' : 'bg-gray-100 border border-gray-300'
+                  }`}>
+                    <div className={`text-xs font-bold mb-1 ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      P-CONTRIB.
+                    </div>
+                    <div className={`text-lg font-black ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      {margin.toFixed(1)}%
+                    </div>
+                  </div>
+
+                  {/* M-Contribución */}
+                  <div className={`p-2 rounded-lg text-center ${
+                    isDarkMode ? 'bg-purple-950/50 border border-purple-700' : 'bg-purple-50 border border-purple-300'
+                  }`}>
+                    <div className={`text-xs font-bold mb-1 ${
+                      isDarkMode ? 'text-purple-300' : 'text-purple-700'
+                    }`}>
+                      M-CONTRIB.
+                    </div>
+                    <div className={`text-lg font-black ${
+                      isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                    }`}>
+                      {formatMoneyDisplay(profit)}
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Items del Combo */}
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium">Items del Combo</label>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className={`text-sm font-bold ${
+                  isDarkMode ? 'text-blue-300' : 'text-blue-700'
+                }`}>
+                  🎁 ITEMS DEL COMBO
+                </h4>
                 <button
                   onClick={handleAddItem}
-                  className="text-primary-blue text-sm flex items-center gap-1 hover:underline"
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium"
                 >
-                  <Plus size={16} /> Agregar Item
+                  + Agregar Item
                 </button>
               </div>
 
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {formData.items.map((item, index) => {
-                  const sourceList = item.type === 'product' ? products : recipes
-                  const options = sourceList.map(i => ({ value: i.id, label: i.name || 'Sin nombre' }))
+              <div className={`rounded-lg border ${
+                isDarkMode ? 'bg-[#0a0e1a] border-gray-700' : 'bg-gray-50 border-gray-300'
+              }`}>
+                {/* Cabecera */}
+                <div className={`grid grid-cols-12 gap-2 p-3 border-b font-bold text-xs ${
+                  isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
+                }`}>
+                  <div className="col-span-2">TIPO</div>
+                  <div className="col-span-6">NOMBRE</div>
+                  <div className="col-span-2 text-center">CANT</div>
+                  <div className="col-span-2 text-right">COSTO</div>
+                </div>
 
-                  return (
-                    <div key={index} className="bg-dark-bg border border-gray-700 rounded p-3 space-y-2">
-                      <div className="grid grid-cols-12 gap-2 items-center">
-                        <div className="col-span-3">
-                          <label className="block text-xs text-gray-400 mb-1">Tipo</label>
+                {/* Lista de Items */}
+                <div className="max-h-[300px] overflow-y-auto">
+                  {formData.items.map((item, index) => {
+                    const liveData = getLiveItemData(item.type, item.id)
+                    const qty = Number(item.quantity) || 0
+                    const itemCost = liveData.cost * qty
+                    const sourceList = item.type === 'product' ? products : recipes
+                    const options = sourceList.map(i => ({ 
+                      value: i.id, 
+                      label: i.name || 'Sin nombre',
+                      id: i.id,
+                      name: i.name 
+                    }))
+
+                    return (
+                      <div key={index} className={`grid grid-cols-12 gap-2 p-3 border-b text-sm ${
+                        isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
+                      }`}>
+                        <div className="col-span-2">
                           <select
                             value={item.type}
                             onChange={(e) => handleItemChange(index, 'type', e.target.value)}
-                            className="w-full bg-dark-card border border-gray-700 rounded px-2 py-1 text-sm"
+                            className={`w-full px-2 py-1 rounded border text-xs ${
+                              isDarkMode
+                                ? 'bg-[#111827] border-gray-600 text-white'
+                                : 'bg-white border-gray-300 text-gray-900'
+                            }`}
                           >
                             <option value="product">Producto</option>
                             <option value="recipe">Receta</option>
@@ -378,118 +506,77 @@ export default function Promotions() {
                         </div>
 
                         <div className="col-span-6">
-                          <label className="block text-xs text-gray-400 mb-1">Nombre</label>
                           <SearchSelect
                             options={options}
                             value={item.id}
                             onChange={(val) => handleItemChange(index, 'id', val)}
+                            displayKey="name"
                             placeholder={`Buscar ${item.type === 'product' ? 'producto' : 'receta'}...`}
+                            className="w-full"
                           />
                         </div>
 
                         <div className="col-span-2">
-                          <label className="block text-xs text-gray-400 mb-1">Cantidad</label>
                           <input
                             type="number"
+                            step="1"
+                            min="1"
                             value={item.quantity}
                             onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                            className="w-full bg-dark-card border border-gray-700 rounded px-2 py-1 text-sm"
-                            min="1"
-                            step="1"
+                            onFocus={(e) => e.target.select()}
+                            className={`w-full px-2 py-1 rounded border text-center text-xs ${
+                              isDarkMode
+                                ? 'bg-[#111827] border-gray-600 text-white'
+                                : 'bg-white border-gray-300 text-gray-900'
+                            }`}
+                            placeholder="1"
                           />
                         </div>
 
-                        <div className="col-span-1 flex justify-end">
+                        <div className={`col-span-2 flex items-center justify-end gap-1 ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          <span className="font-semibold text-xs truncate">{formatMoneyDisplay(itemCost)}</span>
                           <button
                             onClick={() => handleRemoveItem(index)}
-                            className="text-red-400 hover:text-red-300 mt-5"
+                            className="p-1 text-red-500 hover:bg-red-500/10 rounded flex-shrink-0"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={12} />
                           </button>
                         </div>
                       </div>
+                    )
+                  })}
 
-                      {item.id && (
-                        <div className="text-xs text-gray-400 flex gap-4">
-                          <span>Costo: {formatMoneyDisplay(getLiveItemData(item.type, item.id).cost * (Number(item.quantity) || 0))}</span>
-                          <span>PVP: {formatMoneyDisplay(getLiveItemData(item.type, item.id).price * (Number(item.quantity) || 0))}</span>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Footer con Totales */}
-            {formData.items.length > 0 && (() => {
-              const totals = calculateTotals(formData.items)
-              const promoPrice = Number(formData.promoPrice) || 0
-              const discountAmount = (totals.totalRegularPrice - promoPrice) || 0
-              const discountPercent = totals.totalRegularPrice > 0 
-                ? ((discountAmount / totals.totalRegularPrice) * 100) 
-                : 0
-              const margin = promoPrice > 0
-                ? (((promoPrice - totals.totalCost) / promoPrice) * 100)
-                : 0
-
-              return (
-                <div className="bg-dark-bg border border-gray-700 rounded p-4 space-y-2">
-                  <h4 className="font-semibold text-sm mb-3 text-primary-blue">📊 Resumen del Combo</h4>
-                  
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-gray-400 text-xs">Suma Costos (CT)</p>
-                      <p className="font-semibold text-lg">{formatMoneyDisplay(totals.totalCost)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-xs">Suma PVP Carta</p>
-                      <p className="font-semibold text-lg line-through text-gray-400">{formatMoneyDisplay(totals.totalRegularPrice)}</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-gray-700">
-                    <label className="block text-sm font-medium mb-1">Precio Promoción</label>
-                    <input
-                      type="number"
-                      value={formData.promoPrice}
-                      onChange={(e) => setFormData(prev => ({ ...prev, promoPrice: e.target.value }))}
-                      className="w-full bg-dark-card border border-gray-700 rounded px-3 py-2 text-lg font-semibold"
-                      placeholder="0"
-                      min="0"
-                      step="100"
-                    />
-                  </div>
-
-                  {promoPrice > 0 && (
-                    <div className="grid grid-cols-3 gap-3 text-sm pt-2 border-t border-gray-700">
-                      <div>
-                        <p className="text-gray-400 text-xs">Descuento $</p>
-                        <p className="font-semibold text-yellow-400">{formatMoneyDisplay(discountAmount)}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-400 text-xs">Descuento %</p>
-                        <p className="font-semibold text-yellow-400">{discountPercent.toFixed(1)}%</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-400 text-xs">Margen</p>
-                        <p className={`font-semibold ${margin >= 25 ? 'text-success-green' : 'text-red-400'}`}>
-                          {margin.toFixed(1)}%
-                        </p>
-                      </div>
+                  {formData.items.length === 0 && (
+                    <div className={`text-center py-8 ${
+                      isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                    }`}>
+                      <p className="text-xs">Sin items en el combo</p>
                     </div>
                   )}
                 </div>
-              )
-            })()}
+              </div>
+            </div>
 
-            <div className="flex gap-2 pt-4">
-              <Button onClick={handleSave} className="flex-1">
-                {editingId ? 'Guardar Cambios' : 'Crear Combo'}
-              </Button>
-              <Button onClick={() => setShowModal(false)} variant="secondary" className="flex-1">
+            {/* Botones */}
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={() => setShowModal(false)}
+                className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                  isDarkMode
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                }`}
+              >
                 Cancelar
-              </Button>
+              </button>
+              <button
+                onClick={handleSave}
+                className="flex-1 bg-primary-blue hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+              >
+                {editingId ? 'Guardar Cambios' : 'Crear Combo'}
+              </button>
             </div>
           </div>
         </Modal>
