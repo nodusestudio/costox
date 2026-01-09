@@ -442,42 +442,99 @@ export default function Settings() {
             </div>
 
             {/* Cálculo de % Costos Indirectos Sugerido */}
-            {config.estimatedMonthlySales > 0 && (
-              <div className={`rounded-lg border p-4 ${isDarkMode ? 'bg-green-900/20 border-green-700' : 'bg-green-50 border-green-300'}`}>
-                <h4 className={`text-sm font-semibold mb-3 ${isDarkMode ? 'text-green-400' : 'text-green-700'}`}>
-                  💡 % Costos Indirectos Sugerido
-                </h4>
-                <div className="grid grid-cols-1 gap-2">
-                  <div className={`flex justify-between text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    <span>Total Gastos Fijos:</span>
-                    <span className="font-bold">
-                      ${((config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  <div className={`flex justify-between text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    <span>Ventas Estimadas:</span>
-                    <span className="font-bold">
-                      ${(config.estimatedMonthlySales || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  <div className={`mt-2 pt-2 border-t ${isDarkMode ? 'border-green-700' : 'border-green-300'}`}>
-                    <div className="flex justify-between items-center">
-                      <span className={`font-semibold ${isDarkMode ? 'text-green-300' : 'text-green-700'}`}>
-                        % Sugerido para Productos:
-                      </span>
-                      <span className={`text-2xl font-black ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                        {(((config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)) / (config.estimatedMonthlySales || 1) * 100).toFixed(2)}%
+            {config.estimatedMonthlySales > 0 && (() => {
+              const totalFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)
+              const suggestedPercent = (totalFixedCosts / (config.estimatedMonthlySales || 1)) * 100
+              const isHighPercent = suggestedPercent > 35
+              
+              return (
+                <div className={`rounded-lg border p-4 ${
+                  isHighPercent 
+                    ? isDarkMode ? 'bg-red-900/20 border-red-700' : 'bg-red-50 border-red-300'
+                    : isDarkMode ? 'bg-green-900/20 border-green-700' : 'bg-green-50 border-green-300'
+                }`}>
+                  <h4 className={`text-sm font-semibold mb-3 ${
+                    isHighPercent
+                      ? isDarkMode ? 'text-red-400' : 'text-red-700'
+                      : isDarkMode ? 'text-green-400' : 'text-green-700'
+                  }`}>
+                    {isHighPercent ? '⚠️' : '💡'} % Costos Indirectos Sugerido
+                  </h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className={`flex justify-between text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      <span>Total Gastos Fijos:</span>
+                      <span className="font-bold">
+                        ${totalFixedCosts.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
+                    <div className={`flex justify-between text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      <span>Ventas Estimadas:</span>
+                      <span className="font-bold">
+                        ${(config.estimatedMonthlySales || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className={`mt-2 pt-2 border-t ${
+                      isHighPercent
+                        ? isDarkMode ? 'border-red-700' : 'border-red-300'
+                        : isDarkMode ? 'border-green-700' : 'border-green-300'
+                    }`}>
+                      <div className="flex justify-between items-center">
+                        <span className={`font-semibold ${
+                          isHighPercent
+                            ? isDarkMode ? 'text-red-300' : 'text-red-700'
+                            : isDarkMode ? 'text-green-300' : 'text-green-700'
+                        }`}>
+                          % Sugerido para Productos:
+                        </span>
+                        <div className="flex items-center gap-2 group relative">
+                          <span className={`text-2xl font-black ${
+                            isHighPercent
+                              ? `animate-pulse ${isDarkMode ? 'text-red-500' : 'text-red-600'}`
+                              : isDarkMode ? 'text-green-400' : 'text-green-600'
+                          }`}>
+                            {suggestedPercent.toFixed(2)}%
+                          </span>
+                          {isHighPercent && (
+                            <>
+                              <span className="text-red-500 text-xl cursor-help">❓</span>
+                              <div className={`absolute right-0 top-8 w-72 p-3 rounded-lg shadow-xl border-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 ${
+                                isDarkMode 
+                                  ? 'bg-gray-800 border-red-700 text-gray-200' 
+                                  : 'bg-white border-red-400 text-gray-800'
+                              }`}>
+                                <p className="text-sm font-semibold text-red-500 mb-2">⚠️ Porcentaje Muy Alto</p>
+                                <p className="text-xs leading-relaxed">
+                                  Tus gastos fijos son muy altos comparados con tus ventas. Necesitas vender más para bajar este porcentaje. 
+                                  <br /><br />
+                                  <strong>Recomendación:</strong> Intenta mantenerlo por debajo del 35% para tener márgenes saludables.
+                                </p>
+                                {/* Triángulo apuntando arriba */}
+                                <div className={`absolute -top-2 right-8 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent ${
+                                  isDarkMode ? 'border-b-8 border-b-gray-800' : 'border-b-8 border-b-white'
+                                }`}></div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={`p-3 rounded-lg mt-3 ${
+                    isHighPercent
+                      ? isDarkMode ? 'bg-red-900/30' : 'bg-red-100'
+                      : isDarkMode ? 'bg-green-900/30' : 'bg-green-100'
+                  }`}>
+                    <p className={`text-xs ${
+                      isHighPercent
+                        ? isDarkMode ? 'text-red-300' : 'text-red-700'
+                        : isDarkMode ? 'text-green-300' : 'text-green-700'
+                    }`}>
+                      {isHighPercent ? '⚠️' : '💡'} <strong>Uso:</strong> Este porcentaje aparecerá como valor sugerido en el campo "Costos Indirectos %" de cada producto.
+                    </p>
                   </div>
                 </div>
-                <div className={`p-3 rounded-lg mt-3 ${isDarkMode ? 'bg-green-900/30' : 'bg-green-100'}`}>
-                  <p className={`text-xs ${isDarkMode ? 'text-green-300' : 'text-green-700'}`}>
-                    💡 <strong>Uso:</strong> Este porcentaje aparecerá como valor sugerido en el campo "Costos Indirectos %" de cada producto.
-                  </p>
-                </div>
-              </div>
-            )}
+              )
+            })()}
           </div>
 
           {/* Botón de Guardar */}
