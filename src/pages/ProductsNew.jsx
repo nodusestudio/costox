@@ -38,6 +38,11 @@ export default function ProductsNew() {
   })
   const searchSelectRefs = useRef({})
 
+  // Función para redondear al millar más cercano
+  const roundToNearestThousand = (value) => {
+    return Math.round(value / 1000) * 1000
+  }
+
   useEffect(() => {
     loadData()
   }, [])
