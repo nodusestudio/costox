@@ -205,9 +205,9 @@ export default function Promotions() {
               {promotions.map(promo => {
                 const totals = calculateTotals(promo.items || [])
                 const promoPrice = Number(promo.promoPrice) || 0
-                const discount$ = (totals.totalRegularPrice - promoPrice) || 0
-                const discount% = totals.totalRegularPrice > 0 
-                  ? ((discount$ / totals.totalRegularPrice) * 100) 
+                const discountAmount = (totals.totalRegularPrice - promoPrice) || 0
+                const discountPercent = totals.totalRegularPrice > 0 
+                  ? ((discountAmount / totals.totalRegularPrice) * 100) 
                   : 0
                 const margin = promoPrice > 0
                   ? (((promoPrice - totals.totalCost) / promoPrice) * 100)
@@ -219,8 +219,8 @@ export default function Promotions() {
                     <td className="py-3 px-4 text-right text-gray-400">{formatMoneyDisplay(totals.totalCost)}</td>
                     <td className="py-3 px-4 text-right text-gray-400 line-through">{formatMoneyDisplay(totals.totalRegularPrice)}</td>
                     <td className="py-3 px-4 text-right text-primary-blue font-semibold text-lg">{formatMoneyDisplay(promoPrice)}</td>
-                    <td className="py-3 px-4 text-right text-yellow-400 font-semibold">{formatMoneyDisplay(discount$)}</td>
-                    <td className="py-3 px-4 text-right text-yellow-400 font-semibold">{discount%.toFixed(1)}%</td>
+                    <td className="py-3 px-4 text-right text-yellow-400 font-semibold">{formatMoneyDisplay(discountAmount)}</td>
+                    <td className="py-3 px-4 text-right text-yellow-400 font-semibold">{discountPercent.toFixed(1)}%</td>
                     <td className={`py-3 px-4 text-right font-semibold ${margin >= 25 ? 'text-success-green' : 'text-red-400'}`}>
                       {margin.toFixed(1)}%
                     </td>
@@ -342,9 +342,9 @@ export default function Promotions() {
             {formData.items.length > 0 && (() => {
               const totals = calculateTotals(formData.items)
               const promoPrice = Number(formData.promoPrice) || 0
-              const discount$ = (totals.totalRegularPrice - promoPrice) || 0
-              const discount% = totals.totalRegularPrice > 0 
-                ? ((discount$ / totals.totalRegularPrice) * 100) 
+              const discountAmount = (totals.totalRegularPrice - promoPrice) || 0
+              const discountPercent = totals.totalRegularPrice > 0 
+                ? ((discountAmount / totals.totalRegularPrice) * 100) 
                 : 0
               const margin = promoPrice > 0
                 ? (((promoPrice - totals.totalCost) / promoPrice) * 100)
@@ -382,11 +382,11 @@ export default function Promotions() {
                     <div className="grid grid-cols-3 gap-3 text-sm pt-2 border-t border-gray-700">
                       <div>
                         <p className="text-gray-400 text-xs">Descuento $</p>
-                        <p className="font-semibold text-yellow-400">{formatMoneyDisplay(discount$)}</p>
+                        <p className="font-semibold text-yellow-400">{formatMoneyDisplay(discountAmount)}</p>
                       </div>
                       <div>
                         <p className="text-gray-400 text-xs">Descuento %</p>
-                        <p className="font-semibold text-yellow-400">{discount%.toFixed(1)}%</p>
+                        <p className="font-semibold text-yellow-400">{discountPercent.toFixed(1)}%</p>
                       </div>
                       <div>
                         <p className="text-gray-400 text-xs">Margen</p>
