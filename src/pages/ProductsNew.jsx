@@ -1498,14 +1498,16 @@ export default function ProductsNew() {
                   {config && config.estimatedMonthlySales > 0 && (
                     <div className={`mt-2 p-2 rounded text-xs ${isDarkMode ? 'bg-purple-900/30 text-purple-300' : 'bg-purple-100 text-purple-700'}`}>
                       💡 Sugerido: {(() => {
-                        const totalFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)
-                        const suggestedPercent = (totalFixedCosts / config.estimatedMonthlySales) * 100
+                        // SOLO costos indirectos: arriendo + servicios + otros (SIN nómina)
+                        const indirectFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.otherFixedCosts || 0)
+                        const suggestedPercent = (indirectFixedCosts / config.estimatedMonthlySales) * 100
                         return suggestedPercent.toFixed(2)
                       })()}% 
                       <button
                         onClick={() => {
-                          const totalFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)
-                          const suggestedPercent = (totalFixedCosts / config.estimatedMonthlySales) * 100
+                          // SOLO costos indirectos: arriendo + servicios + otros (SIN nómina)
+                          const indirectFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.otherFixedCosts || 0)
+                          const suggestedPercent = (indirectFixedCosts / config.estimatedMonthlySales) * 100
                           setFormData({ ...formData, indirectCostsPercent: parseFloat(suggestedPercent.toFixed(2)) })
                         }}
                         className={`ml-2 px-2 py-0.5 rounded ${isDarkMode ? 'bg-purple-700 hover:bg-purple-600' : 'bg-purple-600 hover:bg-purple-500'} text-white font-medium text-xs`}
