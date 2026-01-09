@@ -1,16 +1,28 @@
 import { useState, useEffect } from 'react'
-import { TrendingUp, AlertCircle } from 'lucide-react'
+import { TrendingUp, AlertCircle, DollarSign, TrendingDown, Save, Edit2 } from 'lucide-react'
 import { getProducts } from '@/utils/storage'
 import { useI18n } from '@/context/I18nContext'
 import { formatMoneyDisplay } from '@/utils/formatters'
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js'
+import { Bar, Doughnut } from 'react-chartjs-2'
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement)
 
 export default function Dashboard() {
   const { t, isDarkMode } = useI18n()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [fixedCosts, setFixedCosts] = useState({
+    payroll: 0,
+    rent: 0,
+    utilities: 0
+  })
+  const [isEditingCosts, setIsEditingCosts] = useState(false)
+  const [tempFixedCosts, setTempFixedCosts] = useState({ ...fixedCosts })
 
   useEffect(() => {
     loadData()
+    loadFixedCosts()
   }, [])
 
   const loadData = async () => {
@@ -25,6 +37,21 @@ export default function Dashboard() {
     }
   }
 
+  const loadFixedCosts = () => {
+    const saved = localStorage.getItem('fixedCosts')
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      setFixedCosts(parsed)
+      setTempFixedCosts(parsed)
+    }
+  }
+
+  const saveFixedCosts = () => {
+    localStorage.setItem('fixedCosts', JSON.stringify(tempFixedCosts))
+    setFixedCosts(tempFixedCosts)
+    setIsEditingCosts(false)
+  }
+
   if (loading) {
     return (
       <div className={`p-4 md:p-6 flex items-center justify-center min-h-screen ${isDarkMode ? 'bg-[#111827] text-white' : 'bg-white text-[#111827]'}`}>
@@ -33,107 +60,440 @@ export default function Dashboard() {
     )
   }
 
-  // Calcular métricas
-  const totalProducts = products.length
+  // ========== CÁLCULOS DE MÉTRICAS ==========
   
-  const totalRevenue = (products ?? []).reduce((sum, p) => sum + ((p.salePrice || 0) * (p.quantity || 0)), 0)
-  const totalCost = (products ?? []).reduce(
-    (sum, p) => sum + (((p.totalCost ?? p.realCost) || 0) * (p.quantity || 0)),
-    0
-  )
-  const totalProfit = totalRevenue - totalCost
-  const avgMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0
+  // Productos con datos completos de margen
+  const productsWithMargin = products.filter(p => {
+    const cost = (p.totalCost ?? p.realCost) || 0
+    const price = (p.realSalePrice || p.salePrice) || 0
+    return price > 0 && cost > 0
+  }).map(p => {
+    const cost = (p.totalCost ?? p.realCost) || 0
+    const price = (p.realSalePrice || p.salePrice) || 0
+    const contributionMargin = price - cost
+    const contributionMarginPercent = (contributionMargin / price) * 100
+    
+    return {
+      ...p,
+      cost,
+      price,
+      contributionMargin,
+      contributionMarginPercent
+    }
+  })
+
+  // Margen Promedio del Menú
+  const avgMenuMargin = productsWithMargin.length > 0
+    ? productsWithMargin.reduce((sum, p) => sum + p.contributionMarginPercent, 0) / productsWithMargin.length
+    : 0
+
+  // Ticket Promedio Estimado (precio promedio)
+  const avgTicket = productsWithMargin.length > 0
+    ? productsWithMargin.reduce((sum, p) => sum + p.price, 0) / productsWithMargin.length
+    : 0
+
+  // Costos Fijos Totales
+  const totalFixedCosts = fixedCosts.payroll + fixedCosts.rent + fixedCosts.utilities
+
+  // Margen de Contribución Promedio por Producto
+  const avgContributionMargin = productsWithMargin.length > 0
+    ? productsWithMargin.reduce((sum, p) => sum + p.contributionMargin, 0) / productsWithMargin.length
+    : 0
+
+  // Punto de Equilibrio (en unidades)
+  const breakEvenUnits = avgContributionMargin > 0
+    ? Math.ceil(totalFixedCosts / avgContributionMargin)
+    : 0
+
+  // Ventas Necesarias para Punto de Equilibrio (en dinero)
+  const breakEvenSales = breakEvenUnits * avgTicket
 
   // Productos con margen bajo (< 30%)
-  const lowMarginProducts = (products ?? []).filter(p => {
-    const cost = (p.totalCost ?? p.realCost) || 0
-    const margin = (p.salePrice || 0) > 0 ? (((p.salePrice || 0) - cost) / (p.salePrice || 0)) * 100 : 0
-    return margin < 30
-  })
+  const lowMarginProducts = productsWithMargin.filter(p => p.contributionMarginPercent < 30)
+
+  // Clasificación de productos por rentabilidad (Ingeniería de Menú)
+  const productsByProfitability = {
+    stars: productsWithMargin.filter(p => p.contributionMarginPercent >= 50), // Estrellas
+    plowhorses: productsWithMargin.filter(p => p.contributionMarginPercent >= 30 && p.contributionMarginPercent < 50), // Caballos de batalla
+    puzzles: productsWithMargin.filter(p => p.contributionMarginPercent >= 20 && p.contributionMarginPercent < 30), // Enigmas
+    dogs: productsWithMargin.filter(p => p.contributionMarginPercent < 20) // Perros
+  }
+
+  // Datos para gráfico de barras (Top 10 productos por margen %)
+  const top10ByMargin = [...productsWithMargin]
+    .sort((a, b) => b.contributionMarginPercent - a.contributionMarginPercent)
+    .slice(0, 10)
+
+  const barChartData = {
+    labels: top10ByMargin.map(p => p.name?.substring(0, 20) || 'Sin nombre'),
+    datasets: [{
+      label: 'Margen de Contribución (%)',
+      data: top10ByMargin.map(p => p.contributionMarginPercent),
+      backgroundColor: top10ByMargin.map(p => {
+        if (p.contributionMarginPercent >= 50) return 'rgba(34, 197, 94, 0.8)' // Verde
+        if (p.contributionMarginPercent >= 30) return 'rgba(59, 130, 246, 0.8)' // Azul
+        if (p.contributionMarginPercent >= 20) return 'rgba(251, 191, 36, 0.8)' // Amarillo
+        return 'rgba(239, 68, 68, 0.8)' // Rojo
+      }),
+      borderColor: top10ByMargin.map(p => {
+        if (p.contributionMarginPercent >= 50) return 'rgb(34, 197, 94)'
+        if (p.contributionMarginPercent >= 30) return 'rgb(59, 130, 246)'
+        if (p.contributionMarginPercent >= 20) return 'rgb(251, 191, 36)'
+        return 'rgb(239, 68, 68)'
+      }),
+      borderWidth: 2
+    }]
+  }
+
+  const barChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      title: {
+        display: true,
+        text: 'Top 10 Productos por Rentabilidad',
+        color: isDarkMode ? '#fff' : '#111827',
+        font: { size: 16, weight: 'bold' }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: (value) => value + '%',
+          color: isDarkMode ? '#9ca3af' : '#6b7280'
+        },
+        grid: {
+          color: isDarkMode ? 'rgba(75, 85, 99, 0.3)' : 'rgba(209, 213, 219, 0.3)'
+        }
+      },
+      x: {
+        ticks: {
+          color: isDarkMode ? '#9ca3af' : '#6b7280'
+        },
+        grid: {
+          display: false
+        }
+      }
+    }
+  }
+
+  // Datos para gráfico de dona (Distribución por categoría)
+  const doughnutData = {
+    labels: ['Estrellas (≥50%)', 'Caballos (30-50%)', 'Enigmas (20-30%)', 'Perros (<20%)'],
+    datasets: [{
+      data: [
+        productsByProfitability.stars.length,
+        productsByProfitability.plowhorses.length,
+        productsByProfitability.puzzles.length,
+        productsByProfitability.dogs.length
+      ],
+      backgroundColor: [
+        'rgba(34, 197, 94, 0.8)',
+        'rgba(59, 130, 246, 0.8)',
+        'rgba(251, 191, 36, 0.8)',
+        'rgba(239, 68, 68, 0.8)'
+      ],
+      borderColor: [
+        'rgb(34, 197, 94)',
+        'rgb(59, 130, 246)',
+        'rgb(251, 191, 36)',
+        'rgb(239, 68, 68)'
+      ],
+      borderWidth: 2
+    }]
+  }
+
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: isDarkMode ? '#9ca3af' : '#6b7280',
+          padding: 15,
+          font: { size: 12 }
+        }
+      },
+      title: {
+        display: true,
+        text: 'Ingeniería de Menú',
+        color: isDarkMode ? '#fff' : '#111827',
+        font: { size: 16, weight: 'bold' }
+      }
+    }
+  }
 
   return (
     <div className={`p-4 md:p-6 space-y-6 transition-colors duration-300 ${isDarkMode ? 'bg-[#111827] text-white' : 'bg-white text-[#111827]'}`}>
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold mb-2">{t('dashboardTitle')}</h2>
-        <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>{t('dashboardSubtitle')}</p>
+        <h2 className="text-3xl font-bold mb-2">📊 Inteligencia de Negocios Gastronómicos</h2>
+        <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Panel de control estratégico y análisis de rentabilidad</p>
       </div>
 
-      {/* Alertas */}
-      {lowMarginProducts.length > 0 && (
-        <div className={`border rounded-lg p-4 flex items-start gap-3 ${isDarkMode ? 'bg-red-900/30 border-red-700' : 'bg-red-50 border-red-300'}`}>
-          <AlertCircle className={`flex-shrink-0 mt-0.5 ${isDarkMode ? 'text-red-500' : 'text-red-600'}`} size={20} />
+      {/* KPIs Principales */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <KPICard 
+          title="Margen Promedio del Menú"
+          value={`${avgMenuMargin.toFixed(1)}%`}
+          icon={<TrendingUp size={24} />}
+          color={avgMenuMargin >= 40 ? "success" : avgMenuMargin >= 30 ? "warning" : "danger"}
+          isDarkMode={isDarkMode}
+        />
+        <KPICard 
+          title="Ticket Promedio Estimado"
+          value={formatMoneyDisplay(avgTicket)}
+          icon={<DollarSign size={24} />}
+          color="primary"
+          isDarkMode={isDarkMode}
+        />
+        <KPICard 
+          title="Ventas para Punto de Equilibrio"
+          value={formatMoneyDisplay(breakEvenSales)}
+          subtitle={`${breakEvenUnits} unidades/mes`}
+          icon={<TrendingDown size={24} />}
+          color="info"
+          isDarkMode={isDarkMode}
+        />
+      </div>
+
+      {/* Costos Fijos y Punto de Equilibrio */}
+      <div className={`rounded-lg p-6 border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold">💼 Costos Fijos Mensuales</h3>
+          {!isEditingCosts ? (
+            <button
+              onClick={() => setIsEditingCosts(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+            >
+              <Edit2 size={16} />
+              Editar
+            </button>
+          ) : (
+            <button
+              onClick={saveFixedCosts}
+              className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm"
+            >
+              <Save size={16} />
+              Guardar
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <h3 className={`font-semibold mb-1 ${isDarkMode ? 'text-red-400' : 'text-red-700'}`}>⚠️ {t('profitabilityAlert')}</h3>
-            <p className={`text-sm ${isDarkMode ? 'text-red-300' : 'text-red-600'}`}>
-              {lowMarginProducts.length} {t('lowMarginProducts')}
-            </p>
+            <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Nómina
+            </label>
+            <input
+              type="number"
+              value={isEditingCosts ? tempFixedCosts.payroll : fixedCosts.payroll}
+              onChange={(e) => setTempFixedCosts({...tempFixedCosts, payroll: Number(e.target.value)})}
+              disabled={!isEditingCosts}
+              className={`w-full px-3 py-2 rounded-lg border ${
+                isDarkMode 
+                  ? 'bg-gray-700 border-gray-600 text-white' 
+                  : 'bg-white border-gray-300 text-gray-900'
+              } ${!isEditingCosts ? 'opacity-60 cursor-not-allowed' : ''}`}
+            />
+          </div>
+          <div>
+            <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Arriendo
+            </label>
+            <input
+              type="number"
+              value={isEditingCosts ? tempFixedCosts.rent : fixedCosts.rent}
+              onChange={(e) => setTempFixedCosts({...tempFixedCosts, rent: Number(e.target.value)})}
+              disabled={!isEditingCosts}
+              className={`w-full px-3 py-2 rounded-lg border ${
+                isDarkMode 
+                  ? 'bg-gray-700 border-gray-600 text-white' 
+                  : 'bg-white border-gray-300 text-gray-900'
+              } ${!isEditingCosts ? 'opacity-60 cursor-not-allowed' : ''}`}
+            />
+          </div>
+          <div>
+            <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Servicios (Luz, Gas, Agua)
+            </label>
+            <input
+              type="number"
+              value={isEditingCosts ? tempFixedCosts.utilities : fixedCosts.utilities}
+              onChange={(e) => setTempFixedCosts({...tempFixedCosts, utilities: Number(e.target.value)})}
+              disabled={!isEditingCosts}
+              className={`w-full px-3 py-2 rounded-lg border ${
+                isDarkMode 
+                  ? 'bg-gray-700 border-gray-600 text-white' 
+                  : 'bg-white border-gray-300 text-gray-900'
+              } ${!isEditingCosts ? 'opacity-60 cursor-not-allowed' : ''}`}
+            />
+          </div>
+          <div>
+            <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Total Costos Fijos
+            </label>
+            <div className={`w-full px-3 py-2 rounded-lg border font-bold text-lg ${
+              isDarkMode 
+                ? 'bg-purple-900/30 border-purple-700 text-purple-400' 
+                : 'bg-purple-50 border-purple-300 text-purple-700'
+            }`}>
+              {formatMoneyDisplay(totalFixedCosts)}
+            </div>
+          </div>
+        </div>
+
+        <div className={`mt-4 p-4 rounded-lg ${isDarkMode ? 'bg-blue-900/20 border border-blue-700' : 'bg-blue-50 border border-blue-200'}`}>
+          <p className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+            💡 <strong>Punto de Equilibrio:</strong> Necesitas vender <strong>{breakEvenUnits} unidades</strong> al mes (aproximadamente <strong>{Math.ceil(breakEvenUnits / 30)} unidades/día</strong>) para cubrir tus costos fijos con un margen promedio de {avgContributionMargin.toFixed(0)} por producto.
+          </p>
+        </div>
+      </div>
+
+      {/* Gráficos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Gráfico de Barras */}
+        <div className={`rounded-lg p-6 border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <div style={{ height: '350px' }}>
+            <Bar data={barChartData} options={barChartOptions} />
+          </div>
+        </div>
+
+        {/* Gráfico de Dona */}
+        <div className={`rounded-lg p-6 border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <div style={{ height: '350px' }}>
+            <Doughnut data={doughnutData} options={doughnutOptions} />
+          </div>
+        </div>
+      </div>
+
+      {/* Sección de Alertas */}
+      {lowMarginProducts.length > 0 && (
+        <div className={`rounded-lg p-6 border ${isDarkMode ? 'bg-red-900/20 border-red-700' : 'bg-red-50 border-red-300'}`}>
+          <div className="flex items-start gap-3 mb-4">
+            <AlertCircle className={`flex-shrink-0 mt-0.5 ${isDarkMode ? 'text-red-500' : 'text-red-600'}`} size={24} />
+            <div>
+              <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-red-400' : 'text-red-700'}`}>
+                ⚠️ Productos con Margen Crítico (Menos del 30%)
+              </h3>
+              <p className={`text-sm ${isDarkMode ? 'text-red-300' : 'text-red-600'}`}>
+                {lowMarginProducts.length} productos requieren atención urgente debido a baja rentabilidad
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {lowMarginProducts.map((product, idx) => (
+              <div 
+                key={product.id || idx} 
+                className={`p-3 rounded-lg flex items-center justify-between ${
+                  isDarkMode ? 'bg-red-900/30' : 'bg-red-100'
+                }`}
+              >
+                <div className="flex-1">
+                  <p className={`font-medium ${isDarkMode ? 'text-red-200' : 'text-red-800'}`}>
+                    {product.name}
+                  </p>
+                  <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                    Costo: {formatMoneyDisplay(product.cost)} | Precio: {formatMoneyDisplay(product.price)}
+                  </p>
+                </div>
+                <div className={`text-right px-3 py-1 rounded-lg font-bold ${
+                  product.contributionMarginPercent < 20 
+                    ? isDarkMode ? 'bg-red-700 text-red-100' : 'bg-red-600 text-white'
+                    : isDarkMode ? 'bg-orange-700 text-orange-100' : 'bg-orange-500 text-white'
+                }`}>
+                  {product.contributionMarginPercent.toFixed(1)}%
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Métricas principales */}
+      {/* Resumen de Clasificación */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard 
-          title="Ganancia Total" 
-          value={formatMoneyDisplay(totalProfit)}
-          color="success"
+        <CategoryCard
+          title="⭐ Estrellas"
+          count={productsByProfitability.stars.length}
+          description="Margen ≥ 50%"
+          color="green"
+          isDarkMode={isDarkMode}
         />
-        <MetricCard 
-          title="Ingresos Totales" 
-          value={formatMoneyDisplay(totalRevenue)}
-          color="primary"
+        <CategoryCard
+          title="🐴 Caballos de Batalla"
+          count={productsByProfitability.plowhorses.length}
+          description="Margen 30-50%"
+          color="blue"
+          isDarkMode={isDarkMode}
         />
-        <MetricCard 
-          title="Costo Total" 
-          value={formatMoneyDisplay(totalCost)}
-          color="gray"
+        <CategoryCard
+          title="🧩 Enigmas"
+          count={productsByProfitability.puzzles.length}
+          description="Margen 20-30%"
+          color="yellow"
+          isDarkMode={isDarkMode}
         />
-        <MetricCard 
-          title="Margen Promedio" 
-          value={`${avgMargin}%`}
-          color={avgMargin >= 30 ? "success" : "warning"}
+        <CategoryCard
+          title="🐕 Perros"
+          count={productsByProfitability.dogs.length}
+          description="Margen < 20%"
+          color="red"
+          isDarkMode={isDarkMode}
         />
-      </div>
-
-      {/* Resumen de Productos */}
-      <div className="bg-dark-card rounded-lg p-6 border border-gray-700">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold">Productos Finales</h3>
-          <span className="text-3xl font-bold text-primary-blue">{totalProducts}</span>
-        </div>
-        {products.length === 0 ? (
-          <p className="text-gray-400 text-sm">No hay productos registrados</p>
-        ) : (
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {(products ?? []).slice(0, 10).map((product, idx) => (
-              <div key={product.id || idx} className="flex justify-between items-center text-sm p-2 bg-dark-bg rounded">
-                <span className="text-gray-300">{product.name || 'Sin nombre'}</span>
-                <span className="text-primary-blue font-semibold">{formatMoneyDisplay(product.salePrice || 0)}</span>
-              </div>
-            ))}
-            {products.length > 10 && (
-              <p className="text-xs text-gray-500 text-center mt-2">+{products.length - 10} más</p>
-            )}
-          </div>
-        )}
       </div>
     </div>
   )
 }
 
-function MetricCard({ title, value, color }) {
+function KPICard({ title, value, subtitle, icon, color, isDarkMode }) {
   const colorClasses = {
-    success: 'bg-green-900/30 border-green-700 text-success-green',
-    primary: 'bg-blue-900/30 border-primary-blue text-primary-blue',
-    gray: 'bg-gray-900/30 border-gray-700 text-gray-400',
-    warning: 'bg-yellow-900/30 border-yellow-700 text-yellow-400',
+    success: isDarkMode ? 'bg-green-900/30 border-green-700 text-green-400' : 'bg-green-50 border-green-300 text-green-700',
+    warning: isDarkMode ? 'bg-yellow-900/30 border-yellow-700 text-yellow-400' : 'bg-yellow-50 border-yellow-300 text-yellow-700',
+    danger: isDarkMode ? 'bg-red-900/30 border-red-700 text-red-400' : 'bg-red-50 border-red-300 text-red-700',
+    primary: isDarkMode ? 'bg-blue-900/30 border-blue-700 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-700',
+    info: isDarkMode ? 'bg-purple-900/30 border-purple-700 text-purple-400' : 'bg-purple-50 border-purple-300 text-purple-700'
+  }
+
+  return (
+    <div className={`rounded-lg p-5 border ${colorClasses[color]}`}>
+      <div className="flex items-start justify-between mb-3">
+        <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{title}</p>
+        {icon}
+      </div>
+      <p className="text-3xl font-bold mb-1">{value}</p>
+      {subtitle && (
+        <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{subtitle}</p>
+      )}
+    </div>
+  )
+}
+
+function CategoryCard({ title, count, description, color, isDarkMode }) {
+  const colorClasses = {
+    green: isDarkMode ? 'bg-green-900/20 border-green-700' : 'bg-green-50 border-green-300',
+    blue: isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-300',
+    yellow: isDarkMode ? 'bg-yellow-900/20 border-yellow-700' : 'bg-yellow-50 border-yellow-300',
+    red: isDarkMode ? 'bg-red-900/20 border-red-700' : 'bg-red-50 border-red-300'
+  }
+
+  const textColorClasses = {
+    green: isDarkMode ? 'text-green-400' : 'text-green-700',
+    blue: isDarkMode ? 'text-blue-400' : 'text-blue-700',
+    yellow: isDarkMode ? 'text-yellow-400' : 'text-yellow-700',
+    red: isDarkMode ? 'text-red-400' : 'text-red-700'
   }
 
   return (
     <div className={`rounded-lg p-4 border ${colorClasses[color]}`}>
-      <p className="text-xs font-medium text-gray-400 mb-2">{title}</p>
-      <p className="text-2xl font-bold">{value}</p>
+      <h4 className={`font-semibold mb-2 ${textColorClasses[color]}`}>{title}</h4>
+      <p className={`text-3xl font-bold mb-1 ${textColorClasses[color]}`}>{count}</p>
+      <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>{description}</p>
     </div>
   )
 }
