@@ -211,24 +211,59 @@ export default function Promotions() {
       return
     }
 
-    const promoData = {
-      name: formData.name.trim(),
-      items: formData.items,
-      promoPrice: Number(formData.promoPrice) || 0,
-      updatedAt: new Date().toISOString()
-    }
-
     try {
+      // Calcular totales
+      const totals = calculateTotals(formData.items)
+      const promoPrice = Number(formData.promoPrice) || 0
+      const ahorro = totals.totalRegularPrice - promoPrice
+      const descuentoPct = totals.totalRegularPrice > 0 && ahorro > 0
+        ? (ahorro / totals.totalRegularPrice) * 100
+        : 0
+
+      // Mapear items con estructura limpia
+      const cleanItems = formData.items.map(item => {
+        const liveData = getLiveItemData(item.type, item.id)
+        const qty = Number(item.quantity) || 1
+        
+        return {
+          type: item.type || 'product',
+          id: item.id || '',
+          nombre: liveData.name || '',
+          cantidad: qty,
+          costoUnitario: Number(liveData.cost) || 0,
+          precioVenta: Number(liveData.price) || 0
+        }
+      })
+
+      // Objeto limpio sin undefined/NaN
+      const promoData = {
+        name: formData.name.trim(),
+        items: cleanItems,
+        promoPrice: Number(promoPrice) || 0,
+        totalCosto: Number(totals.totalCost) || 0,
+        totalPrecioCarta: Number(totals.totalRegularPrice) || 0,
+        ahorroDinero: Number(ahorro > 0 ? ahorro : 0) || 0,
+        porcentajeDescuento: Number(descuentoPct) || 0,
+        updatedAt: new Date().toISOString()
+      }
+
+      console.log('📝 Guardando promoción:', promoData)
+
       if (editingId) {
         await saveDoc('promotions', editingId, promoData)
       } else {
         await saveDoc('promotions', null, { ...promoData, createdAt: new Date().toISOString() })
       }
+      
+      console.log('✅ Promoción guardada exitosamente')
       await loadData()
       setShowModal(false)
     } catch (error) {
-      console.error('Error saving promotion:', error)
-      alert('Error al guardar')
+      console.error('❌ Error detallado al guardar promoción:', error)
+      console.error('Error name:', error.name)
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+      alert(`Error al guardar: ${error.message || 'Error desconocido'}`)
     }
   }
 
