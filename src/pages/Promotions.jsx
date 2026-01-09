@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Tag } from 'lucide-react'
-import { getProducts, getRecipes, getAllDocs, saveDoc, deleteDocument } from '@/utils/storage'
+import { getProducts, getRecipes, getIngredients, getAllDocs, saveDoc, deleteDocument } from '@/utils/storage'
 import { formatMoneyDisplay } from '@/utils/formatters'
 import Modal from '@/components/Modal'
 import Button from '@/components/Button'
@@ -12,6 +12,7 @@ export default function Promotions() {
   const [promotions, setPromotions] = useState([])
   const [products, setProducts] = useState([])
   const [recipes, setRecipes] = useState([])
+  const [ingredients, setIngredients] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -27,14 +28,16 @@ export default function Promotions() {
 
   const loadData = async () => {
     try {
-      const [promoData, prodData, recData] = await Promise.all([
+      const [promoData, prodData, recData, ingData] = await Promise.all([
         getAllDocs('promotions'),
         getProducts(),
-        getRecipes()
+        getRecipes(),
+        getIngredients()
       ])
       setPromotions(Array.isArray(promoData) ? promoData : [])
       setProducts(Array.isArray(prodData) ? prodData : [])
       setRecipes(Array.isArray(recData) ? recData : [])
+      setIngredients(Array.isArray(ingData) ? ingData : [])
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -84,24 +87,100 @@ export default function Promotions() {
     }))
   }
 
-  // Buscar datos vivos por ID
-  const getLiveItemData = (type, id) => {
-    const source = type === 'product' ? products : recipes
-    const item = source.find(i => i.id === id)
-    
-    if (!item) {
-      console.warn(`⚠️ Item no encontrado: tipo=${type}, id=${id}`)
-      return { cost: 0, price: 0, name: '' }
+  // Recalcular métricas de productos IGUAL que ProductsNew.jsx
+  const recalculateProductMetrics = (product) => {
+    try {
+      const items = Array.isArray(product.items) ? product.items : []
+      let costoIngredientes = 0
+
+      items.forEach(item => {
+        if (!item || !item.id) return
+        
+        if (item.type === 'ingredient-embalaje' || item.type === 'ingredient-receta' || item.type === 'ingredient') {
+          const ing = ingredients.find(i => i.id === item.id)
+          if (ing) {
+            const cantidadUsada = parseFloat(item.quantity || 0)
+            
+            if (ing.costoPorGramo && ing.costoPorGramo > 0) {
+              costoIngredientes += ing.costoPorGramo * cantidadUsada
+            } 
+            else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
+              const costoPorGramo = ing.costWithWastage / ing.pesoEmpaqueTotal
+              costoIngredientes += costoPorGramo * cantidadUsada
+            } 
+            else if (ing.costWithWastage) {
+              costoIngredientes += ing.costWithWastage * cantidadUsada
+            }
+          }
+        } else if (item.type === 'recipe') {
+          const rec = recipes.find(r => r.id === item.id)
+          if (rec) {
+            const cantidadUsada = parseFloat(item.quantity || 0)
+            if (rec.costoPorGramo && rec.costoPorGramo > 0) {
+              costoIngredientes += rec.costoPorGramo * cantidadUsada
+            } else if (rec.totalCost && rec.pesoTotal && rec.pesoTotal > 0) {
+              const costoPorGramo = rec.totalCost / rec.pesoTotal
+              costoIngredientes += costoPorGramo * cantidadUsada
+            } else if (rec.totalCost && (!rec.pesoTotal || rec.pesoTotal === 0)) {
+              costoIngredientes += rec.totalCost * cantidadUsada
+            }
+          }
+        }
+      })
+
+      const manoDeObra = parseFloat(product.laborCost || 0)
+      const costoTotal = costoIngredientes + manoDeObra
+      const precioVenta = parseFloat(product.realSalePrice) || 0
+
+      return {
+        ingredientsCost: costoIngredientes,
+        laborCost: manoDeObra,
+        totalCost: costoTotal,
+        realSalePrice: precioVenta,
+      }
+    } catch (error) {
+      console.error('❌ Error calculando métricas:', error)
+      return {
+        ingredientsCost: 0,
+        laborCost: 0,
+        totalCost: 0,
+        realSalePrice: 0,
+      }
     }
-    
-    // Para productos: usar totalCost o realCost o salePrice
-    // Para recetas: usar totalCost o baseCost
-    const cost = Number(item.totalCost || item.realCost || item.baseCost || 0)
-    const price = Number(item.salePrice || item.totalCost || item.realCost || item.baseCost || 0)
-    
-    console.log(`✅ Datos vivos cargados: ${item.name} - Costo: ${cost}, Precio: ${price}`)
-    
-    return { cost, price, name: item.name || '' }
+  }
+
+  // Buscar datos vivos por ID - CORREGIDO para usar recalcular
+  const getLiveItemData = (type, id) => {
+    if (type === 'product') {
+      const product = products.find(p => p.id === id)
+      if (!product) {
+        console.warn(`⚠️ Producto no encontrado: id=${id}`)
+        return { cost: 0, price: 0, name: '' }
+      }
+      
+      // RECALCULAR el costo igual que ProductsNew.jsx
+      const metrics = recalculateProductMetrics(product)
+      const cost = metrics.totalCost
+      const price = product.realSalePrice || 0
+      
+      console.log(`✅ Producto recalculado: ${product.name} - Costo: ${cost}, Precio: ${price}`)
+      
+      return { cost, price, name: product.name || '' }
+    } else {
+      // Para recetas, usar totalCost directamente
+      const recipe = recipes.find(r => r.id === id)
+      if (!recipe) {
+        console.warn(`⚠️ Receta no encontrada: id=${id}`)
+        return { cost: 0, price: 0, name: '' }
+      }
+      
+      const cost = Number(recipe.totalCost || 0)
+      const price = Number(recipe.totalCost || 0) // Las recetas no tienen precio de venta
+      
+      console.log(`✅ Receta cargada: ${recipe.name} - Costo: ${cost}`)
+      
+      return { cost, price, name: recipe.name || '' }
+    }
   }
 
   // Calcular totales en tiempo real
