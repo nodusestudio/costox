@@ -263,10 +263,13 @@ export default function Promotions() {
             Gestiona combos con datos vivos de productos y recetas
           </p>
         </div>
-        <Button onClick={() => handleOpenModal()}>
+        <button
+          onClick={() => handleOpenModal()}
+          className="flex items-center gap-2 px-5 py-3 bg-primary-blue hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg font-medium"
+        >
           <Plus size={20} />
-          Nuevo Combo
-        </Button>
+          Nueva Promoción
+        </button>
       </div>
 
       {promotions.length === 0 ? (
@@ -479,17 +482,17 @@ export default function Promotions() {
                 : 0
 
               return (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-3">
                   {/* Costo Unidad */}
-                  <div className={`p-2 rounded-lg text-center ${
+                  <div className={`p-3 rounded-lg text-center ${
                     isDarkMode ? 'bg-blue-950/50 border border-blue-700' : 'bg-blue-50 border border-blue-300'
                   }`}>
-                    <div className={`text-xs font-bold mb-1 ${
+                    <div className={`text-xs font-bold mb-2 ${
                       isDarkMode ? 'text-blue-300' : 'text-blue-700'
                     }`}>
                       COSTO
                     </div>
-                    <div className={`text-lg font-black ${
+                    <div className={`text-xl font-black ${
                       isDarkMode ? 'text-blue-400' : 'text-blue-600'
                     }`}>
                       {formatMoneyDisplay(totals.totalCost)}
@@ -497,15 +500,15 @@ export default function Promotions() {
                   </div>
 
                   {/* P-Contribución */}
-                  <div className={`p-2 rounded-lg text-center ${
+                  <div className={`p-3 rounded-lg text-center ${
                     isDarkMode ? 'bg-gray-800/50 border border-gray-600' : 'bg-gray-100 border border-gray-300'
                   }`}>
-                    <div className={`text-xs font-bold mb-1 ${
+                    <div className={`text-xs font-bold mb-2 ${
                       isDarkMode ? 'text-gray-300' : 'text-gray-700'
                     }`}>
                       P-CONTRIB.
                     </div>
-                    <div className={`text-lg font-black ${
+                    <div className={`text-xl font-black ${
                       isDarkMode ? 'text-white' : 'text-gray-900'
                     }`}>
                       {margin.toFixed(1)}%
@@ -513,15 +516,15 @@ export default function Promotions() {
                   </div>
 
                   {/* M-Contribución */}
-                  <div className={`p-2 rounded-lg text-center ${
+                  <div className={`p-3 rounded-lg text-center ${
                     isDarkMode ? 'bg-purple-950/50 border border-purple-700' : 'bg-purple-50 border border-purple-300'
                   }`}>
-                    <div className={`text-xs font-bold mb-1 ${
+                    <div className={`text-xs font-bold mb-2 ${
                       isDarkMode ? 'text-purple-300' : 'text-purple-700'
                     }`}>
                       M-CONTRIB.
                     </div>
-                    <div className={`text-lg font-black ${
+                    <div className={`text-xl font-black ${
                       isDarkMode ? 'text-purple-400' : 'text-purple-600'
                     }`}>
                       {formatMoneyDisplay(profit)}
@@ -539,12 +542,30 @@ export default function Promotions() {
                 }`}>
                   🎁 ITEMS DEL COMBO
                 </h4>
-                <button
-                  onClick={handleAddItem}
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium"
-                >
-                  + Agregar Item
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        items: [...prev.items, { type: 'product', id: '', quantity: 1 }]
+                      }))
+                    }}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium"
+                  >
+                    + Producto
+                  </button>
+                  <button
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        items: [...prev.items, { type: 'recipe', id: '', quantity: 1 }]
+                      }))
+                    }}
+                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-xs font-medium"
+                  >
+                    + Receta
+                  </button>
+                </div>
               </div>
 
               <div className={`rounded-lg border ${
@@ -554,10 +575,9 @@ export default function Promotions() {
                 <div className={`grid grid-cols-12 gap-2 p-3 border-b font-bold text-xs ${
                   isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
                 }`}>
-                  <div className="col-span-2">TIPO</div>
-                  <div className="col-span-6">NOMBRE</div>
+                  <div className="col-span-7">NOMBRE</div>
                   <div className="col-span-2 text-center">CANT</div>
-                  <div className="col-span-2 text-right">COSTO</div>
+                  <div className="col-span-3 text-right">COSTO</div>
                 </div>
 
                 {/* Lista de Items */}
@@ -572,25 +592,14 @@ export default function Promotions() {
                       <div key={index} className={`grid grid-cols-12 gap-2 p-3 border-b text-sm ${
                         isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                       }`}>
-                        <div className="col-span-2">
-                          <select
-                            value={item.type}
-                            onChange={(e) => {
-                              handleItemChange(index, 'type', e.target.value)
-                              handleItemChange(index, 'id', '') // Reset ID cuando cambia el tipo
-                            }}
-                            className={`w-full px-2 py-1 rounded border text-xs ${
-                              isDarkMode
-                                ? 'bg-[#111827] border-gray-600 text-white'
-                                : 'bg-white border-gray-300 text-gray-900'
-                            }`}
-                          >
-                            <option value="product">Producto</option>
-                            <option value="recipe">Receta</option>
-                          </select>
-                        </div>
-
-                        <div className="col-span-6">
+                        <div className="col-span-7 flex items-center gap-2">
+                          <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                            item.type === 'product'
+                              ? 'bg-blue-500/20 text-blue-400'
+                              : 'bg-purple-500/20 text-purple-400'
+                          }`}>
+                            {item.type === 'product' ? '📦 P' : '🍖 R'}
+                          </span>
                           <SearchSelect
                             options={sourceList}
                             value={item.id}
@@ -598,11 +607,11 @@ export default function Promotions() {
                             displayKey="name"
                             valueKey="id"
                             placeholder={`Buscar ${item.type === 'product' ? 'producto' : 'receta'}...`}
-                            className="w-full"
+                            className="flex-1"
                           />
                         </div>
 
-                        <div className="col-span-2">
+                        <div className="col-span-2 flex items-center">
                           <input
                             type="number"
                             step="1"
@@ -619,7 +628,7 @@ export default function Promotions() {
                           />
                         </div>
 
-                        <div className={`col-span-2 flex items-center justify-end gap-1 ${
+                        <div className={`col-span-3 flex items-center justify-end gap-1 ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>
                           <span className="font-semibold text-xs truncate">{formatMoneyDisplay(itemCost)}</span>
