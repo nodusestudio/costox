@@ -664,6 +664,84 @@ export default function Promotions() {
                     </div>
                   )}
                 </div>
+
+                {/* Resumen de Totales */}
+                {formData.items.length > 0 && (() => {
+                  const totals = calculateTotals(formData.items)
+                  const promoPrice = Number(formData.promoPrice) || 0
+                  const ahorro = totals.totalRegularPrice - promoPrice
+                  const descuentoPct = totals.totalRegularPrice > 0 && ahorro > 0
+                    ? (ahorro / totals.totalRegularPrice) * 100
+                    : 0
+
+                  return (
+                    <div className={`p-4 border-t ${
+                      isDarkMode ? 'border-gray-700 bg-gray-800/30' : 'border-gray-300 bg-gray-100'
+                    }`}>
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Columna Izquierda: Totales */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className={`text-xs font-semibold ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              💰 Total Costo:
+                            </span>
+                            <span className={`text-sm font-bold ${
+                              isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                            }`}>
+                              {formatMoneyDisplay(totals.totalCost)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className={`text-xs font-semibold ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              💵 Total Precio Carta:
+                            </span>
+                            <span className={`text-sm font-bold ${
+                              isDarkMode ? 'text-green-400' : 'text-green-600'
+                            }`}>
+                              {formatMoneyDisplay(totals.totalRegularPrice)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Columna Derecha: Ahorro y Descuento */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className={`text-xs font-semibold ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              🎁 Ahorro:
+                            </span>
+                            <span className={`text-sm font-bold ${
+                              ahorro > 0
+                                ? isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                                : isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                            }`}>
+                              {formatMoneyDisplay(ahorro > 0 ? ahorro : 0)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className={`text-xs font-semibold ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              📊 % Descuento:
+                            </span>
+                            <span className={`text-sm font-bold ${
+                              descuentoPct > 0
+                                ? isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
+                                : isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                            }`}>
+                              {descuentoPct.toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             </div>
 
