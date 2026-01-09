@@ -88,10 +88,19 @@ export default function Promotions() {
   const getLiveItemData = (type, id) => {
     const source = type === 'product' ? products : recipes
     const item = source.find(i => i.id === id)
-    if (!item) return { cost: 0, price: 0, name: '' }
     
-    const cost = Number(item.totalCost || item.realCost || item.baseCost) || 0
-    const price = Number(item.salePrice || item.realCost || item.baseCost) || 0
+    if (!item) {
+      console.warn(`⚠️ Item no encontrado: tipo=${type}, id=${id}`)
+      return { cost: 0, price: 0, name: '' }
+    }
+    
+    // Para productos: usar totalCost o realCost o salePrice
+    // Para recetas: usar totalCost o baseCost
+    const cost = Number(item.totalCost || item.realCost || item.baseCost || 0)
+    const price = Number(item.salePrice || item.totalCost || item.realCost || item.baseCost || 0)
+    
+    console.log(`✅ Datos vivos cargados: ${item.name} - Costo: ${cost}, Precio: ${price}`)
+    
     return { cost, price, name: item.name || '' }
   }
 
@@ -476,15 +485,9 @@ export default function Promotions() {
                 <div className="max-h-[300px] overflow-y-auto">
                   {formData.items.map((item, index) => {
                     const liveData = getLiveItemData(item.type, item.id)
-                    const qty = Number(item.quantity) || 0
+                    const qty = Number(item.quantity) || 1
                     const itemCost = liveData.cost * qty
                     const sourceList = item.type === 'product' ? products : recipes
-                    const options = sourceList.map(i => ({ 
-                      value: i.id, 
-                      label: i.name || 'Sin nombre',
-                      id: i.id,
-                      name: i.name 
-                    }))
 
                     return (
                       <div key={index} className={`grid grid-cols-12 gap-2 p-3 border-b text-sm ${
@@ -493,7 +496,10 @@ export default function Promotions() {
                         <div className="col-span-2">
                           <select
                             value={item.type}
-                            onChange={(e) => handleItemChange(index, 'type', e.target.value)}
+                            onChange={(e) => {
+                              handleItemChange(index, 'type', e.target.value)
+                              handleItemChange(index, 'id', '') // Reset ID cuando cambia el tipo
+                            }}
                             className={`w-full px-2 py-1 rounded border text-xs ${
                               isDarkMode
                                 ? 'bg-[#111827] border-gray-600 text-white'
@@ -507,10 +513,11 @@ export default function Promotions() {
 
                         <div className="col-span-6">
                           <SearchSelect
-                            options={options}
+                            options={sourceList}
                             value={item.id}
                             onChange={(val) => handleItemChange(index, 'id', val)}
                             displayKey="name"
+                            valueKey="id"
                             placeholder={`Buscar ${item.type === 'product' ? 'producto' : 'receta'}...`}
                             className="w-full"
                           />
@@ -522,7 +529,7 @@ export default function Promotions() {
                             step="1"
                             min="1"
                             value={item.quantity}
-                            onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                            onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value) || 1)}
                             onFocus={(e) => e.target.select()}
                             className={`w-full px-2 py-1 rounded border text-center text-xs ${
                               isDarkMode
