@@ -486,7 +486,7 @@ export default function RecipesNew() {
             Recetas (Sub-productos)
           </h2>
           <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Pueden usarse como ingredientes en Productos y Combos
+            Pueden usarse como ingredientes en Productos
           </p>
         </div>
         <div className="flex gap-2">
