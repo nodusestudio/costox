@@ -874,7 +874,7 @@ export default function Promotions() {
           title={editingId ? 'Editar Combo' : 'Nuevo Combo'}
           onClose={() => !modalLoading && setShowModal(false)}
         >
-          <div className="space-y-6 relative">
+          <div className="space-y-3 relative">
             {/* Loading Overlay */}
             {modalLoading && (
               <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center rounded-lg">
@@ -887,46 +887,47 @@ export default function Promotions() {
               </div>
             )}
             
-            {/* Nombre del Combo */}
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                📋 Nombre del Combo *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className={`w-full px-4 py-2 rounded-lg border ${
-                  isDarkMode
-                    ? 'bg-[#111827] border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-                placeholder="Ej: Combo Familiar"
-              />
-            </div>
+            {/* Nombre del Combo y Categoría - Grid 1fr 1fr */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  📋 Nombre del Combo *
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className={`w-full px-2 py-1.5 rounded-lg border text-sm ${
+                    isDarkMode
+                      ? 'bg-[#111827] border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                  placeholder="Ej: Combo Familiar"
+                />
+              </div>
 
-            {/* Categoría */}
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                🏷️ Categoría
-              </label>
-              <SearchSelect
-                options={(categories || []).map(cat => ({ id: cat.id, name: cat.name }))}
-                value={formData.categoryId}
-                onChange={(val) => setFormData(prev => ({ ...prev, categoryId: val }))}
-                placeholder="Seleccionar categoría..."
-                displayKey="name"
-                valueKey="id"
-              />
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  🏷️ Categoría
+                </label>
+                <SearchSelect
+                  options={(categories || []).map(cat => ({ id: cat.id, name: cat.name }))}
+                  value={formData.categoryId}
+                  onChange={(val) => setFormData(prev => ({ ...prev, categoryId: val }))}
+                  placeholder="Seleccionar categoría..."
+                  displayKey="name"
+                  valueKey="id"
+                />
+              </div>
             </div>
 
             {/* Precio de Venta - Centro con recuadro verde */}
-            <div className={`p-6 rounded-xl border-2 text-center ${
+            <div className={`p-3 rounded-lg border-2 text-center ${
               isDarkMode
                 ? 'bg-green-950/50 border-green-600'
                 : 'bg-green-50 border-green-400'
             }`}>
-              <label className={`block text-sm font-bold mb-3 ${
+              <label className={`block text-xs font-bold mb-1.5 ${
                 isDarkMode ? 'text-green-300' : 'text-green-700'
               }`}>
                 💵 PRECIO DE VENTA DEL COMBO
@@ -938,12 +939,12 @@ export default function Promotions() {
                 value={formData.promoPrice}
                 onChange={(e) => setFormData(prev => ({ ...prev, promoPrice: e.target.value }))}
                 onFocus={(e) => e.target.select()}
-                className={`w-48 px-4 py-2 rounded-lg border-2 font-black text-center ${
+                className={`w-40 px-3 py-1 rounded-lg border-2 font-black text-center ${
                   isDarkMode
                     ? 'bg-[#0a2818] border-green-500 text-green-300'
                     : 'bg-white border-green-500 text-green-700'
                 }`}
-                style={{ fontSize: '2.5rem' }}
+                style={{ fontSize: '1.75rem' }}
                 placeholder="$ 0"
               />
             </div>
@@ -958,17 +959,17 @@ export default function Promotions() {
                 : 0
 
               return (
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   {/* Costo Unidad */}
-                  <div className={`p-3 rounded-lg text-center ${
+                  <div className={`p-2 rounded-lg text-center ${
                     isDarkMode ? 'bg-blue-950/50 border border-blue-700' : 'bg-blue-50 border border-blue-300'
                   }`}>
-                    <div className={`text-xs font-bold mb-2 ${
+                    <div className={`text-[10px] font-bold mb-1 ${
                       isDarkMode ? 'text-blue-300' : 'text-blue-700'
                     }`}>
                       COSTO
                     </div>
-                    <div className={`text-xl font-black ${
+                    <div className={`text-sm font-black ${
                       isDarkMode ? 'text-blue-400' : 'text-blue-600'
                     }`}>
                       {formatMoneyDisplay(totals.totalCost)}
@@ -976,15 +977,15 @@ export default function Promotions() {
                   </div>
 
                   {/* P-Contribución */}
-                  <div className={`p-3 rounded-lg text-center ${
+                  <div className={`p-2 rounded-lg text-center ${
                     isDarkMode ? 'bg-gray-800/50 border border-gray-600' : 'bg-gray-100 border border-gray-300'
                   }`}>
-                    <div className={`text-xs font-bold mb-2 ${
+                    <div className={`text-[10px] font-bold mb-1 ${
                       isDarkMode ? 'text-gray-300' : 'text-gray-700'
                     }`}>
                       P-CONTRIB.
                     </div>
-                    <div className={`text-xl font-black ${
+                    <div className={`text-sm font-black ${
                       isDarkMode ? 'text-white' : 'text-gray-900'
                     }`}>
                       {margin.toFixed(1)}%
@@ -992,15 +993,15 @@ export default function Promotions() {
                   </div>
 
                   {/* M-Contribución */}
-                  <div className={`p-3 rounded-lg text-center ${
+                  <div className={`p-2 rounded-lg text-center ${
                     isDarkMode ? 'bg-purple-950/50 border border-purple-700' : 'bg-purple-50 border border-purple-300'
                   }`}>
-                    <div className={`text-xs font-bold mb-2 ${
+                    <div className={`text-[10px] font-bold mb-1 ${
                       isDarkMode ? 'text-purple-300' : 'text-purple-700'
                     }`}>
                       M-CONTRIB.
                     </div>
-                    <div className={`text-xl font-black ${
+                    <div className={`text-sm font-black ${
                       isDarkMode ? 'text-purple-400' : 'text-purple-600'
                     }`}>
                       {formatMoneyDisplay(profit)}
@@ -1016,23 +1017,25 @@ export default function Promotions() {
               const suggestedPrice = roundToNearestThousand(totals.totalCost * 1.4) // 40% markup mínimo
               
               return (
-                <div className={`p-4 rounded-lg border-2 text-center ${
+                <div className={`flex items-center justify-between px-3 py-2 rounded-lg border ${
                   isDarkMode ? 'bg-yellow-950/30 border-yellow-600' : 'bg-yellow-50 border-yellow-400'
                 }`}>
-                  <div className={`text-xs font-bold mb-2 ${
-                    isDarkMode ? 'text-yellow-300' : 'text-yellow-700'
-                  }`}>
-                    💡 PRECIO SUGERIDO (redondeado al millar)
-                  </div>
-                  <div className={`text-3xl font-black ${
-                    isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
-                  }`}>
-                    {formatMoneyDisplay(suggestedPrice)}
-                  </div>
-                  <div className={`text-xs mt-1 ${
-                    isDarkMode ? 'text-yellow-400/70' : 'text-yellow-600/70'
-                  }`}>
-                    Con 40% de margen mínimo
+                  <div className="flex items-center gap-3">
+                    <span className={`text-[10px] font-bold ${
+                      isDarkMode ? 'text-yellow-300' : 'text-yellow-700'
+                    }`}>
+                      💡 SUGERIDO
+                    </span>
+                    <span className={`text-lg font-black ${
+                      isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
+                    }`}>
+                      {formatMoneyDisplay(suggestedPrice)}
+                    </span>
+                    <span className={`text-[10px] ${
+                      isDarkMode ? 'text-yellow-400/70' : 'text-yellow-600/70'
+                    }`}>
+                      (40% margen)
+                    </span>
                   </div>
                   <button
                     type="button"
@@ -1040,13 +1043,13 @@ export default function Promotions() {
                       setFormData(prev => ({ ...prev, promoPrice: suggestedPrice }))
                       console.log('✅ Precio sugerido aplicado:', formatMoneyDisplay(suggestedPrice))
                     }}
-                    className={`mt-3 px-6 py-2 rounded-lg font-bold text-sm transition-all ${
+                    className={`px-3 py-1 rounded-md font-bold text-xs transition-all ${
                       isDarkMode
                         ? 'bg-yellow-600 hover:bg-yellow-500 text-white'
                         : 'bg-yellow-500 hover:bg-yellow-600 text-white'
                     }`}
                   >
-                    ⚡ Aplicar Precio Sugerido
+                    ⚡ Aplicar
                   </button>
                 </div>
               )
@@ -1054,30 +1057,30 @@ export default function Promotions() {
 
             {/* Items del Combo */}
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <h4 className={`text-sm font-bold ${
+              <div className="flex items-center justify-between mb-2">
+                <h4 className={`text-xs font-bold ${
                   isDarkMode ? 'text-blue-300' : 'text-blue-700'
                 }`}>
                   🎁 ITEMS DEL COMBO
                 </h4>
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <button
                     onClick={() => handleAddItem('product')}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium"
+                    className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-medium"
                   >
-                    📦 P + Producto
+                    📦 P
                   </button>
                   <button
                     onClick={() => handleAddItem('recipe')}
-                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-xs font-medium"
+                    className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-[10px] font-medium"
                   >
-                    🍖 R + Receta
+                    🍖 R
                   </button>
                   <button
                     onClick={() => handleAddItem('ingredient')}
-                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-md text-xs font-medium"
+                    className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-[10px] font-medium"
                   >
-                    🥕 I + Ingrediente
+                    🥕 I
                   </button>
                 </div>
               </div>
@@ -1086,7 +1089,7 @@ export default function Promotions() {
                 isDarkMode ? 'bg-[#0a0e1a] border-gray-700' : 'bg-gray-50 border-gray-300'
               }`}>
                 {/* Cabecera */}
-                <div className={`grid grid-cols-10 gap-2 p-3 border-b font-bold text-xs ${
+                <div className={`grid grid-cols-10 gap-2 px-2 py-1.5 border-b font-bold text-[10px] ${
                   isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
                 }`}>
                   <div className="col-span-3">NOMBRE</div>
@@ -1132,7 +1135,7 @@ export default function Promotions() {
                       : liveData.price * qty
 
                     return (
-                      <div key={index} className={`grid grid-cols-10 gap-2 p-3 border-b text-sm ${
+                      <div key={index} className={`grid grid-cols-10 gap-2 px-2 py-1.5 border-b text-xs ${
                         isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                       }`}>
                         <div className="col-span-3 flex items-center gap-2">
@@ -1214,10 +1217,10 @@ export default function Promotions() {
                   })}
 
                   {formData.items.length === 0 && (
-                    <div className={`text-center py-8 ${
+                    <div className={`text-center py-4 ${
                       isDarkMode ? 'text-gray-500' : 'text-gray-400'
                     }`}>
-                      <p className="text-xs">Sin items en el combo</p>
+                      <p className="text-[10px]">Sin items en el combo</p>
                     </div>
                   )}
                 </div>
@@ -1232,47 +1235,45 @@ export default function Promotions() {
                     : 0
 
                   return (
-                    <div className={`p-4 border-t ${
+                    <div className={`px-2 py-1.5 border-t ${
                       isDarkMode ? 'border-gray-700 bg-gray-800/30' : 'border-gray-300 bg-gray-100'
                     }`}>
-                      <div className="grid grid-cols-2 gap-4">
-                        {/* Columna Izquierda: Totales */}
-                        <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">\n                        {/* Columna Izquierda: Totales */}
+                        <div className="space-y-1">
                           <div className="flex justify-between items-center">
-                            <span className={`text-xs font-semibold ${
+                            <span className={`text-[10px] font-semibold ${
                               isDarkMode ? 'text-gray-400' : 'text-gray-600'
                             }`}>
                               💰 Total Costo:
                             </span>
-                            <span className={`text-sm font-bold ${
+                            <span className={`text-xs font-bold ${
                               isDarkMode ? 'text-blue-400' : 'text-blue-600'
                             }`}>
                               {formatMoneyDisplay(totals.totalCost)}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className={`text-xs font-semibold ${
+                            <span className={`text-[10px] font-semibold ${
                               isDarkMode ? 'text-gray-400' : 'text-gray-600'
                             }`}>
                               💵 Total Precio Carta:
                             </span>
-                            <span className={`text-sm font-bold ${
+                            <span className={`text-xs font-bold ${
                               isDarkMode ? 'text-green-400' : 'text-green-600'
                             }`}>
                               {formatMoneyDisplay(totals.totalRegularPrice)}
                             </span>
                           </div>
-                        </div>
-
+                        </div>\n
                         {/* Columna Derecha: Ahorro y Descuento */}
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                           <div className="flex justify-between items-center">
-                            <span className={`text-xs font-semibold ${
+                            <span className={`text-[10px] font-semibold ${
                               isDarkMode ? 'text-gray-400' : 'text-gray-600'
                             }`}>
                               🎁 Ahorro:
                             </span>
-                            <span className={`text-sm font-bold ${
+                            <span className={`text-xs font-bold ${
                               ahorro > 0
                                 ? isDarkMode ? 'text-orange-400' : 'text-orange-600'
                                 : isDarkMode ? 'text-gray-500' : 'text-gray-400'
@@ -1281,12 +1282,12 @@ export default function Promotions() {
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className={`text-xs font-semibold ${
+                            <span className={`text-[10px] font-semibold ${
                               isDarkMode ? 'text-gray-400' : 'text-gray-600'
                             }`}>
                               📊 % Descuento:
                             </span>
-                            <span className={`text-sm font-bold ${
+                            <span className={`text-xs font-bold ${
                               descuentoPct > 0
                                 ? isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
                                 : isDarkMode ? 'text-gray-500' : 'text-gray-400'
