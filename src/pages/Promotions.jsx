@@ -213,24 +213,60 @@ export default function Promotions() {
   }
 
   const handleDuplicate = (promo) => {
-    console.log('📋 Duplicando combo:', promo.name)
-    
-    // Recalcular items con datos frescos
-    const itemsWithFreshData = recalculateCombo(promo.items || [])
-    
-    // Abrir modal como nuevo combo con datos del original
-    setEditingId(null) // NULL para crear uno nuevo
-    setFormData({
-      name: `${promo.name} (Copia)`,
-      items: itemsWithFreshData,
-      promoPrice: Number(promo.promoPrice) || 0,
-      categoryId: String(promo.categoryId || ''),
-    })
-    
-    setModalLoading(false)
-    setShowModal(true)
-    
-    console.log('✅ Combo duplicado, listo para guardar como nuevo')
+    try {
+      console.log('📋 Duplicando combo:', promo.name)
+      console.log('📦 Datos originales:', {
+        id: promo.id,
+        items: promo.items?.length || 0,
+        precio: promo.promoPrice,
+        categoria: promo.categoryId
+      })
+      
+      // Validar que el combo tenga datos
+      if (!promo) {
+        console.error('❌ No se puede duplicar: combo inválido')
+        alert('Error: No se puede duplicar este combo')
+        return
+      }
+      
+      // Inicializar items como array vacío si no existe
+      const itemsOriginales = Array.isArray(promo.items) ? promo.items : []
+      console.log(`🔄 Procesando ${itemsOriginales.length} items...`)
+      
+      // Recalcular items con datos frescos
+      const itemsWithFreshData = recalculateCombo(itemsOriginales)
+      console.log(`✅ Items recalculados: ${itemsWithFreshData.length}`)
+      
+      // Crear copia limpia SIN id (para que sea un nuevo combo)
+      const nombreCopia = `${promo.name || 'Combo'} (Copia)`
+      
+      // Establecer editingId = NULL para modo creación
+      setEditingId(null)
+      
+      // Cargar datos en el formulario
+      setFormData({
+        name: nombreCopia,
+        items: itemsWithFreshData,
+        promoPrice: Number(promo.promoPrice) || 0,
+        categoryId: String(promo.categoryId || ''),
+      })
+      
+      console.log('✅ Formulario cargado:', {
+        nombre: nombreCopia,
+        items: itemsWithFreshData.length,
+        precio: Number(promo.promoPrice) || 0
+      })
+      
+      // Abrir modal después de cargar los datos
+      setModalLoading(false)
+      setShowModal(true)
+      
+      console.log('✅ Modal abierto - Combo duplicado listo para guardar como nuevo')
+    } catch (error) {
+      console.error('❌ Error al duplicar combo:', error)
+      console.error('Stack:', error.stack)
+      alert(`Error al duplicar combo: ${error.message}`)
+    }
   }
 
   const handleAddItem = (type = 'product') => {
