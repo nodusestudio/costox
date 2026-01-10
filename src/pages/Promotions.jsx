@@ -30,6 +30,39 @@ export default function Promotions() {
     promoPrice: 0,
     categoryId: '',
   })
+  
+  // Estado para totales calculados (PVP Regular, Descuento, Ahorro)
+  const [calculatedTotals, setCalculatedTotals] = useState({
+    totalCost: 0,
+    totalRegularPrice: 0,
+    ahorro: 0,
+    descuentoPct: 0
+  })
+
+  // 🔥 Observador de cambios para actualizar totales automáticamente
+  useEffect(() => {
+    if (formData.items.length > 0 || formData.promoPrice > 0) {
+      const totals = calculateTotals(formData.items)
+      const promoPrice = Number(formData.promoPrice) || 0
+      const ahorro = totals.totalRegularPrice - promoPrice
+      const descuentoPct = totals.totalRegularPrice > 0 && ahorro > 0
+        ? (ahorro / totals.totalRegularPrice) * 100
+        : 0
+      
+      setCalculatedTotals({
+        totalCost: totals.totalCost,
+        totalRegularPrice: totals.totalRegularPrice,
+        ahorro: ahorro > 0 ? ahorro : 0,
+        descuentoPct: descuentoPct
+      })
+      
+      console.log('📊 Totales actualizados:', {
+        pvpRegular: totals.totalRegularPrice,
+        descuento: ahorro,
+        ahorroPct: descuentoPct.toFixed(1) + '%'
+      })
+    }
+  }, [formData.items, formData.promoPrice])
 
   useEffect(() => {
     console.log('🔥 Iniciando sincronización en tiempo real...')
@@ -1226,80 +1259,73 @@ export default function Promotions() {
                 </div>
 
                 {/* Resumen de Totales */}
-                {formData.items.length > 0 && (() => {
-                  const totals = calculateTotals(formData.items)
-                  const promoPrice = Number(formData.promoPrice) || 0
-                  const ahorro = totals.totalRegularPrice - promoPrice
-                  const descuentoPct = totals.totalRegularPrice > 0 && ahorro > 0
-                    ? (ahorro / totals.totalRegularPrice) * 100
-                    : 0
+                {formData.items.length > 0 && (
+                  <div className={`px-2 py-1.5 border-t ${
+                    isDarkMode ? 'border-gray-700 bg-gray-800/30' : 'border-gray-300 bg-gray-100'
+                  }`}>
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Columna Izquierda: Totales */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center">
+                          <span className={`text-[10px] font-semibold ${
+                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
+                            💰 Total Costo:
+                          </span>
+                          <span className={`text-xs font-bold ${
+                            isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                          }`}>
+                            {formatMoneyDisplay(calculatedTotals.totalCost)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className={`text-[10px] font-semibold ${
+                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
+                            💵 PVP Regular:
+                          </span>
+                          <span className={`text-xs font-bold ${
+                            isDarkMode ? 'text-green-400' : 'text-green-600'
+                          }`}>
+                            {formatMoneyDisplay(calculatedTotals.totalRegularPrice)}
+                          </span>
+                        </div>
+                      </div>
 
-                  return (
-                    <div className={`px-2 py-1.5 border-t ${
-                      isDarkMode ? 'border-gray-700 bg-gray-800/30' : 'border-gray-300 bg-gray-100'
-                    }`}>
-                      <div className="grid grid-cols-2 gap-2">\n                        {/* Columna Izquierda: Totales */}
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className={`text-[10px] font-semibold ${
-                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
-                              💰 Total Costo:
-                            </span>
-                            <span className={`text-xs font-bold ${
-                              isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                            }`}>
-                              {formatMoneyDisplay(totals.totalCost)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className={`text-[10px] font-semibold ${
-                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
-                              💵 Total Precio Carta:
-                            </span>
-                            <span className={`text-xs font-bold ${
-                              isDarkMode ? 'text-green-400' : 'text-green-600'
-                            }`}>
-                              {formatMoneyDisplay(totals.totalRegularPrice)}
-                            </span>
-                          </div>
-                        </div>\n
-                        {/* Columna Derecha: Ahorro y Descuento */}
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className={`text-[10px] font-semibold ${
-                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
-                              🎁 Ahorro:
-                            </span>
-                            <span className={`text-xs font-bold ${
-                              ahorro > 0
-                                ? isDarkMode ? 'text-orange-400' : 'text-orange-600'
-                                : isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                            }`}>
-                              {formatMoneyDisplay(ahorro > 0 ? ahorro : 0)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className={`text-[10px] font-semibold ${
-                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
-                              📊 % Descuento:
-                            </span>
-                            <span className={`text-xs font-bold ${
-                              descuentoPct > 0
-                                ? isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
-                                : isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                            }`}>
-                              {descuentoPct.toFixed(1)}%
-                            </span>
-                          </div>
+                      {/* Columna Derecha: Ahorro y Descuento */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center">
+                          <span className={`text-[10px] font-semibold ${
+                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
+                            🎁 Descuento ($):
+                          </span>
+                          <span className={`text-xs font-bold ${
+                            calculatedTotals.ahorro > 0
+                              ? isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                              : isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                          }`}>
+                            {formatMoneyDisplay(calculatedTotals.ahorro)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className={`text-[10px] font-semibold ${
+                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
+                            📊 Ahorro (%):
+                          </span>
+                          <span className={`text-xs font-bold ${
+                            calculatedTotals.descuentoPct > 0
+                              ? isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
+                              : isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                          }`}>
+                            {calculatedTotals.descuentoPct.toFixed(1)}%
+                          </span>
                         </div>
                       </div>
                     </div>
-                  )
-                })()}
+                  </div>
+                )}
               </div>
             </div>
 
