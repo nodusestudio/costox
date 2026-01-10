@@ -11,10 +11,19 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 }
 
+console.log('🔥 Firebase Config:', {
+  hasApiKey: !!firebaseConfig.apiKey,
+  hasAuthDomain: !!firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  hasAppId: !!firebaseConfig.appId
+})
+
 // Inicializar Firebase
 const app = initializeApp(firebaseConfig)
 
 // Inicializar Firestore
 export const db = getFirestore(app)
+
+console.log('✅ Firebase y Firestore inicializados correctamente')
 
 export default app

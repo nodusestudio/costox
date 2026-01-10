@@ -18,13 +18,17 @@ const COLORS = [
 
 export default function CategoriesManager() {
   const { isDarkMode } = useI18n()
-  const { categories, saveCategory, deleteCategory } = useCategories()
+  const { categoriesRecipes, categoriesProducts, saveCategory, deleteCategory } = useCategories()
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [activeTab, setActiveTab] = useState('recipes') // 'recipes' o 'products'
   const [formData, setFormData] = useState({
     name: '',
     color: '#3B82F6',
   })
+
+  // Combinar categorías o mostrar según tab activo
+  const categories = activeTab === 'recipes' ? categoriesRecipes : categoriesProducts
 
   const handleOpenModal = (category = null) => {
     if (category) {
@@ -49,7 +53,9 @@ export default function CategoriesManager() {
       return
     }
 
-    const success = await saveCategory(formData, editingId)
+    console.log('🚀 Iniciando guardado desde CategoriesManager...', { formData, editingId, activeTab })
+    const success = await saveCategory(formData, editingId, activeTab)
+    console.log('🚀 Resultado del guardado:', success)
     if (success) {
       setShowModal(false)
     }
@@ -57,7 +63,7 @@ export default function CategoriesManager() {
 
   const handleDelete = async (id) => {
     if (window.confirm('¿Eliminar esta categoría?')) {
-      await deleteCategory(id)
+      await deleteCategory(id, activeTab)
     }
   }
 
@@ -78,6 +84,30 @@ export default function CategoriesManager() {
         >
           <Plus size={20} />
           Nueva Categoría
+        </button>
+      </div>
+
+      {/* Tabs para tipo de categoría */}
+      <div className="flex gap-2 border-b border-gray-700">
+        <button
+          onClick={() => setActiveTab('recipes')}
+          className={`px-4 py-2 font-medium transition-colors ${
+            activeTab === 'recipes'
+              ? 'text-primary-blue border-b-2 border-primary-blue'
+              : isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-800'
+          }`}
+        >
+          Recetas
+        </button>
+        <button
+          onClick={() => setActiveTab('products')}
+          className={`px-4 py-2 font-medium transition-colors ${
+            activeTab === 'products'
+              ? 'text-primary-blue border-b-2 border-primary-blue'
+              : isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-800'
+          }`}
+        >
+          Productos
         </button>
       </div>
 

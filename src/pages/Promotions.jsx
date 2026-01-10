@@ -8,11 +8,9 @@ import Modal from '@/components/Modal'
 import Button from '@/components/Button'
 import SearchSelect from '@/components/SearchSelect'
 import { useI18n } from '@/context/I18nContext'
-import { useCategories } from '@/context/CategoriesContext'
 
 export default function Promotions() {
   const { t, isDarkMode } = useI18n()
-  const { saveCategory, deleteCategory } = useCategories()
   const [categories, setCategories] = useState([])
   const [promotions, setPromotions] = useState([])
   const [products, setProducts] = useState([])
@@ -86,47 +84,50 @@ export default function Promotions() {
   }
 
   // Recalcular costos frescos del combo al editar
-  const recalculateCombo = async (items) => {
+  const recalculateCombo = (items) => {
     if (!items || items.length === 0) return []
     
-    return items.map(item => {
+    console.log('🔄 Recalculando combo con items:', items.length)
+    
+    const recalculated = items.map(item => {
       // Obtener datos actualizados de la BD
-      const liveData = getLiveItemData(item.type, item.id)
+      const liveData = getLiveItemData(item.type || 'product', item.id)
       
-      return {
+      const recalculatedItem = {
         type: item.type || 'product',
         id: item.id || '',
         quantity: item.cantidad || item.quantity || 1,
         optionalPrice: item.optionalPrice || 0
       }
+      
+      console.log('✅ Item recalculado:', liveData.name, '- Costo:', liveData.cost)
+      return recalculatedItem
     })
+    
+    return recalculated
   }
 
-  const handleOpenModal = async (promo = null) => {
+  const handleOpenModal = (promo = null) => {
     if (promo) {
-      setEditingId(promo.id)
-      setShowModal(true)
-      setModalLoading(true)
+      console.log('📂 Abriendo combo para editar:', promo.name, 'Items:', promo.items?.length)
       
-      try {
-        // Recalcular items con datos frescos
-        const itemsWithFreshData = await recalculateCombo(promo.items || [])
-        
-        setFormData({
-          name: String(promo.name || ''),
-          items: itemsWithFreshData,
-          promoPrice: Number(promo.promoPrice) || 0,
-          categoryId: String(promo.categoryId || ''),
-        })
-        
-        console.log('✅ Combo cargado con costos actualizados')
-      } catch (error) {
-        console.error('❌ Error cargando datos de promoción:', error)
-        alert('❌ Error al cargar los datos de la promoción')
-        setShowModal(false)
-      } finally {
-        setModalLoading(false)
-      }
+      setEditingId(promo.id)
+      
+      // Recalcular items con datos frescos ANTES de abrir modal
+      const itemsWithFreshData = recalculateCombo(promo.items || [])
+      
+      setFormData({
+        name: String(promo.name || ''),
+        items: itemsWithFreshData,
+        promoPrice: Number(promo.promoPrice) || 0,
+        categoryId: String(promo.categoryId || ''),
+      })
+      
+      // Abrir modal SIN loading para que se vea el recálculo inmediatamente
+      setModalLoading(false)
+      setShowModal(true)
+      
+      console.log('✅ Combo cargado con costos actualizados')
     } else {
       setEditingId(null)
       setFormData({
@@ -412,23 +413,44 @@ export default function Promotions() {
 
   // Manejar guardado de categoría
   const handleSaveCategory = async () => {
-    if (!categoryName.trim()) {
-      alert('El nombre de la categoría es requerido')
+    const sanitizedName = String(categoryName || '').trim()
+    
+    console.log('🚀 [Promotions] Intentando guardar categoría:', sanitizedName)
+    
+    if (!sanitizedName) {
+      alert('⚠️ El nombre de la categoría es requerido')
       return
     }
 
     try {
       if (editingCategory) {
-        await saveCategory({ ...editingCategory, name: categoryName }, 'promotions')
+        // Editar categoría existente
+        console.log('📝 Editando categoría existente:', editingCategory.id)
+        await saveDoc('categoriesPromotions', { name: sanitizedName }, editingCategory.id)
+        console.log('✅ Categoría editada:', sanitizedName)
       } else {
-        await saveCategory({ name: categoryName }, 'promotions')
+        // Crear nueva categoría
+        console.log('📝 Creando nueva categoría:', sanitizedName)
+        const newCategoryId = await saveDoc('categoriesPromotions', { 
+          name: sanitizedName,
+          createdAt: new Date().toISOString()
+        })
+        console.log('✅ Categoría creada:', sanitizedName, 'ID:', newCategoryId)
       }
+      
       setShowCategoryModal(false)
       setEditingCategory(null)
       setCategoryName('')
+      alert('✅ Categoría guardada correctamente')
+      
     } catch (error) {
-      console.error('Error saving category:', error)
-      alert('Error al guardar categoría')
+      console.error('❌ Error guardando categoría:', error)
+      console.error('❌ Detalles del error:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      })
+      alert(`❌ Error al guardar categoría:\n\n${error.message}`)
     }
   }
 
@@ -466,13 +488,13 @@ export default function Promotions() {
         </button>
       </div>
 
-      {/* Pestañas de Categoría */}
-      <div className={`flex gap-2 items-center border-b-2 pb-3 mb-6 ${
+      {/* Pestañas de Categoría - MOSTRAR TODAS SIN FILTRAR */}
+      <div className={`flex gap-2 items-center border-b-2 pb-3 mb-6 overflow-x-auto ${
         isDarkMode ? 'border-gray-700' : 'border-gray-200'
       }`}>
         <button
           onClick={() => setSelectedCategoryFilter(null)}
-          className={`px-6 py-2 font-semibold transition-all border-b-4 ${
+          className={`px-6 py-2 font-semibold transition-all border-b-4 whitespace-nowrap ${
             selectedCategoryFilter === null
               ? 'border-primary-blue text-primary-blue'
               : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -509,8 +531,15 @@ export default function Promotions() {
                 onClick={(e) => {
                   e.stopPropagation()
                   if (window.confirm(`¿Eliminar la categoría "${cat.name}"?`)) {
-                    deleteCategory(cat.id, 'promotions')
-                    setSelectedCategoryFilter(null)
+                    deleteDocument('categoriesPromotions', cat.id)
+                      .then(() => {
+                        console.log('✅ Categoría eliminada:', cat.name)
+                        setSelectedCategoryFilter(null)
+                      })
+                      .catch(error => {
+                        console.error('❌ Error eliminando categoría:', error)
+                        alert('Error al eliminar la categoría')
+                      })
                   }
                 }}
                 className="p-1 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg"

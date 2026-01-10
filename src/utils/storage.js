@@ -174,11 +174,21 @@ export const getCategories = async (type = 'recipes') => {
  * Guarda categoría por tipo (recipes, products)
  */
 export const saveCategory = async (category, id = null, type = 'recipes') => {
-  const collectionMap = {
-    recipes: COLLECTIONS.categoriesRecipes,
-    products: COLLECTIONS.categoriesProducts
+  try {
+    console.log('📝 Guardando categoría:', { category, id, type })
+    const collectionMap = {
+      recipes: COLLECTIONS.categoriesRecipes,
+      products: COLLECTIONS.categoriesProducts
+    }
+    const collectionName = collectionMap[type] || COLLECTIONS.categoriesRecipes
+    console.log('📦 Colección:', collectionName)
+    const result = await saveDoc(collectionName, category, id)
+    console.log('✅ Categoría guardada con ID:', result)
+    return result
+  } catch (error) {
+    console.error('❌ Error al guardar categoría:', error)
+    throw error
   }
-  return await saveDoc(collectionMap[type] || COLLECTIONS.categoriesRecipes, category, id)
 }
 
 /**

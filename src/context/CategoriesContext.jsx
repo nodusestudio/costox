@@ -40,13 +40,15 @@ export const CategoriesProvider = ({ children }) => {
 
   const handleSaveCategory = async (category, id = null, type = 'recipes') => {
     try {
-      await saveCategory(category, id, type)
+      console.log('🔄 CategoriesContext: Iniciando guardado...', { category, id, type })
+      const result = await saveCategory(category, id, type)
+      console.log('🔄 CategoriesContext: Guardado exitoso, recargando categorías...')
       await loadAllCategories()
       showToast('✅ Categoría guardada', 'success')
       return true
     } catch (error) {
-      console.error('Error saving category:', error)
-      showToast('Error al guardar categoría', 'error')
+      console.error('❌ CategoriesContext: Error saving category:', error)
+      showToast(`Error: ${error.message}`, 'error')
       return false
     }
   }
