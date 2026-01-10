@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, Tag } from 'lucide-react'
+import { Plus, Edit2, Trash2, Tag, Copy } from 'lucide-react'
 import { db } from '@/config/firebase'
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { getProducts, getRecipes, getIngredients, getAllDocs, saveDoc, deleteDocument } from '@/utils/storage'
@@ -167,6 +167,27 @@ export default function Promotions() {
       setShowModal(true)
       setModalLoading(false)
     }
+  }
+
+  const handleDuplicate = (promo) => {
+    console.log('📋 Duplicando combo:', promo.name)
+    
+    // Recalcular items con datos frescos
+    const itemsWithFreshData = recalculateCombo(promo.items || [])
+    
+    // Abrir modal como nuevo combo con datos del original
+    setEditingId(null) // NULL para crear uno nuevo
+    setFormData({
+      name: `${promo.name} (Copia)`,
+      items: itemsWithFreshData,
+      promoPrice: Number(promo.promoPrice) || 0,
+      categoryId: String(promo.categoryId || ''),
+    })
+    
+    setModalLoading(false)
+    setShowModal(true)
+    
+    console.log('✅ Combo duplicado, listo para guardar como nuevo')
   }
 
   const handleAddItem = (type = 'product') => {
@@ -678,11 +699,36 @@ export default function Promotions() {
                     <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                       {promo.name}
                     </h3>
-                    <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {(promo.items || []).length} item(s)
-                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {(promo.items || []).length} item(s)
+                      </p>
+                      {promo.categoryId && (() => {
+                        const category = categories.find(c => c.id === promo.categoryId)
+                        return category ? (
+                          <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${
+                            isDarkMode 
+                              ? 'bg-primary-blue/30 text-primary-blue border border-primary-blue/50' 
+                              : 'bg-primary-blue/10 text-primary-blue border border-primary-blue/30'
+                          }`}>
+                            📁 {category.name}
+                          </span>
+                        ) : null
+                      })()}
+                    </div>
                   </div>
                   <div className="flex gap-1">
+                    <button
+                      onClick={() => handleDuplicate(promo)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        isDarkMode
+                          ? 'hover:bg-[#111827] text-purple-400 hover:text-purple-300'
+                          : 'hover:bg-purple-50 text-purple-600 hover:text-purple-700'
+                      }`}
+                      title="Duplicar combo"
+                    >
+                      <Copy size={16} />
+                    </button>
                     <button
                       onClick={() => handleOpenModal(promo)}
                       className={`p-2 rounded-lg transition-colors ${
@@ -998,21 +1044,15 @@ export default function Promotions() {
                 isDarkMode ? 'bg-[#0a0e1a] border-gray-700' : 'bg-gray-50 border-gray-300'
               }`}>
                 {/* Cabecera */}
-                {(() => {
-                  const hasIngredients = formData.items.some(item => item.type === 'ingredient')
-                  return (
-                    <div className={`grid ${hasIngredients ? 'grid-cols-12' : 'grid-cols-10'} gap-2 p-3 border-b font-bold text-xs ${
-                      isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
-                    }`}>
-                      <div className="col-span-3">NOMBRE</div>
-                      <div className="col-span-2 text-center">CANT</div>
-                      <div className="col-span-2 text-right">COSTO</div>
-                      <div className="col-span-2 text-right">PRECIO AUTO</div>
-                      {hasIngredients && <div className="col-span-2 text-right">PRECIO VENTA</div>}
-                      <div className="col-span-1"></div>
-                    </div>
-                  )
-                })()}
+                <div className={`grid grid-cols-10 gap-2 p-3 border-b font-bold text-xs ${
+                  isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
+                }`}>
+                  <div className="col-span-3">NOMBRE</div>
+                  <div className="col-span-2 text-center">CANT</div>
+                  <div className="col-span-2 text-right">COSTO UNIT.</div>
+                  <div className="col-span-2 text-right">PRECIO VENTA</div>
+                  <div className="col-span-1"></div>
+                </div>
 
                 {/* Lista de Items */}
                 <div className="max-h-[300px] overflow-y-auto">
@@ -1044,12 +1084,13 @@ export default function Promotions() {
                       placeholder = 'Buscar ingrediente...'
                     }
 
-                    const itemPriceAuto = liveData.price * qty
-                    const itemPriceOptional = Number(item.optionalPrice) || 0
-                    const hasIngredients = formData.items.some(it => it.type === 'ingredient')
+                    // Precio: usar optionalPrice si existe, sino el precio auto del item
+                    const itemPriceDisplay = Number(item.optionalPrice) > 0 
+                      ? Number(item.optionalPrice) * qty
+                      : liveData.price * qty
 
                     return (
-                      <div key={index} className={`grid ${hasIngredients ? 'grid-cols-12' : 'grid-cols-10'} gap-2 p-3 border-b text-sm ${
+                      <div key={index} className={`grid grid-cols-10 gap-2 p-3 border-b text-sm ${
                         isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                       }`}>
                         <div className="col-span-3 flex items-center gap-2">
@@ -1090,46 +1131,40 @@ export default function Promotions() {
                           <span className="font-semibold text-xs truncate">{formatMoneyDisplay(itemCost)}</span>
                         </div>
 
-                        <div className={`col-span-2 flex items-center justify-end ${
-                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
-                          <span className="font-semibold text-xs truncate">{formatMoneyDisplay(itemPriceAuto)}</span>
+                        <div className="col-span-2 flex items-center justify-end">
+                          <input
+                            type="number"
+                            step="1000"
+                            min="0"
+                            value={item.optionalPrice || ''}
+                            onChange={(e) => handleItemChange(index, 'optionalPrice', parseFloat(e.target.value) || 0)}
+                            onFocus={(e) => e.target.select()}
+                            onDoubleClick={(e) => e.target.select()}
+                            className={`w-full px-2 py-1 rounded border text-right text-xs ${
+                              Number(item.optionalPrice) > 0
+                                ? isDarkMode
+                                  ? 'bg-green-900/30 border-green-600 text-green-300 font-bold'
+                                  : 'bg-green-50 border-green-400 text-green-700 font-bold'
+                                : isDarkMode
+                                ? 'bg-[#111827] border-gray-600 text-gray-400'
+                                : 'bg-white border-gray-300 text-gray-500'
+                            }`}
+                            placeholder={formatMoneyDisplay(liveData.price * qty)}
+                            title="Doble clic para editar precio de venta personalizado"
+                          />
                         </div>
 
-                        {hasIngredients && (
-                          <div className="col-span-2 flex items-center">
-                            {item.type === 'ingredient' ? (
-                              <input
-                                type="number"
-                                step="1000"
-                                min="0"
-                                value={item.optionalPrice || ''}
-                                onChange={(e) => {
-                                  const val = parseFloat(e.target.value) || 0
-                                  handleItemChange(index, 'optionalPrice', val)
-                                }}
-                                onFocus={(e) => e.target.select()}
-                                className={`w-full px-2 py-1 rounded border text-right text-xs font-bold ${
-                                  isDarkMode
-                                    ? 'bg-[#111827] border-green-600 text-green-400'
-                                    : 'bg-white border-green-300 text-green-600'
-                                }`}
-                                placeholder="$ 0"
-                              />
-                            ) : (
-                              <span className={`text-xs italic ${
-                                isDarkMode ? 'text-gray-600' : 'text-gray-400'
-                              }`}>N/A</span>
-                            )}
-                          </div>
-                        )}
-
-                        <div className="col-span-1 flex items-center justify-end">
+                        <div className="col-span-1 flex items-center justify-center">
                           <button
                             onClick={() => handleRemoveItem(index)}
-                            className="p-1 text-red-500 hover:bg-red-500/10 rounded flex-shrink-0"
+                            className={`p-1 rounded transition-colors ${
+                              isDarkMode
+                                ? 'hover:bg-red-900/30 text-red-400'
+                                : 'hover:bg-red-100 text-red-600'
+                            }`}
+                            title="Eliminar item"
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </div>
