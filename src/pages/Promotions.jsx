@@ -799,24 +799,32 @@ export default function Promotions() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPromotions.map(promo => {
-            // 🔥 USAR VALORES GUARDADOS EN FIREBASE para evitar desfase
-            const costoUnidad = Number(promo.costoUnidad) || 0
-            const pContribucion = Number(promo.pContribucion) || 0
-            const mContribucion = Number(promo.mContribucion) || 0
-            
-            // Recalcular solo para valores que no están en Firebase
-            const totals = calculateTotals(promo.items || [])
+            // 🔥 PRIORIZAR VALORES DE FIREBASE - Solo recalcular si no existen
             const promoPrice = Number(promo.promoPrice) || 0
-            const discountAmount = (totals.totalRegularPrice - promoPrice) || 0
-            const discountPercent = totals.totalRegularPrice > 0 
-              ? ((discountAmount / totals.totalRegularPrice) * 100) 
-              : 0
             
-            // Usar valores de Firebase si existen, sino calcular (retrocompatibilidad)
-            const margin = costoUnidad > 0 ? pContribucion : (promoPrice > 0
-              ? (((promoPrice - totals.totalCost) / promoPrice) * 100)
+            // PVP Regular: usar valor guardado, sino recalcular
+            const pvpRegular = Number(promo.pvpRegular) || Number(promo.totalPrecioCarta) || 0
+            const needsRecalc = pvpRegular === 0
+            const totals = needsRecalc ? calculateTotals(promo.items || []) : null
+            const pvpRegularFinal = pvpRegular > 0 ? pvpRegular : (totals?.totalRegularPrice || 0)
+            
+            // Descuento: usar valor guardado, sino recalcular
+            const descuentoMonto = Number(promo.descuentoMonto) || Number(promo.ahorroDinero) || 0
+            const ahorroPorcentaje = Number(promo.ahorroPorcentaje) || Number(promo.porcentajeDescuento) || 0
+            const discountAmount = descuentoMonto > 0 ? descuentoMonto : (pvpRegularFinal - promoPrice)
+            const discountPercent = ahorroPorcentaje > 0 ? ahorroPorcentaje : (
+              pvpRegularFinal > 0 ? ((discountAmount / pvpRegularFinal) * 100) : 0
+            )
+            
+            // Costo y contribución: usar valores guardados, sino recalcular
+            const costoUnidad = Number(promo.costoUnidad) || (totals?.totalCost || 0)
+            const pContribucion = Number(promo.pContribucion) || (promoPrice > 0
+              ? (((promoPrice - costoUnidad) / promoPrice) * 100)
               : 0)
-            const profit = costoUnidad > 0 ? mContribucion : (promoPrice - totals.totalCost)
+            const mContribucion = Number(promo.mContribucion) || (promoPrice - costoUnidad)
+            
+            const margin = pContribucion
+            const profit = mContribucion
 
             return (
               <div 
@@ -889,7 +897,7 @@ export default function Promotions() {
                       PVP Regular
                     </span>
                     <span className={`font-semibold line-through ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                      {formatMoneyDisplay(totals.totalRegularPrice)}
+                      {formatMoneyDisplay(pvpRegularFinal)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -907,7 +915,7 @@ export default function Promotions() {
                       COSTO UNIDAD (CT)
                     </span>
                     <span className={`font-bold text-xl ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                      {formatMoneyDisplay(costoUnidad > 0 ? costoUnidad : totals.totalCost)}
+                      {formatMoneyDisplay(costoUnidad)}
                     </span>
                   </div>
                 </div>
