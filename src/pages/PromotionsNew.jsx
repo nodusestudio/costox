@@ -335,11 +335,12 @@ export default function PromotionsNew() {
   // ===== DUPLICAR COMBO =====
   const handleDuplicate = async (promotion) => {
     try {
+      setEditingId(null)
       const duplicated = {
         ...promotion,
-        name: `${promotion.name} (Copia)`,
+        id: null,
+        name: `COPIA - ${promotion.name}`,
       }
-      delete duplicated.id
       await savePromotion(duplicated)
       showToast('✅ Combo duplicado exitosamente', 'success')
       await loadData()

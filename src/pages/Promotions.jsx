@@ -240,16 +240,18 @@ export default function Promotions() {
       const itemsWithFreshData = recalculateCombo(itemsOriginales)
       console.log(`✅ Items recalculados: ${itemsWithFreshData.length}`)
       
-      // 🔥 NOMBRE DISTINTIVO con sufijo (Copia)
-      const nombreCopia = `${promo.name || 'Combo'} (Copia)`
+      // 🔥 NOMBRE DISTINTIVO con prefijo COPIA -
+      const nombreCopia = `COPIA - ${promo.name || 'Combo'}`
       
-      // Crear copia limpia del combo SIN id (copia profunda)
+      // Crear copia limpia del combo con id: null (copia profunda)
       const comboDuplicado = {
+        ...promo,
+        id: null,
         name: nombreCopia,
         items: itemsWithFreshData,
         promoPrice: Number(promo.promoPrice) || 0,
         categoryId: String(promo.categoryId || ''),
-        // NO incluir id, createdAt, updatedAt (serán nuevos al guardar)
+        // NO incluir createdAt, updatedAt (serán nuevos al guardar)
       }
       
       console.log('✅ Combo duplicado (SIN ID):', {

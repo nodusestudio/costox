@@ -392,11 +392,12 @@ export default function ProductsNew() {
 
   const handleDuplicate = async (product) => {
     try {
+      setEditingId(null)
       const duplicated = {
         ...product,
-        name: `${product.name} (Copia)`,
+        id: null,
+        name: `COPIA - ${product.name}`,
       }
-      delete duplicated.id
       await saveProduct(duplicated)
       showToast('✅ Producto duplicado exitosamente', 'success')
       await loadData()
