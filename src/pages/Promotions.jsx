@@ -771,16 +771,21 @@ export default function Promotions() {
                 isDarkMode ? 'bg-[#0a0e1a] border-gray-700' : 'bg-gray-50 border-gray-300'
               }`}>
                 {/* Cabecera */}
-                <div className={`grid grid-cols-12 gap-2 p-3 border-b font-bold text-xs ${
-                  isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
-                }`}>
-                  <div className="col-span-3">NOMBRE</div>
-                  <div className="col-span-2 text-center">CANT</div>
-                  <div className="col-span-2 text-right">COSTO</div>
-                  <div className="col-span-2 text-right">PRECIO AUTO</div>
-                  <div className="col-span-2 text-right">PRECIO OPCIONAL</div>
-                  <div className="col-span-1"></div>
-                </div>
+                {(() => {
+                  const hasIngredients = formData.items.some(item => item.type === 'ingredient')
+                  return (
+                    <div className={`grid ${hasIngredients ? 'grid-cols-12' : 'grid-cols-10'} gap-2 p-3 border-b font-bold text-xs ${
+                      isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
+                    }`}>
+                      <div className="col-span-3">NOMBRE</div>
+                      <div className="col-span-2 text-center">CANT</div>
+                      <div className="col-span-2 text-right">COSTO</div>
+                      <div className="col-span-2 text-right">PRECIO AUTO</div>
+                      {hasIngredients && <div className="col-span-2 text-right">PRECIO VENTA</div>}
+                      <div className="col-span-1"></div>
+                    </div>
+                  )
+                })()}
 
                 {/* Lista de Items */}
                 <div className="max-h-[300px] overflow-y-auto">
@@ -814,9 +819,10 @@ export default function Promotions() {
 
                     const itemPriceAuto = liveData.price * qty
                     const itemPriceOptional = Number(item.optionalPrice) || 0
+                    const hasIngredients = formData.items.some(it => it.type === 'ingredient')
 
                     return (
-                      <div key={index} className={`grid grid-cols-12 gap-2 p-3 border-b text-sm ${
+                      <div key={index} className={`grid ${hasIngredients ? 'grid-cols-12' : 'grid-cols-10'} gap-2 p-3 border-b text-sm ${
                         isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                       }`}>
                         <div className="col-span-3 flex items-center gap-2">
@@ -863,25 +869,33 @@ export default function Promotions() {
                           <span className="font-semibold text-xs truncate">{formatMoneyDisplay(itemPriceAuto)}</span>
                         </div>
 
-                        <div className="col-span-2 flex items-center">
-                          <input
-                            type="number"
-                            step="1000"
-                            min="0"
-                            value={item.optionalPrice || ''}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value) || 0
-                              handleItemChange(index, 'optionalPrice', val)
-                            }}
-                            onFocus={(e) => e.target.select()}
-                            className={`w-full px-2 py-1 rounded border text-right text-xs font-bold ${
-                              isDarkMode
-                                ? 'bg-[#111827] border-green-600 text-green-400'
-                                : 'bg-white border-green-300 text-green-600'
-                            }`}
-                            placeholder="Opcional"
-                          />
-                        </div>
+                        {hasIngredients && (
+                          <div className="col-span-2 flex items-center">
+                            {item.type === 'ingredient' ? (
+                              <input
+                                type="number"
+                                step="1000"
+                                min="0"
+                                value={item.optionalPrice || ''}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value) || 0
+                                  handleItemChange(index, 'optionalPrice', val)
+                                }}
+                                onFocus={(e) => e.target.select()}
+                                className={`w-full px-2 py-1 rounded border text-right text-xs font-bold ${
+                                  isDarkMode
+                                    ? 'bg-[#111827] border-green-600 text-green-400'
+                                    : 'bg-white border-green-300 text-green-600'
+                                }`}
+                                placeholder="Precio"
+                              />
+                            ) : (
+                              <span className={`text-xs italic ${
+                                isDarkMode ? 'text-gray-600' : 'text-gray-400'
+                              }`}>N/A</span>
+                            )}
+                          </div>
+                        )}
 
                         <div className="col-span-1 flex items-center justify-end">
                           <button

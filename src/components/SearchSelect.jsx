@@ -37,9 +37,11 @@ const SearchSelect = memo(forwardRef(({
 
   // Memoizar filtrado de opciones para evitar recalcular en cada render
   const filteredOptions = useMemo(() => {
-    return (options ?? []).filter(option =>
-      option[displayKey]?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    return (options ?? []).filter(option => {
+      const displayValue = option[displayKey]
+      if (typeof displayValue !== 'string') return false
+      return displayValue.toLowerCase().includes(searchTerm.toLowerCase())
+    })
   }, [options, searchTerm, displayKey])
 
   // Memoizar opción seleccionada
