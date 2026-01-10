@@ -12,7 +12,8 @@ import { useCategories } from '@/context/CategoriesContext'
 
 export default function Promotions() {
   const { t, isDarkMode } = useI18n()
-  const { categoriesPromotions: categories = [], saveCategory, deleteCategory } = useCategories()
+  const { saveCategory, deleteCategory } = useCategories()
+  const [categories, setCategories] = useState([])
   const [promotions, setPromotions] = useState([])
   const [products, setProducts] = useState([])
   const [recipes, setRecipes] = useState([])
@@ -48,8 +49,22 @@ export default function Promotions() {
       }
     )
 
+    // Suscripción en tiempo real a categorías de promociones
+    const unsubscribeCategories = onSnapshot(
+      query(collection(db, 'categoriesPromotions'), orderBy('name', 'asc')),
+      (snapshot) => {
+        const categoriesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        setCategories(categoriesData)
+        console.log('✅ Categorías de promociones actualizadas:', categoriesData.length)
+      },
+      (error) => {
+        console.error('❌ Error en suscripción de categorías:', error)
+      }
+    )
+
     return () => {
       unsubscribePromotions()
+      unsubscribeCategories()
     }
   }, [])
 
