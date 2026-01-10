@@ -10,7 +10,7 @@ import { useCategories } from '@/context/CategoriesContext'
 
 export default function Promotions() {
   const { t, isDarkMode } = useI18n()
-  const { categoriesPromotions: categories, saveCategory, deleteCategory } = useCategories()
+  const { categoriesPromotions: categories = [], saveCategory, deleteCategory } = useCategories()
   const [promotions, setPromotions] = useState([])
   const [products, setProducts] = useState([])
   const [recipes, setRecipes] = useState([])
@@ -377,7 +377,7 @@ export default function Promotions() {
         >
           📋 Todas
         </button>
-        {categories.map(cat => (
+        {(categories || []).map(cat => (
           <div key={cat.id} className="relative group">
             <button
               onClick={() => setSelectedCategoryFilter(cat.id)}
@@ -610,7 +610,7 @@ export default function Promotions() {
                 🏷️ Categoría
               </label>
               <SearchSelect
-                options={categories.map(cat => ({ id: cat.id, name: cat.name }))}
+                options={(categories || []).map(cat => ({ id: cat.id, name: cat.name }))}
                 value={formData.categoryId}
                 onChange={(val) => setFormData(prev => ({ ...prev, categoryId: val }))}
                 placeholder="Seleccionar categoría..."
