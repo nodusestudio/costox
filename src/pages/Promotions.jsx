@@ -229,6 +229,9 @@ export default function Promotions() {
         return
       }
       
+      // 🔥 FORZAR MODO CREACIÓN - Limpiar editingId ANTES de todo
+      setEditingId(null)
+      
       // Inicializar items como array vacío si no existe
       const itemsOriginales = Array.isArray(promo.items) ? promo.items : []
       console.log(`🔄 Procesando ${itemsOriginales.length} items...`)
@@ -237,31 +240,57 @@ export default function Promotions() {
       const itemsWithFreshData = recalculateCombo(itemsOriginales)
       console.log(`✅ Items recalculados: ${itemsWithFreshData.length}`)
       
-      // Crear copia limpia SIN id (para que sea un nuevo combo)
-      const nombreCopia = `${promo.name || 'Combo'} (Copia)`
+      // 🔥 NOMBRE DISTINTIVO con prefijo COPIA
+      const nombreCopia = `COPIA - ${promo.name || 'Combo'}`
       
-      // Establecer editingId = NULL para modo creación
-      setEditingId(null)
-      
-      // Cargar datos en el formulario
-      setFormData({
+      // Crear copia limpia del combo SIN id (copia profunda)
+      const comboDuplicado = {
         name: nombreCopia,
         items: itemsWithFreshData,
         promoPrice: Number(promo.promoPrice) || 0,
         categoryId: String(promo.categoryId || ''),
+        // NO incluir id, createdAt, updatedAt (serán nuevos al guardar)
+      }
+      
+      console.log('✅ Combo duplicado (SIN ID):', {
+        nombre: comboDuplicado.name,
+        items: comboDuplicado.items.length,
+        precio: comboDuplicado.promoPrice,
+        tieneId: 'id' in comboDuplicado
       })
       
-      console.log('✅ Formulario cargado:', {
-        nombre: nombreCopia,
-        items: itemsWithFreshData.length,
-        precio: Number(promo.promoPrice) || 0
-      })
+      // Cargar datos en el formulario
+      setFormData(comboDuplicado)
+      
+      // 🔥 FORZAR RECÁLCULO INMEDIATO de totales
+      setTimeout(() => {
+        const totals = calculateTotals(itemsWithFreshData)
+        const promoPrice = Number(promo.promoPrice) || 0
+        const ahorro = totals.totalRegularPrice - promoPrice
+        const descuentoPct = totals.totalRegularPrice > 0 && ahorro > 0
+          ? (ahorro / totals.totalRegularPrice) * 100
+          : 0
+        
+        setCalculatedTotals({
+          totalCost: totals.totalCost,
+          totalRegularPrice: totals.totalRegularPrice,
+          ahorro: ahorro > 0 ? ahorro : 0,
+          descuentoPct: descuentoPct
+        })
+        
+        console.log('✅ Totales recalculados automáticamente:', {
+          costo: totals.totalCost,
+          pvpRegular: totals.totalRegularPrice,
+          descuento: ahorro,
+          ahorroPct: descuentoPct.toFixed(1) + '%'
+        })
+      }, 0)
       
       // Abrir modal después de cargar los datos
       setModalLoading(false)
       setShowModal(true)
       
-      console.log('✅ Modal abierto - Combo duplicado listo para guardar como nuevo')
+      console.log('✅ Modal abierto en MODO CREACIÓN - Nuevo combo listo para guardar')
     } catch (error) {
       console.error('❌ Error al duplicar combo:', error)
       console.error('Stack:', error.stack)
@@ -457,7 +486,7 @@ export default function Promotions() {
     setModalLoading(true)
     
     try {
-      // Calcular totales
+      // 🔥 USAR TOTALES CALCULADOS del estado para consistencia
       const totals = calculateTotals(formData.items)
       const promoPrice = Number(formData.promoPrice) || 0
       
@@ -494,17 +523,22 @@ export default function Promotions() {
         }
       })
 
-      // Objeto limpio sin undefined/NaN - VALIDAR categoryId
+      // 🔥 PERSISTENCIA TOTAL - Incluir todos los campos calculados
       const promoData = {
         name: sanitizedName,
         items: cleanItems,
         promoPrice: Number(promoPrice) || 0,
-        categoryId: sanitizedCategoryId, // ID normalizado como string
+        categoryId: sanitizedCategoryId,
+        // Campos calculados para persistencia
         totalCosto: Number(totals.totalCost) || 0,
         totalPrecioCarta: Number(totals.totalRegularPrice) || 0,
         ahorroDinero: Number(ahorro > 0 ? ahorro : 0) || 0,
         porcentajeDescuento: Number(descuentoPct) || 0,
-        // 🔥 NUEVOS CAMPOS para sincronización card-editor
+        // 🔥 NUEVOS CAMPOS del resumen (pvpRegular, descuentoMonto, ahorroPorcentaje)
+        pvpRegular: Number(totals.totalRegularPrice) || 0,
+        descuentoMonto: Number(ahorro > 0 ? ahorro : 0) || 0,
+        ahorroPorcentaje: Number(descuentoPct) || 0,
+        // Campos de sincronización card-editor
         costoUnidad: Number(costoUnidad) || 0,
         pContribucion: Number(pContribucion) || 0,
         mContribucion: Number(utilidadDinero) || 0,
@@ -1109,8 +1143,29 @@ export default function Promotions() {
                   <button
                     type="button"
                     onClick={() => {
+                      // 🔥 Aplicar precio sugerido
                       setFormData(prev => ({ ...prev, promoPrice: suggestedPrice }))
-                      console.log('✅ Precio sugerido aplicado:', formatMoneyDisplay(suggestedPrice))
+                      
+                      // 🔥 FORZAR RECÁLCULO INMEDIATO de totales
+                      setTimeout(() => {
+                        const ahorro = totals.totalRegularPrice - suggestedPrice
+                        const descuentoPct = totals.totalRegularPrice > 0 && ahorro > 0
+                          ? (ahorro / totals.totalRegularPrice) * 100
+                          : 0
+                        
+                        setCalculatedTotals({
+                          totalCost: totals.totalCost,
+                          totalRegularPrice: totals.totalRegularPrice,
+                          ahorro: ahorro > 0 ? ahorro : 0,
+                          descuentoPct: descuentoPct
+                        })
+                        
+                        console.log('✅ Precio sugerido aplicado y totales recalculados:', {
+                          precio: formatMoneyDisplay(suggestedPrice),
+                          descuento: formatMoneyDisplay(ahorro),
+                          ahorroPct: descuentoPct.toFixed(1) + '%'
+                        })
+                      }, 0)
                     }}
                     className={`px-3 py-1 rounded-md font-bold text-xs transition-all ${
                       isDarkMode
