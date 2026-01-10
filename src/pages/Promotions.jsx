@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Tag } from 'lucide-react'
+import { db } from '@/config/firebase'
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { getProducts, getRecipes, getIngredients, getAllDocs, saveDoc, deleteDocument } from '@/utils/storage'
 import { formatMoneyDisplay, roundToNearestThousand } from '@/utils/formatters'
 import Modal from '@/components/Modal'
@@ -31,18 +33,33 @@ export default function Promotions() {
   })
 
   useEffect(() => {
-    loadData()
+    loadStaticData()
+    
+    // Suscripción en tiempo real a promociones
+    const unsubscribePromotions = onSnapshot(
+      query(collection(db, 'promotions'), orderBy('updatedAt', 'desc')),
+      (snapshot) => {
+        const promoData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        setPromotions(promoData)
+        console.log('✅ Promociones actualizadas en tiempo real:', promoData.length)
+      },
+      (error) => {
+        console.error('❌ Error en suscripción de promociones:', error)
+      }
+    )
+
+    return () => {
+      unsubscribePromotions()
+    }
   }, [])
 
-  const loadData = async () => {
+  const loadStaticData = async () => {
     try {
-      const [promoData, prodData, recData, ingData] = await Promise.all([
-        getAllDocs('promotions'),
+      const [prodData, recData, ingData] = await Promise.all([
         getProducts(),
         getRecipes(),
         getIngredients()
       ])
-      setPromotions(Array.isArray(promoData) ? promoData : [])
       setProducts(Array.isArray(prodData) ? prodData : [])
       setRecipes(Array.isArray(recData) ? recData : [])
       setIngredients(Array.isArray(ingData) ? ingData : [])
@@ -53,6 +70,23 @@ export default function Promotions() {
     }
   }
 
+  // Recalcular costos frescos del combo al editar
+  const recalculateCombo = async (items) => {
+    if (!items || items.length === 0) return []
+    
+    return items.map(item => {
+      // Obtener datos actualizados de la BD
+      const liveData = getLiveItemData(item.type, item.id)
+      
+      return {
+        type: item.type || 'product',
+        id: item.id || '',
+        quantity: item.cantidad || item.quantity || 1,
+        optionalPrice: item.optionalPrice || 0
+      }
+    })
+  }
+
   const handleOpenModal = async (promo = null) => {
     if (promo) {
       setEditingId(promo.id)
@@ -60,29 +94,20 @@ export default function Promotions() {
       setModalLoading(true)
       
       try {
-        // Cargar items con datos frescos de Firebase
-        const itemsWithFreshData = await Promise.all(
-          (promo.items || []).map(async (item) => {
-            // Recalcular costos frescos
-            const liveData = getLiveItemData(item.type, item.id)
-            return {
-              type: item.type || 'product',
-              id: item.id || '',
-              quantity: item.cantidad || item.quantity || 1,
-              optionalPrice: item.optionalPrice || 0
-            }
-          })
-        )
+        // Recalcular items con datos frescos
+        const itemsWithFreshData = await recalculateCombo(promo.items || [])
         
         setFormData({
-          name: promo.name || '',
+          name: String(promo.name || ''),
           items: itemsWithFreshData,
           promoPrice: Number(promo.promoPrice) || 0,
-          categoryId: promo.categoryId || '',
+          categoryId: String(promo.categoryId || ''),
         })
+        
+        console.log('✅ Combo cargado con costos actualizados')
       } catch (error) {
         console.error('❌ Error cargando datos de promoción:', error)
-        alert('Error al cargar los datos de la promoción')
+        alert('❌ Error al cargar los datos de la promoción')
         setShowModal(false)
       } finally {
         setModalLoading(false)
@@ -262,8 +287,12 @@ export default function Promotions() {
   }
 
   const handleSave = async () => {
+    // Sanitizar datos - convertir a string para evitar error indexOf
+    const sanitizedName = String(formData.name || '').trim()
+    const sanitizedCategoryId = String(formData.categoryId || '')
+    
     // Validaciones
-    if (!formData.name.trim()) {
+    if (!sanitizedName) {
       alert('⚠️ El nombre del combo es requerido')
       return
     }
@@ -316,10 +345,10 @@ export default function Promotions() {
 
       // Objeto limpio sin undefined/NaN
       const promoData = {
-        name: formData.name.trim(),
+        name: sanitizedName,
         items: cleanItems,
         promoPrice: Number(promoPrice) || 0,
-        categoryId: formData.categoryId || '',
+        categoryId: sanitizedCategoryId,
         totalCosto: Number(totals.totalCost) || 0,
         totalPrecioCarta: Number(totals.totalRegularPrice) || 0,
         ahorroDinero: Number(ahorro > 0 ? ahorro : 0) || 0,
@@ -338,8 +367,7 @@ export default function Promotions() {
       
       console.log('✅ Promoción guardada exitosamente en Firebase')
       
-      // Recargar datos y cerrar solo si todo salió bien
-      await loadData()
+      // Cerrar modal - onSnapshot actualizará automáticamente la lista
       setShowModal(false)
       setModalLoading(false)
       
@@ -359,10 +387,11 @@ export default function Promotions() {
     if (!confirm('¿Eliminar este combo?')) return
     try {
       await deleteDocument('promotions', id)
-      await loadData()
+      // onSnapshot actualizará automáticamente la lista
+      console.log('✅ Combo eliminado')
     } catch (error) {
       console.error('Error deleting promotion:', error)
-      alert('Error al eliminar')
+      alert('❌ Error al eliminar el combo')
     }
   }
 
