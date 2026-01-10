@@ -858,7 +858,11 @@ export default function Promotions() {
                   </div>
                   <div className="flex gap-1">
                     <button
-                      onClick={() => handleDuplicate(promo)}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handleDuplicate(promo)
+                      }}
                       className={`p-2 rounded-lg transition-colors ${
                         isDarkMode
                           ? 'hover:bg-[#111827] text-purple-400 hover:text-purple-300'
