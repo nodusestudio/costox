@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Tag } from 'lucide-react'
 import { getProducts, getRecipes, getIngredients, getAllDocs, saveDoc, deleteDocument } from '@/utils/storage'
-import { formatMoneyDisplay } from '@/utils/formatters'
+import { formatMoneyDisplay, roundToNearestThousand } from '@/utils/formatters'
 import Modal from '@/components/Modal'
 import Button from '@/components/Button'
 import SearchSelect from '@/components/SearchSelect'
 import { useI18n } from '@/context/I18nContext'
+import { useCategories } from '@/context/CategoriesContext'
 
 export default function Promotions() {
   const { t, isDarkMode } = useI18n()
+  const { categoriesPromotions: categories, saveCategory, deleteCategory } = useCategories()
   const [promotions, setPromotions] = useState([])
   const [products, setProducts] = useState([])
   const [recipes, setRecipes] = useState([])
@@ -16,10 +18,15 @@ export default function Promotions() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(null)
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [editingCategory, setEditingCategory] = useState(null)
+  const [categoryName, setCategoryName] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     items: [],
     promoPrice: 0,
+    categoryId: '',
   })
 
   useEffect(() => {
@@ -52,6 +59,7 @@ export default function Promotions() {
         name: promo.name || '',
         items: Array.isArray(promo.items) ? promo.items : [],
         promoPrice: Number(promo.promoPrice) || 0,
+        categoryId: promo.categoryId || '',
       })
     } else {
       setEditingId(null)
@@ -59,15 +67,16 @@ export default function Promotions() {
         name: '',
         items: [],
         promoPrice: 0,
+        categoryId: '',
       })
     }
     setShowModal(true)
   }
 
-  const handleAddItem = () => {
+  const handleAddItem = (type = 'product') => {
     setFormData(prev => ({
       ...prev,
-      items: [...prev.items, { type: 'product', id: '', quantity: 1 }]
+      items: [...prev.items, { type, id: '', quantity: 1, optionalPrice: 0 }]
     }))
   }
 
@@ -259,6 +268,7 @@ export default function Promotions() {
         name: formData.name.trim(),
         items: cleanItems,
         promoPrice: Number(promoPrice) || 0,
+        categoryId: formData.categoryId || '',
         totalCosto: Number(totals.totalCost) || 0,
         totalPrecioCarta: Number(totals.totalRegularPrice) || 0,
         ahorroDinero: Number(ahorro > 0 ? ahorro : 0) || 0,
@@ -297,6 +307,33 @@ export default function Promotions() {
     }
   }
 
+  // Manejar guardado de categoría
+  const handleSaveCategory = async () => {
+    if (!categoryName.trim()) {
+      alert('El nombre de la categoría es requerido')
+      return
+    }
+
+    try {
+      if (editingCategory) {
+        await saveCategory({ ...editingCategory, name: categoryName }, 'promotions')
+      } else {
+        await saveCategory({ name: categoryName }, 'promotions')
+      }
+      setShowCategoryModal(false)
+      setEditingCategory(null)
+      setCategoryName('')
+    } catch (error) {
+      console.error('Error saving category:', error)
+      alert('Error al guardar categoría')
+    }
+  }
+
+  // Filtrar promociones por categoría seleccionada
+  const filteredPromotions = selectedCategoryFilter
+    ? promotions.filter(p => p.categoryId === selectedCategoryFilter)
+    : promotions
+
   if (loading) {
     return (
       <div className={`p-6 flex items-center justify-center ${isDarkMode ? 'bg-[#111827] text-white' : 'bg-white text-[#111827]'}`}>
@@ -326,14 +363,83 @@ export default function Promotions() {
         </button>
       </div>
 
-      {promotions.length === 0 ? (
+      {/* Pestañas de Categoría */}
+      <div className={`flex gap-2 items-center border-b-2 pb-3 mb-6 ${
+        isDarkMode ? 'border-gray-700' : 'border-gray-200'
+      }`}>
+        <button
+          onClick={() => setSelectedCategoryFilter(null)}
+          className={`px-6 py-2 font-semibold transition-all border-b-4 ${
+            selectedCategoryFilter === null
+              ? 'border-primary-blue text-primary-blue'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          📋 Todas
+        </button>
+        {categories.map(cat => (
+          <div key={cat.id} className="relative group">
+            <button
+              onClick={() => setSelectedCategoryFilter(cat.id)}
+              className={`px-6 py-2 font-semibold transition-all border-b-4 ${
+                selectedCategoryFilter === cat.id
+                  ? 'border-primary-blue text-primary-blue'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {cat.name}
+            </button>
+            <div className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setEditingCategory(cat)
+                  setCategoryName(cat.name)
+                  setShowCategoryModal(true)
+                }}
+                className="p-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg"
+                title="Editar categoría"
+              >
+                <Edit2 size={12} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (window.confirm(`¿Eliminar la categoría "${cat.name}"?`)) {
+                    deleteCategory(cat.id, 'promotions')
+                    setSelectedCategoryFilter(null)
+                  }
+                }}
+                className="p-1 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg"
+                title="Eliminar categoría"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          </div>
+        ))}
+        <button
+          onClick={() => {
+            setEditingCategory(null)
+            setCategoryName('')
+            setShowCategoryModal(true)
+          }}
+          className="px-4 py-2 text-sm bg-gray-500 hover:bg-gray-600 text-white rounded-lg"
+        >
+          + Categoría
+        </button>
+      </div>
+
+      {filteredPromotions.length === 0 ? (
         <div className={`rounded-lg p-12 text-center border ${isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'}`}>
           <Tag size={48} className="mx-auto mb-4 text-gray-500" />
-          <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>No hay combos registrados</p>
+          <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+            {selectedCategoryFilter ? 'No hay promociones en esta categoría' : 'No hay combos registrados'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {promotions.map(promo => {
+          {filteredPromotions.map(promo => {
             const totals = calculateTotals(promo.items || [])
             const promoPrice = Number(promo.promoPrice) || 0
             const discountAmount = (totals.totalRegularPrice - promoPrice) || 0
@@ -498,6 +604,21 @@ export default function Promotions() {
               />
             </div>
 
+            {/* Categoría */}
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                🏷️ Categoría
+              </label>
+              <SearchSelect
+                options={categories.map(cat => ({ id: cat.id, name: cat.name }))}
+                value={formData.categoryId}
+                onChange={(val) => setFormData(prev => ({ ...prev, categoryId: val }))}
+                placeholder="Seleccionar categoría..."
+                displayKey="name"
+                valueKey="id"
+              />
+            </div>
+
             {/* Precio de Venta - Centro con recuadro verde */}
             <div className={`p-6 rounded-xl border-2 text-center ${
               isDarkMode
@@ -507,21 +628,21 @@ export default function Promotions() {
               <label className={`block text-sm font-bold mb-3 ${
                 isDarkMode ? 'text-green-300' : 'text-green-700'
               }`}>
-                💵 PRECIO DE VENTA
+                💵 PRECIO DE VENTA DEL COMBO
               </label>
               <input
                 type="number"
-                step="100"
+                step="1000"
                 min="0"
                 value={formData.promoPrice}
                 onChange={(e) => setFormData(prev => ({ ...prev, promoPrice: e.target.value }))}
                 onFocus={(e) => e.target.select()}
-                className={`w-40 px-3 py-1 rounded-lg border-2 font-black text-center ${
+                className={`w-48 px-4 py-2 rounded-lg border-2 font-black text-center ${
                   isDarkMode
                     ? 'bg-[#0a2818] border-green-500 text-green-300'
                     : 'bg-white border-green-500 text-green-700'
                 }`}
-                style={{ fontSize: '2rem' }}
+                style={{ fontSize: '2.5rem' }}
                 placeholder="$ 0"
               />
             </div>
@@ -588,6 +709,34 @@ export default function Promotions() {
               )
             })()}
 
+            {/* Precio Sugerido */}
+            {formData.items.length > 0 && (() => {
+              const totals = calculateTotals(formData.items)
+              const suggestedPrice = roundToNearestThousand(totals.totalCost * 1.4) // 40% markup mínimo
+              
+              return (
+                <div className={`p-4 rounded-lg border-2 text-center ${
+                  isDarkMode ? 'bg-yellow-950/30 border-yellow-600' : 'bg-yellow-50 border-yellow-400'
+                }`}>
+                  <div className={`text-xs font-bold mb-2 ${
+                    isDarkMode ? 'text-yellow-300' : 'text-yellow-700'
+                  }`}>
+                    💡 PRECIO SUGERIDO (redondeado al millar)
+                  </div>
+                  <div className={`text-3xl font-black ${
+                    isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
+                  }`}>
+                    {formatMoneyDisplay(suggestedPrice)}
+                  </div>
+                  <div className={`text-xs mt-1 ${
+                    isDarkMode ? 'text-yellow-400/70' : 'text-yellow-600/70'
+                  }`}>
+                    Con 40% de margen mínimo
+                  </div>
+                </div>
+              )
+            })()}
+
             {/* Items del Combo */}
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -598,37 +747,22 @@ export default function Promotions() {
                 </h4>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        items: [...prev.items, { type: 'product', id: '', quantity: 1, optionalPrice: 0 }]
-                      }))
-                    }}
+                    onClick={() => handleAddItem('product')}
                     className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium"
                   >
-                    + Producto
+                    📦 P + Producto
                   </button>
                   <button
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        items: [...prev.items, { type: 'recipe', id: '', quantity: 1, optionalPrice: 0 }]
-                      }))
-                    }}
+                    onClick={() => handleAddItem('recipe')}
                     className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-xs font-medium"
                   >
-                    + Receta
+                    🍖 R + Receta
                   </button>
                   <button
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        items: [...prev.items, { type: 'ingredient', id: '', quantity: 1, optionalPrice: 0 }]
-                      }))
-                    }}
+                    onClick={() => handleAddItem('ingredient')}
                     className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-md text-xs font-medium"
                   >
-                    + Ingrediente
+                    🥕 I + Ingrediente
                   </button>
                 </div>
               </div>
@@ -732,17 +866,20 @@ export default function Promotions() {
                         <div className="col-span-2 flex items-center">
                           <input
                             type="number"
-                            step="0.01"
+                            step="1000"
                             min="0"
                             value={item.optionalPrice || ''}
-                            onChange={(e) => handleItemChange(index, 'optionalPrice', parseFloat(e.target.value) || 0)}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0
+                              handleItemChange(index, 'optionalPrice', val)
+                            }}
                             onFocus={(e) => e.target.select()}
-                            className={`w-full px-2 py-1 rounded border text-right text-xs ${
+                            className={`w-full px-2 py-1 rounded border text-right text-xs font-bold ${
                               isDarkMode
-                                ? 'bg-[#111827] border-gray-600 text-green-400'
-                                : 'bg-white border-gray-300 text-green-600'
+                                ? 'bg-[#111827] border-green-600 text-green-400'
+                                : 'bg-white border-green-300 text-green-600'
                             }`}
-                            placeholder="0"
+                            placeholder="Opcional"
                           />
                         </div>
 
@@ -864,6 +1001,47 @@ export default function Promotions() {
                 className="flex-1 bg-primary-blue hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
               >
                 {editingId ? 'Guardar Cambios' : 'Crear Combo'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal de Categorías */}
+      {showCategoryModal && (
+        <Modal onClose={() => setShowCategoryModal(false)}>
+          <div className={`p-6 rounded-lg ${isDarkMode ? 'bg-[#1f2937]' : 'bg-white'}`}>
+            <h2 className="text-2xl font-bold mb-4">
+              {editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
+            </h2>
+            <input
+              type="text"
+              value={categoryName}
+              onChange={(e) => setCategoryName(e.target.value)}
+              placeholder="Nombre de la categoría"
+              className={`w-full px-4 py-2 rounded-lg border ${
+                isDarkMode
+                  ? 'bg-gray-700 border-gray-600 text-white'
+                  : 'bg-white border-gray-300 text-gray-900'
+              }`}
+              autoFocus
+            />
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowCategoryModal(false)}
+                className={`flex-1 px-4 py-2 rounded-lg ${
+                  isDarkMode
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                }`}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveCategory}
+                className="flex-1 bg-primary-blue hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
+              >
+                Guardar
               </button>
             </div>
           </div>

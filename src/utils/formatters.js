@@ -92,3 +92,13 @@ export const obtenerPrecioGramo = (precioCompra, pesoEmpaqueTotal, porcentajeMer
   
   return precioPorGramo
 }
+
+/**
+ * Redondea un valor al millar superior
+ * Ejemplo: 16.846 → 17.000
+ *          25.250 → 26.000
+ */
+export const roundToNearestThousand = (value) => {
+  if (!value || value <= 0) return 0
+  return Math.ceil(value / 1000) * 1000
+}
