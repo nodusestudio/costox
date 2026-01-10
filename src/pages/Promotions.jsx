@@ -155,6 +155,16 @@ export default function Promotions() {
       setModalLoading(false)
       setShowModal(true)
       
+      // 🔥 EJECUTAR calculateTotals INMEDIATAMENTE para llenar indicadores
+      setTimeout(() => {
+        const totals = calculateTotals(itemsWithFreshData)
+        console.log('✅ Recálculo automático al abrir:', {
+          costoTotal: totals.totalCost,
+          precioVenta: promo.promoPrice,
+          margen: ((promo.promoPrice - totals.totalCost) / promo.promoPrice * 100).toFixed(1) + '%'
+        })
+      }, 0)
+      
       console.log('✅ Combo cargado con costos actualizados')
     } else {
       setEditingId(null)
@@ -394,6 +404,11 @@ export default function Promotions() {
         ? (ahorro / totals.totalRegularPrice) * 100
         : 0
 
+      // 🔥 CALCULAR CT Y P-CONTRIBUCIÓN para sincronización card-editor
+      const costoUnidad = Number(totals.totalCost) || 0
+      const utilidadDinero = promoPrice - costoUnidad
+      const pContribucion = promoPrice > 0 ? ((utilidadDinero / promoPrice) * 100) : 0
+
       // Mapear items con estructura limpia
       const cleanItems = formData.items.map(item => {
         const liveData = getLiveItemData(item.type, item.id)
@@ -420,6 +435,10 @@ export default function Promotions() {
         totalPrecioCarta: Number(totals.totalRegularPrice) || 0,
         ahorroDinero: Number(ahorro > 0 ? ahorro : 0) || 0,
         porcentajeDescuento: Number(descuentoPct) || 0,
+        // 🔥 NUEVOS CAMPOS para sincronización card-editor
+        costoUnidad: Number(costoUnidad) || 0,
+        pContribucion: Number(pContribucion) || 0,
+        mContribucion: Number(utilidadDinero) || 0,
         updatedAt: new Date().toISOString()
       }
       
@@ -619,41 +638,42 @@ export default function Promotions() {
                 {cat.name} ({categoryPromoCount})
               </button>
               <div className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setEditingCategory(cat)
-                  setCategoryName(cat.name)
-                  setShowCategoryModal(true)
-                }}
-                className="p-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg"
-                title="Editar categoría"
-              >
-                <Edit2 size={12} />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (window.confirm(`¿Eliminar la categoría "${cat.name}"?`)) {
-                    deleteDocument('categoriesPromotions', cat.id)
-                      .then(() => {
-                        console.log('✅ Categoría eliminada:', cat.name)
-                        setSelectedCategoryFilter(null)
-                      })
-                      .catch(error => {
-                        console.error('❌ Error eliminando categoría:', error)
-                        alert('Error al eliminar la categoría')
-                      })
-                  }
-                }}
-                className="p-1 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg"
-                title="Eliminar categoría"
-              >
-                <Trash2 size={12} />
-              </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setEditingCategory(cat)
+                    setCategoryName(cat.name)
+                    setShowCategoryModal(true)
+                  }}
+                  className="p-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg"
+                  title="Editar categoría"
+                >
+                  <Edit2 size={12} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (window.confirm(`¿Eliminar la categoría "${cat.name}"?`)) {
+                      deleteDocument('categoriesPromotions', cat.id)
+                        .then(() => {
+                          console.log('✅ Categoría eliminada:', cat.name)
+                          setSelectedCategoryFilter(null)
+                        })
+                        .catch(error => {
+                          console.error('❌ Error eliminando categoría:', error)
+                          alert('Error al eliminar la categoría')
+                        })
+                    }
+                  }}
+                  className="p-1 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg"
+                  title="Eliminar categoría"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
         <button
           onClick={() => {
             setEditingCategory(null)
@@ -676,16 +696,24 @@ export default function Promotions() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPromotions.map(promo => {
+            // 🔥 USAR VALORES GUARDADOS EN FIREBASE para evitar desfase
+            const costoUnidad = Number(promo.costoUnidad) || 0
+            const pContribucion = Number(promo.pContribucion) || 0
+            const mContribucion = Number(promo.mContribucion) || 0
+            
+            // Recalcular solo para valores que no están en Firebase
             const totals = calculateTotals(promo.items || [])
             const promoPrice = Number(promo.promoPrice) || 0
             const discountAmount = (totals.totalRegularPrice - promoPrice) || 0
             const discountPercent = totals.totalRegularPrice > 0 
               ? ((discountAmount / totals.totalRegularPrice) * 100) 
               : 0
-            const margin = promoPrice > 0
+            
+            // Usar valores de Firebase si existen, sino calcular (retrocompatibilidad)
+            const margin = costoUnidad > 0 ? pContribucion : (promoPrice > 0
               ? (((promoPrice - totals.totalCost) / promoPrice) * 100)
-              : 0
-            const profit = promoPrice - totals.totalCost
+              : 0)
+            const profit = costoUnidad > 0 ? mContribucion : (promoPrice - totals.totalCost)
 
             return (
               <div 
@@ -776,7 +804,7 @@ export default function Promotions() {
                       COSTO UNIDAD (CT)
                     </span>
                     <span className={`font-bold text-xl ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                      {formatMoneyDisplay(totals.totalCost)}
+                      {formatMoneyDisplay(costoUnidad > 0 ? costoUnidad : totals.totalCost)}
                     </span>
                   </div>
                 </div>
@@ -1006,6 +1034,20 @@ export default function Promotions() {
                   }`}>
                     Con 40% de margen mínimo
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, promoPrice: suggestedPrice }))
+                      console.log('✅ Precio sugerido aplicado:', formatMoneyDisplay(suggestedPrice))
+                    }}
+                    className={`mt-3 px-6 py-2 rounded-lg font-bold text-sm transition-all ${
+                      isDarkMode
+                        ? 'bg-yellow-600 hover:bg-yellow-500 text-white'
+                        : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                    }`}
+                  >
+                    ⚡ Aplicar Precio Sugerido
+                  </button>
                 </div>
               )
             })()}
