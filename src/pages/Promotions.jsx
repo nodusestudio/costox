@@ -166,7 +166,7 @@ export default function Promotions() {
       console.log(`✅ Producto recalculado: ${product.name} - Costo: ${cost}, Precio: ${price}`)
       
       return { cost, price, name: product.name || '' }
-    } else {
+    } else if (type === 'recipe') {
       // Para recetas, usar totalCost directamente
       const recipe = recipes.find(r => r.id === id)
       if (!recipe) {
@@ -180,7 +180,22 @@ export default function Promotions() {
       console.log(`✅ Receta cargada: ${recipe.name} - Costo: ${cost}`)
       
       return { cost, price, name: recipe.name || '' }
+    } else if (type === 'ingredient') {
+      // Para ingredientes, usar costoPorGramo o costWithWastage
+      const ingredient = ingredients.find(i => i.id === id)
+      if (!ingredient) {
+        console.warn(`⚠️ Ingrediente no encontrado: id=${id}`)
+        return { cost: 0, price: 0, name: '' }
+      }
+      
+      const cost = Number(ingredient.costoPorGramo || ingredient.costWithWastage || 0)
+      const price = 0 // Los ingredientes no tienen precio de venta
+      
+      console.log(`✅ Ingrediente cargado: ${ingredient.name} - Costo/g: ${cost}`)
+      
+      return { cost, price, name: ingredient.name || '' }
     }
+    return { cost: 0, price: 0, name: '' }
   }
 
   // Calcular totales en tiempo real
@@ -192,7 +207,10 @@ export default function Promotions() {
       const qty = Number(item.quantity) || 0
       const liveData = getLiveItemData(item.type, item.id)
       totalCost += liveData.cost * qty
-      totalRegularPrice += liveData.price * qty
+      
+      // Usar precio opcional si existe, sino el precio del item
+      const itemPrice = Number(item.optionalPrice) > 0 ? Number(item.optionalPrice) : liveData.price
+      totalRegularPrice += itemPrice * qty
     })
 
     return {
@@ -231,7 +249,8 @@ export default function Promotions() {
           nombre: liveData.name || '',
           cantidad: qty,
           costoUnitario: Number(liveData.cost) || 0,
-          precioVenta: Number(liveData.price) || 0
+          precioVenta: Number(liveData.price) || 0,
+          optionalPrice: Number(item.optionalPrice) || 0
         }
       })
 
@@ -582,7 +601,7 @@ export default function Promotions() {
                     onClick={() => {
                       setFormData(prev => ({
                         ...prev,
-                        items: [...prev.items, { type: 'product', id: '', quantity: 1 }]
+                        items: [...prev.items, { type: 'product', id: '', quantity: 1, optionalPrice: 0 }]
                       }))
                     }}
                     className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium"
@@ -593,12 +612,23 @@ export default function Promotions() {
                     onClick={() => {
                       setFormData(prev => ({
                         ...prev,
-                        items: [...prev.items, { type: 'recipe', id: '', quantity: 1 }]
+                        items: [...prev.items, { type: 'recipe', id: '', quantity: 1, optionalPrice: 0 }]
                       }))
                     }}
                     className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-xs font-medium"
                   >
                     + Receta
+                  </button>
+                  <button
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        items: [...prev.items, { type: 'ingredient', id: '', quantity: 1, optionalPrice: 0 }]
+                      }))
+                    }}
+                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-md text-xs font-medium"
+                  >
+                    + Ingrediente
                   </button>
                 </div>
               </div>
@@ -610,10 +640,11 @@ export default function Promotions() {
                 <div className={`grid grid-cols-12 gap-2 p-3 border-b font-bold text-xs ${
                   isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
                 }`}>
-                  <div className="col-span-4">NOMBRE</div>
+                  <div className="col-span-3">NOMBRE</div>
                   <div className="col-span-2 text-center">CANT</div>
                   <div className="col-span-2 text-right">COSTO</div>
-                  <div className="col-span-3 text-right">PRECIO VENTA</div>
+                  <div className="col-span-2 text-right">PRECIO AUTO</div>
+                  <div className="col-span-2 text-right">PRECIO OPCIONAL</div>
                   <div className="col-span-1"></div>
                 </div>
 
@@ -623,21 +654,40 @@ export default function Promotions() {
                     const liveData = getLiveItemData(item.type, item.id)
                     const qty = Number(item.quantity) || 1
                     const itemCost = liveData.cost * qty
-                    const sourceList = item.type === 'product' ? products : recipes
+                    
+                    // Determinar lista de origen según tipo
+                    let sourceList = []
+                    let badgeColor = ''
+                    let badgeLabel = ''
+                    let placeholder = ''
+                    
+                    if (item.type === 'product') {
+                      sourceList = products
+                      badgeColor = 'bg-blue-500/20 text-blue-400'
+                      badgeLabel = '📦 P'
+                      placeholder = 'Buscar producto...'
+                    } else if (item.type === 'recipe') {
+                      sourceList = recipes
+                      badgeColor = 'bg-purple-500/20 text-purple-400'
+                      badgeLabel = '🍖 R'
+                      placeholder = 'Buscar receta...'
+                    } else if (item.type === 'ingredient') {
+                      sourceList = ingredients
+                      badgeColor = 'bg-green-500/20 text-green-400'
+                      badgeLabel = '🥕 I'
+                      placeholder = 'Buscar ingrediente...'
+                    }
 
-                    const itemPrice = liveData.price * qty
+                    const itemPriceAuto = liveData.price * qty
+                    const itemPriceOptional = Number(item.optionalPrice) || 0
 
                     return (
                       <div key={index} className={`grid grid-cols-12 gap-2 p-3 border-b text-sm ${
                         isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                       }`}>
-                        <div className="col-span-4 flex items-center gap-2">
-                          <span className={`text-xs font-semibold px-2 py-1 rounded ${
-                            item.type === 'product'
-                              ? 'bg-blue-500/20 text-blue-400'
-                              : 'bg-purple-500/20 text-purple-400'
-                          }`}>
-                            {item.type === 'product' ? '📦 P' : '🍖 R'}
+                        <div className="col-span-3 flex items-center gap-2">
+                          <span className={`text-xs font-semibold px-2 py-1 rounded ${badgeColor}`}>
+                            {badgeLabel}
                           </span>
                           <SearchSelect
                             options={sourceList}
@@ -645,7 +695,7 @@ export default function Promotions() {
                             onChange={(val) => handleItemChange(index, 'id', val)}
                             displayKey="name"
                             valueKey="id"
-                            placeholder={`Buscar ${item.type === 'product' ? 'producto' : 'receta'}...`}
+                            placeholder={placeholder}
                             className="flex-1"
                           />
                         </div>
@@ -673,10 +723,27 @@ export default function Promotions() {
                           <span className="font-semibold text-xs truncate">{formatMoneyDisplay(itemCost)}</span>
                         </div>
 
-                        <div className={`col-span-3 flex items-center justify-end ${
-                          isDarkMode ? 'text-green-400' : 'text-green-600'
+                        <div className={`col-span-2 flex items-center justify-end ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
                         }`}>
-                          <span className="font-semibold text-xs truncate">{formatMoneyDisplay(itemPrice)}</span>
+                          <span className="font-semibold text-xs truncate">{formatMoneyDisplay(itemPriceAuto)}</span>
+                        </div>
+
+                        <div className="col-span-2 flex items-center">
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={item.optionalPrice || ''}
+                            onChange={(e) => handleItemChange(index, 'optionalPrice', parseFloat(e.target.value) || 0)}
+                            onFocus={(e) => e.target.select()}
+                            className={`w-full px-2 py-1 rounded border text-right text-xs ${
+                              isDarkMode
+                                ? 'bg-[#111827] border-gray-600 text-green-400'
+                                : 'bg-white border-gray-300 text-green-600'
+                            }`}
+                            placeholder="0"
+                          />
                         </div>
 
                         <div className="col-span-1 flex items-center justify-end">
