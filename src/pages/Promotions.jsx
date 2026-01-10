@@ -18,6 +18,7 @@ export default function Promotions() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [modalLoading, setModalLoading] = useState(false)
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(null)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
@@ -52,15 +53,40 @@ export default function Promotions() {
     }
   }
 
-  const handleOpenModal = (promo = null) => {
+  const handleOpenModal = async (promo = null) => {
     if (promo) {
       setEditingId(promo.id)
-      setFormData({
-        name: promo.name || '',
-        items: Array.isArray(promo.items) ? promo.items : [],
-        promoPrice: Number(promo.promoPrice) || 0,
-        categoryId: promo.categoryId || '',
-      })
+      setShowModal(true)
+      setModalLoading(true)
+      
+      try {
+        // Cargar items con datos frescos de Firebase
+        const itemsWithFreshData = await Promise.all(
+          (promo.items || []).map(async (item) => {
+            // Recalcular costos frescos
+            const liveData = getLiveItemData(item.type, item.id)
+            return {
+              type: item.type || 'product',
+              id: item.id || '',
+              quantity: item.cantidad || item.quantity || 1,
+              optionalPrice: item.optionalPrice || 0
+            }
+          })
+        )
+        
+        setFormData({
+          name: promo.name || '',
+          items: itemsWithFreshData,
+          promoPrice: Number(promo.promoPrice) || 0,
+          categoryId: promo.categoryId || '',
+        })
+      } catch (error) {
+        console.error('❌ Error cargando datos de promoción:', error)
+        alert('Error al cargar los datos de la promoción')
+        setShowModal(false)
+      } finally {
+        setModalLoading(false)
+      }
     } else {
       setEditingId(null)
       setFormData({
@@ -69,8 +95,9 @@ export default function Promotions() {
         promoPrice: 0,
         categoryId: '',
       })
+      setShowModal(true)
+      setModalLoading(false)
     }
-    setShowModal(true)
   }
 
   const handleAddItem = (type = 'product') => {
@@ -235,19 +262,37 @@ export default function Promotions() {
   }
 
   const handleSave = async () => {
+    // Validaciones
     if (!formData.name.trim()) {
-      alert('El nombre es requerido')
+      alert('⚠️ El nombre del combo es requerido')
       return
     }
     if (formData.items.length === 0) {
-      alert('Agrega al menos 1 item al combo')
+      alert('⚠️ Agrega al menos 1 item al combo')
+      return
+    }
+    
+    // Validar que todos los items tengan ID
+    const emptyItems = formData.items.filter(item => !item.id)
+    if (emptyItems.length > 0) {
+      alert('⚠️ Todos los items deben tener un producto/receta/ingrediente seleccionado')
       return
     }
 
+    setModalLoading(true)
+    
     try {
       // Calcular totales
       const totals = calculateTotals(formData.items)
       const promoPrice = Number(formData.promoPrice) || 0
+      
+      // Validar que el precio no sea 0
+      if (promoPrice <= 0) {
+        alert('⚠️ El precio de venta del combo debe ser mayor a 0')
+        setModalLoading(false)
+        return
+      }
+      
       const ahorro = totals.totalRegularPrice - promoPrice
       const descuentoPct = totals.totalRegularPrice > 0 && ahorro > 0
         ? (ahorro / totals.totalRegularPrice) * 100
@@ -284,21 +329,29 @@ export default function Promotions() {
 
       console.log('📝 Guardando promoción:', promoData)
 
+      // ESPERAR confirmación de Firebase antes de cerrar
       if (editingId) {
         await saveDoc('promotions', promoData, editingId)
       } else {
         await saveDoc('promotions', { ...promoData, createdAt: new Date().toISOString() })
       }
       
-      console.log('✅ Promoción guardada exitosamente')
+      console.log('✅ Promoción guardada exitosamente en Firebase')
+      
+      // Recargar datos y cerrar solo si todo salió bien
       await loadData()
       setShowModal(false)
+      setModalLoading(false)
+      
     } catch (error) {
       console.error('❌ Error detallado al guardar promoción:', error)
       console.error('Error name:', error.name)
       console.error('Error message:', error.message)
       console.error('Error stack:', error.stack)
-      alert(`Error al guardar: ${error.message || 'Error desconocido'}`)
+      
+      // NO cerrar modal para evitar pérdida de datos
+      alert(`❌ Error al guardar en Firebase:\n\n${error.message || 'Error desconocido'}\n\nPor favor intenta de nuevo. Tus datos NO se han perdido.`)
+      setModalLoading(false)
     }
   }
 
@@ -589,9 +642,21 @@ export default function Promotions() {
       {showModal && (
         <Modal
           title={editingId ? 'Editar Combo' : 'Nuevo Combo'}
-          onClose={() => setShowModal(false)}
+          onClose={() => !modalLoading && setShowModal(false)}
         >
-          <div className="space-y-6">
+          <div className="space-y-6 relative">
+            {/* Loading Overlay */}
+            {modalLoading && (
+              <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center rounded-lg">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue mx-auto mb-3"></div>
+                  <p className="text-white font-semibold">
+                    {editingId ? 'Cargando datos...' : 'Guardando...'}
+                  </p>
+                </div>
+              </div>
+            )}
+            
             {/* Nombre del Combo */}
             <div>
               <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -1008,8 +1073,11 @@ export default function Promotions() {
             <div className="flex gap-3 pt-4">
               <button
                 onClick={() => setShowModal(false)}
+                disabled={modalLoading}
                 className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
-                  isDarkMode
+                  modalLoading
+                    ? 'bg-gray-500 cursor-not-allowed opacity-50'
+                    : isDarkMode
                     ? 'bg-gray-700 hover:bg-gray-600 text-white'
                     : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
                 }`}
@@ -1018,9 +1086,14 @@ export default function Promotions() {
               </button>
               <button
                 onClick={handleSave}
-                className="flex-1 bg-primary-blue hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+                disabled={modalLoading}
+                className={`flex-1 px-4 py-2 rounded-lg transition-colors font-medium ${
+                  modalLoading
+                    ? 'bg-blue-400 cursor-not-allowed opacity-50'
+                    : 'bg-primary-blue hover:bg-blue-700'
+                } text-white`}
               >
-                {editingId ? 'Guardar Cambios' : 'Crear Combo'}
+                {modalLoading ? 'Guardando...' : editingId ? 'Guardar Cambios' : 'Crear Combo'}
               </button>
             </div>
           </div>
