@@ -32,18 +32,33 @@ export default function Promotions() {
   })
 
   useEffect(() => {
+    console.log('🔥 Iniciando sincronización en tiempo real...')
     loadStaticData()
     
     // Suscripción en tiempo real a promociones
     const unsubscribePromotions = onSnapshot(
       query(collection(db, 'promotions'), orderBy('updatedAt', 'desc')),
       (snapshot) => {
-        const promoData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-        setPromotions(promoData)
-        console.log('✅ Promociones actualizadas en tiempo real:', promoData.length)
+        try {
+          const promoData = snapshot.docs.map(doc => {
+            const data = doc.data()
+            return {
+              id: doc.id,
+              ...data,
+              categoryId: String(data.categoryId || '').trim() // Normalizar ID
+            }
+          })
+          setPromotions(promoData)
+          console.log('✅ Promociones sincronizadas:', promoData.length)
+          promoData.forEach(p => console.log(`  - ${p.name} → Cat: ${p.categoryId || 'Sin categoría'}`))
+        } catch (error) {
+          console.error('❌ Error procesando promociones:', error)
+          setPromotions([])
+        }
       },
       (error) => {
         console.error('❌ Error en suscripción de promociones:', error)
+        setPromotions([])
       }
     )
 
@@ -51,16 +66,29 @@ export default function Promotions() {
     const unsubscribeCategories = onSnapshot(
       query(collection(db, 'categoriesPromotions'), orderBy('name', 'asc')),
       (snapshot) => {
-        const categoriesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-        setCategories(categoriesData)
-        console.log('✅ Categorías de promociones actualizadas:', categoriesData.length)
+        try {
+          const categoriesData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            name: String(doc.data().name || 'Sin nombre').trim(),
+            createdAt: doc.data().createdAt,
+            updatedAt: doc.data().updatedAt
+          }))
+          setCategories(categoriesData)
+          console.log('✅ Categorías sincronizadas:', categoriesData.length)
+          categoriesData.forEach(cat => console.log(`  📁 ${cat.name} (ID: ${cat.id})`))
+        } catch (error) {
+          console.error('❌ Error procesando categorías:', error)
+          setCategories([])
+        }
       },
       (error) => {
         console.error('❌ Error en suscripción de categorías:', error)
+        setCategories([])
       }
     )
 
     return () => {
+      console.log('🔌 Desconectando suscripciones...')
       unsubscribePromotions()
       unsubscribeCategories()
     }
@@ -305,7 +333,9 @@ export default function Promotions() {
   const handleSave = async () => {
     // Sanitizar datos - convertir a string para evitar error indexOf
     const sanitizedName = String(formData.name || '').trim()
-    const sanitizedCategoryId = String(formData.categoryId || '')
+    const sanitizedCategoryId = String(formData.categoryId || '').trim()
+    
+    console.log('💾 Guardando combo:', sanitizedName, '→ Categoría ID:', sanitizedCategoryId)
     
     // Validaciones
     if (!sanitizedName) {
@@ -359,18 +389,25 @@ export default function Promotions() {
         }
       })
 
-      // Objeto limpio sin undefined/NaN
+      // Objeto limpio sin undefined/NaN - VALIDAR categoryId
       const promoData = {
         name: sanitizedName,
         items: cleanItems,
         promoPrice: Number(promoPrice) || 0,
-        categoryId: sanitizedCategoryId,
+        categoryId: sanitizedCategoryId, // ID normalizado como string
         totalCosto: Number(totals.totalCost) || 0,
         totalPrecioCarta: Number(totals.totalRegularPrice) || 0,
         ahorroDinero: Number(ahorro > 0 ? ahorro : 0) || 0,
         porcentajeDescuento: Number(descuentoPct) || 0,
         updatedAt: new Date().toISOString()
       }
+      
+      console.log('📦 Datos del combo a guardar:', {
+        nombre: promoData.name,
+        categoriaID: promoData.categoryId,
+        items: promoData.items.length,
+        precio: promoData.promoPrice
+      })
 
       console.log('📝 Guardando promoción:', promoData)
 
@@ -422,26 +459,44 @@ export default function Promotions() {
       return
     }
 
+    // Validar que no exista una categoría con el mismo nombre
+    const existingCategory = categories.find(
+      cat => cat.name.toLowerCase() === sanitizedName.toLowerCase() && 
+             (!editingCategory || cat.id !== editingCategory.id)
+    )
+    
+    if (existingCategory) {
+      alert(`⚠️ Ya existe una categoría con el nombre "${sanitizedName}"`)
+      return
+    }
+
     try {
       if (editingCategory) {
         // Editar categoría existente
         console.log('📝 Editando categoría existente:', editingCategory.id)
-        await saveDoc('categoriesPromotions', { name: sanitizedName }, editingCategory.id)
+        await saveDoc('categoriesPromotions', { 
+          name: sanitizedName,
+          updatedAt: new Date().toISOString()
+        }, editingCategory.id)
         console.log('✅ Categoría editada:', sanitizedName)
       } else {
         // Crear nueva categoría
         console.log('📝 Creando nueva categoría:', sanitizedName)
+        const timestamp = new Date().toISOString()
         const newCategoryId = await saveDoc('categoriesPromotions', { 
           name: sanitizedName,
-          createdAt: new Date().toISOString()
+          createdAt: timestamp,
+          updatedAt: timestamp
         })
-        console.log('✅ Categoría creada:', sanitizedName, 'ID:', newCategoryId)
+        console.log('✅ Categoría creada con ID:', newCategoryId)
       }
       
       setShowCategoryModal(false)
       setEditingCategory(null)
       setCategoryName('')
-      alert('✅ Categoría guardada correctamente')
+      
+      // No mostrar alert, el onSnapshot actualizará automáticamente
+      console.log('✅ Categoría guardada, esperando actualización en tiempo real...')
       
     } catch (error) {
       console.error('❌ Error guardando categoría:', error)
@@ -454,10 +509,25 @@ export default function Promotions() {
     }
   }
 
-  // Filtrar promociones por categoría seleccionada
+  // Filtrar promociones por categoría seleccionada - VALIDACIÓN ESTRICTA
   const filteredPromotions = selectedCategoryFilter
-    ? promotions.filter(p => p.categoryId === selectedCategoryFilter)
+    ? promotions.filter(p => {
+        const promoCategory = String(p.categoryId || '').trim()
+        const filterCategory = String(selectedCategoryFilter || '').trim()
+        const match = promoCategory === filterCategory
+        if (!match && p.categoryId) {
+          console.log(`🔍 Combo "${p.name}" no coincide: "${promoCategory}" !== "${filterCategory}"`)
+        }
+        return match
+      })
     : promotions
+  
+  // Log de filtrado
+  if (selectedCategoryFilter) {
+    const categoryName = categories.find(c => c.id === selectedCategoryFilter)?.name || 'Desconocida'
+    console.log(`🔍 Filtrando por categoría: ${categoryName} (${selectedCategoryFilter})`)
+    console.log(`📊 Combos encontrados: ${filteredPromotions.length} de ${promotions.length} totales`)
+  }
 
   if (loading) {
     return (
@@ -493,28 +563,41 @@ export default function Promotions() {
         isDarkMode ? 'border-gray-700' : 'border-gray-200'
       }`}>
         <button
-          onClick={() => setSelectedCategoryFilter(null)}
+          onClick={() => {
+            console.log('📋 Mostrando todas las promociones')
+            setSelectedCategoryFilter(null)
+          }}
           className={`px-6 py-2 font-semibold transition-all border-b-4 whitespace-nowrap ${
             selectedCategoryFilter === null
               ? 'border-primary-blue text-primary-blue'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
-          📋 Todas
+          📋 Todas ({promotions.length})
         </button>
-        {(categories || []).map(cat => (
-          <div key={cat.id} className="relative group">
-            <button
-              onClick={() => setSelectedCategoryFilter(cat.id)}
-              className={`px-6 py-2 font-semibold transition-all border-b-4 ${
-                selectedCategoryFilter === cat.id
-                  ? 'border-primary-blue text-primary-blue'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {cat.name}
-            </button>
-            <div className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+        {categories.length === 0 && (
+          <span className="text-sm text-gray-500 italic px-2">
+            No hay categorías. Crea una con "+ Categoría"
+          </span>
+        )}
+        {(categories || []).map(cat => {
+          const categoryPromoCount = promotions.filter(p => String(p.categoryId).trim() === String(cat.id).trim()).length
+          return (
+            <div key={cat.id} className="relative group">
+              <button
+                onClick={() => {
+                  console.log(`🏷️ Filtrando por categoría: ${cat.name} (ID: ${cat.id})`)
+                  setSelectedCategoryFilter(cat.id)
+                }}
+                className={`px-6 py-2 font-semibold transition-all border-b-4 whitespace-nowrap ${
+                  selectedCategoryFilter === cat.id
+                    ? 'border-primary-blue text-primary-blue'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {cat.name} ({categoryPromoCount})
+              </button>
+              <div className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
               <button
                 onClick={(e) => {
                   e.stopPropagation()
