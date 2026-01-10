@@ -279,9 +279,9 @@ export default function Promotions() {
       console.log('📝 Guardando promoción:', promoData)
 
       if (editingId) {
-        await saveDoc('promotions', editingId, promoData)
+        await saveDoc('promotions', promoData, editingId)
       } else {
-        await saveDoc('promotions', null, { ...promoData, createdAt: new Date().toISOString() })
+        await saveDoc('promotions', { ...promoData, createdAt: new Date().toISOString() })
       }
       
       console.log('✅ Promoción guardada exitosamente')
