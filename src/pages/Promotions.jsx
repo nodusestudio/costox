@@ -240,8 +240,8 @@ export default function Promotions() {
       const itemsWithFreshData = recalculateCombo(itemsOriginales)
       console.log(`✅ Items recalculados: ${itemsWithFreshData.length}`)
       
-      // 🔥 NOMBRE DISTINTIVO con prefijo COPIA
-      const nombreCopia = `COPIA - ${promo.name || 'Combo'}`
+      // 🔥 NOMBRE DISTINTIVO con sufijo (Copia)
+      const nombreCopia = `${promo.name || 'Combo'} (Copia)`
       
       // Crear copia limpia del combo SIN id (copia profunda)
       const comboDuplicado = {

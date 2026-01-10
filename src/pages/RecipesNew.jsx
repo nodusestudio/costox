@@ -881,17 +881,16 @@ export default function RecipesNew() {
                     <input
                       type="number"
                       min="0"
+                      step="1"
                       value={formData.pesoTotal}
                       onChange={(e) => setFormData({ ...formData, pesoTotal: parseFloat(e.target.value) || 0 })}
                       onFocus={(e) => e.target.select()}
+                      placeholder="1000"
                       className={`w-full text-center px-2 py-1 rounded-lg border font-black text-lg ${
                         isDarkMode
                           ? 'bg-[#0a1828] border-purple-500 text-purple-400'
                           : 'bg-white border-purple-500 text-purple-600'
                       }`}
-                      placeholder="1000"
-                      min="0"
-                      step="1"
                     />
                   </div>
 

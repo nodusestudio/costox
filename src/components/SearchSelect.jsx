@@ -39,8 +39,10 @@ const SearchSelect = memo(forwardRef(({
   const filteredOptions = useMemo(() => {
     return (options ?? []).filter(option => {
       const displayValue = option[displayKey]
-      if (typeof displayValue !== 'string') return false
-      return displayValue.toLowerCase().includes(searchTerm.toLowerCase())
+      // 🔥 FIX: Convertir a string para evitar error indexOf
+      const displayStr = String(displayValue || '').toLowerCase()
+      const searchStr = String(searchTerm || '').toLowerCase()
+      return displayStr.includes(searchStr)
     })
   }, [options, searchTerm, displayKey])
 
