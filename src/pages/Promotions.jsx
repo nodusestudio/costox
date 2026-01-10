@@ -217,8 +217,14 @@ export default function Promotions() {
       const liveData = getLiveItemData(item.type, item.id)
       totalCost += liveData.cost * qty
       
-      // Usar precio opcional si existe, sino el precio del item
-      const itemPrice = Number(item.optionalPrice) > 0 ? Number(item.optionalPrice) : liveData.price
+      // Si es ingrediente, usar optionalPrice si existe, sino 0
+      // Si es producto/receta, usar optionalPrice si existe, sino el precio del item
+      let itemPrice = 0
+      if (item.type === 'ingredient') {
+        itemPrice = Number(item.optionalPrice) || 0
+      } else {
+        itemPrice = Number(item.optionalPrice) > 0 ? Number(item.optionalPrice) : liveData.price
+      }
       totalRegularPrice += itemPrice * qty
     })
 
@@ -887,7 +893,7 @@ export default function Promotions() {
                                     ? 'bg-[#111827] border-green-600 text-green-400'
                                     : 'bg-white border-green-300 text-green-600'
                                 }`}
-                                placeholder="Precio"
+                                placeholder="$ 0"
                               />
                             ) : (
                               <span className={`text-xs italic ${
