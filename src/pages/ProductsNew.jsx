@@ -312,13 +312,12 @@ export default function ProductsNew() {
     const costoTotal = costoIngredientes + manoDeObra + costosIndirectos
     
     // PRECIO SUGERIDO basado en Utilidad Deseada
-    // Fórmula: Precio = (Costo Insumos + Costo Labor) / (1 - (Utilidad Deseada % + % Costos Indirectos))
+    // FÓRMULA CORREGIDA: Precio = Costo Total / (1 - (Utilidad Deseada / 100))
+    // Esto es margen sobre precio de venta, NO recargo sobre costo
     const desiredProfitPercent = parseFloat(formData.desiredProfitPercent || 20)
-    const totalMarginPercent = desiredProfitPercent + indirectCostsPercent
-    const costoBaseParaPrecio = costoIngredientes + manoDeObra
-    const suggestedPriceRaw = totalMarginPercent < 100 
-      ? costoBaseParaPrecio / (1 - (totalMarginPercent / 100))
-      : costoBaseParaPrecio * 2 // Fallback si el margen es >= 100%
+    const suggestedPriceRaw = desiredProfitPercent < 100 
+      ? costoTotal / (1 - (desiredProfitPercent / 100))
+      : costoTotal * 2 // Fallback si el margen es >= 100%
     const suggestedPrice = roundToNearestThousand(suggestedPriceRaw)
     
     // PRECIO DE VENTA (el usuario lo define)

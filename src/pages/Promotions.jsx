@@ -1221,7 +1221,10 @@ export default function Promotions() {
             {/* Precio Sugerido */}
             {formData.items.length > 0 && (() => {
               const totals = calculateTotals(formData.items)
-              const suggestedPrice = roundToNearestThousand(totals.totalCost * 1.4) // 40% markup mínimo
+              // FÓRMULA CORREGIDA: margen sobre precio de venta, no recargo sobre costo
+              // Precio = Costo / (1 - Margen Deseado)
+              // Para 40% de margen: Precio = Costo / (1 - 0.40)
+              const suggestedPrice = roundToNearestThousand(totals.totalCost / (1 - 0.40))
               
               return (
                 <div className={`flex items-center justify-between px-3 py-2 rounded-lg border ${

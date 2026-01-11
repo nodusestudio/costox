@@ -54,7 +54,10 @@ export default function Products() {
   const calculateSalePrice = () => {
     const realCost = calculateRealCost()
     const margin = parseFloat(formData.profitMarginPercent || 0)
-    return realCost + (realCost * (margin / 100))
+    // FÓRMULA CORREGIDA: margen sobre precio de venta
+    // Precio = Costo / (1 - (Margen / 100))
+    if (margin >= 100) return realCost * 2 // Fallback
+    return realCost / (1 - (margin / 100))
   }
 
   const handleAddIngredient = () => {
