@@ -525,12 +525,14 @@ export default function Dashboard() {
         console.log('🎯 [Dashboard] Punto de Equilibrio vs Ventas:', {
           gastosFijos: totalFixedCosts,
           margenPromedio: avgMenuMargin.toFixed(2) + '%',
+          margenObjetivo: targetMargin.toFixed(2) + '%',
           puntoEquilibrio: breakEvenSales,
           ventasEstimadasActuales: currentEstimatedSales,
           deficit: salesDeficit,
-          metaDiaria: dailyTarget,
+          metaDiariaReal: dailyTargetReal,
           porcentajeCostoActual: currentCostPercent.toFixed(2) + '%',
-          formula: `PE = ${totalFixedCosts} / (${avgMenuMargin.toFixed(2)}% / 100) = ${breakEvenSales.toFixed(2)}`
+          formula: `PE = ${totalFixedCosts} / (${avgMenuMargin.toFixed(2)}% / 100) = ${breakEvenSales.toFixed(2)}`,
+          formulaMetaDiaria: `(${totalFixedCosts} / ${targetMargin.toFixed(2)}%) / 30 = ${dailyTargetReal.toFixed(2)}`
         })
         
         // Solo mostrar si hay déficit
