@@ -429,20 +429,41 @@ export default function Settings() {
               </span>
             </div>
 
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                💰 Ventas Estimadas Mensuales
-              </label>
-              <input
-                type="text"
-                value={formatNumberWithThousands(config.estimatedMonthlySales || 0)}
-                onChange={(e) => handleNumericChange('estimatedMonthlySales', e.target.value)}
-                className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20' : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'}`}
-                placeholder="Ej: 50.000"
-              />
-              <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
-                Estimación de ventas mensuales en {config.currency || 'USD'}
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  💰 Ventas Estimadas Mensuales
+                </label>
+                <input
+                  type="text"
+                  value={formatNumberWithThousands(config.estimatedMonthlySales || 0)}
+                  onChange={(e) => handleNumericChange('estimatedMonthlySales', e.target.value)}
+                  className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20' : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'}`}
+                  placeholder="Ej: 50.000"
+                />
+                <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+                  Estimación de ventas mensuales en {config.currency || 'USD'}
+                </p>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  🎯 Margen de Utilidad Deseado (%)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={config.targetProfitMargin || 30}
+                  onChange={(e) => handleChange('targetProfitMargin', parseFloat(e.target.value) || 30)}
+                  className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20' : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'}`}
+                  placeholder="30"
+                />
+                <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+                  Meta de margen para clasificar métricas (Rojo/Verde)
+                </p>
+              </div>
             </div>
 
             {/* Cálculo de % Costos Indirectos Sugerido */}

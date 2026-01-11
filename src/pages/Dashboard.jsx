@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { TrendingUp, AlertCircle, DollarSign, TrendingDown } from 'lucide-react'
+import { TrendingUp, AlertCircle, DollarSign, TrendingDown, Info } from 'lucide-react'
 import { getProducts, getRecipes, getPromotions, getConfig } from '@/utils/storage'
 import { useI18n } from '@/context/I18nContext'
 import { formatMoneyDisplay } from '@/utils/formatters'
@@ -262,7 +262,7 @@ export default function Dashboard() {
 
   // Datos para gráfico de dona (Distribución por categoría)
   const doughnutData = {
-    labels: ['Estrellas (≥50%)', 'Caballos (30-50%)', 'Enigmas (20-30%)', 'Perros (<20%)'],
+    labels: ['Máxima Rentabilidad (≥50%)', 'Populares de Bajo Margen (30-50%)', 'Potenciales Rentables (20-30%)', 'Baja Prioridad (<20%)'],
     datasets: [{
       data: [
         productsByProfitability.stars.length,
@@ -503,11 +503,16 @@ export default function Dashboard() {
         // Ventas estimadas actuales desde config
         const currentEstimatedSales = config.estimatedMonthlySales || 0
         
+        // Margen objetivo desde configuración
+        const targetMargin = config.targetProfitMargin || 30
+        const targetMarginDecimal = targetMargin / 100
+        
         // Déficit de ventas (Punto de Equilibrio - Ventas Actuales)
         const salesDeficit = Math.max(0, breakEvenSales - currentEstimatedSales)
         
-        // Meta diaria para alcanzar el punto de equilibrio
-        const dailyTarget = salesDeficit / 30
+        // Meta diaria REAL basada en necesidad de cobertura de costos
+        // Fórmula: (Gastos Fijos / Margen Objetivo) / Días del Mes
+        const dailyTargetReal = targetMarginDecimal > 0 ? (totalFixedCosts / targetMarginDecimal) / 30 : 0
         
         // % actual de gastos sobre ventas
         const currentCostPercent = currentEstimatedSales > 0 ? (totalFixedCosts / currentEstimatedSales) * 100 : 0
@@ -604,15 +609,62 @@ export default function Dashboard() {
                     </p>
                   </div>
 
-                  <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-blue-900/30 border border-blue-700' : 'bg-blue-50 border border-blue-300'}`}>
-                    <p className={`text-xs mb-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>📊 Ventas Estimadas Actuales</p>
-                    <p className={`text-2xl font-bold ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                      {formatMoneyDisplay(currentEstimatedSales)}
+                  <div className={`p-4 rounded-lg ${
+                    avgMenuMargin >= targetMargin
+                      ? isDarkMode ? 'bg-green-900/30 border border-green-700' : 'bg-green-50 border border-green-300'
+                      : isDarkMode ? 'bg-red-900/30 border border-red-700' : 'bg-red-50 border border-red-300'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className={`text-xs ${
+                        avgMenuMargin >= targetMargin
+                          ? isDarkMode ? 'text-green-400' : 'text-green-600'
+                          : isDarkMode ? 'text-red-400' : 'text-red-600'
+                      }`}>📊 Margen Promedio Real</p>
+                      <div className="group relative inline-block">
+                        <Info size={14} className={`cursor-help ${
+                          avgMenuMargin >= targetMargin
+                            ? isDarkMode ? 'text-green-400' : 'text-green-600'
+                            : isDarkMode ? 'text-red-400' : 'text-red-600'
+                        }`} />
+                        <div className={`invisible group-hover:visible absolute z-50 left-0 top-5 w-64 p-3 rounded-lg shadow-xl ${isDarkMode ? 'bg-gray-800 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-800'}`}>
+                          <p className="text-xs font-semibold mb-1">¿Qué es?</p>
+                          <p className="text-xs mb-2">Promedio del margen de contribución (%) de todos tus productos y recetas.</p>
+                          <p className="text-xs font-semibold mb-1">Fórmula:</p>
+                          <p className="text-xs mb-2">Suma de todos los márgenes ÷ Total de items</p>
+                          <p className="text-xs font-semibold mb-1">Meta:</p>
+                          <p className="text-xs">≥ {targetMargin.toFixed(1)}% (configurable en Ajustes)</p>
+                        </div>
+                      </div>
+                    </div>
+                    <p className={`text-2xl font-bold ${
+                      avgMenuMargin >= targetMargin
+                        ? isDarkMode ? 'text-green-300' : 'text-green-700'
+                        : isDarkMode ? 'text-red-300' : 'text-red-700'
+                    }`}>
+                      {avgMenuMargin.toFixed(1)}%
+                    </p>
+                    <p className={`text-xs mt-1 ${
+                      avgMenuMargin >= targetMargin
+                        ? isDarkMode ? 'text-green-400/70' : 'text-green-600/70'
+                        : isDarkMode ? 'text-red-400/70' : 'text-red-600/70'
+                    }`}>
+                      Meta: {targetMargin.toFixed(1)}% {avgMenuMargin >= targetMargin ? '✅' : '⚠️'}
                     </p>
                   </div>
 
                   <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-purple-900/30 border border-purple-700' : 'bg-purple-50 border border-purple-300'}`}>
-                    <p className={`text-xs mb-2 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>🎯 Punto de Equilibrio (PE)</p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className={`text-xs ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>🎯 Punto de Equilibrio (PE)</p>
+                      <div className="group relative inline-block">
+                        <Info size={14} className={`cursor-help ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+                        <div className={`invisible group-hover:visible absolute z-50 left-0 top-5 w-64 p-3 rounded-lg shadow-xl ${isDarkMode ? 'bg-gray-800 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-800'}`}>
+                          <p className="text-xs font-semibold mb-1">¿Qué es?</p>
+                          <p className="text-xs mb-2">Ventas mínimas necesarias para cubrir todos los gastos fijos del negocio.</p>
+                          <p className="text-xs font-semibold mb-1">Fórmula:</p>
+                          <p className="text-xs">PE = Gastos Fijos ÷ (Margen Promedio / 100)</p>
+                        </div>
+                      </div>
+                    </div>
                     <p className={`text-2xl font-bold ${isDarkMode ? 'text-purple-300' : 'text-purple-700'}`}>
                       {formatMoneyDisplay(breakEvenSales)}
                     </p>
@@ -635,9 +687,24 @@ export default function Dashboard() {
                             Necesitas vender {formatMoneyDisplay(salesDeficit)} adicionales al mes
                           </p>
                           <div className={`inline-block px-4 py-2 rounded-lg ${isDarkMode ? 'bg-orange-700' : 'bg-orange-500'}`}>
-                            <p className="text-white text-sm font-medium">⏰ Meta Diaria para Alcanzar PE</p>
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-white text-sm font-medium">⏰ Meta Diaria Real</p>
+                              <div className="group relative inline-block">
+                                <Info size={14} className="text-white cursor-help" />
+                                <div className={`invisible group-hover:visible absolute z-50 left-0 top-5 w-72 p-3 rounded-lg shadow-xl ${isDarkMode ? 'bg-gray-800 border border-gray-700 text-gray-200' : 'bg-white border border-gray-300 text-gray-800'}`}>
+                                  <p className="text-xs font-semibold mb-1">¿Qué es?</p>
+                                  <p className="text-xs mb-2">Ventas diarias necesarias para cubrir gastos fijos basado en tu margen objetivo.</p>
+                                  <p className="text-xs font-semibold mb-1">Fórmula:</p>
+                                  <p className="text-xs">Meta Diaria = (Gastos Fijos ÷ Margen Objetivo) ÷ 30 días</p>
+                                  <p className="text-xs mt-2">Ejemplo: ({formatMoneyDisplay(totalFixedCosts)} ÷ {targetMargin.toFixed(1)}%) ÷ 30 = {formatMoneyDisplay(dailyTargetReal)}</p>
+                                </div>
+                              </div>
+                            </div>
                             <p className="text-white text-2xl font-black">
-                              {formatMoneyDisplay(dailyTarget)} / día
+                              {formatMoneyDisplay(dailyTargetReal)} / día
+                            </p>
+                            <p className="text-white/80 text-xs mt-1">
+                              Basado en margen objetivo {targetMargin.toFixed(1)}%
                             </p>
                           </div>
                         </div>
@@ -756,28 +823,28 @@ export default function Dashboard() {
       {/* Resumen de Clasificación */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <CategoryCard
-          title="⭐ Estrellas"
+          title="⭐ Máxima Rentabilidad"
           count={productsByProfitability.stars.length}
           description="Margen ≥ 50%"
           color="green"
           isDarkMode={isDarkMode}
         />
         <CategoryCard
-          title="🐴 Caballos de Batalla"
+          title="🐴 Populares de Bajo Margen"
           count={productsByProfitability.plowhorses.length}
           description="Margen 30-50%"
           color="blue"
           isDarkMode={isDarkMode}
         />
         <CategoryCard
-          title="🧩 Enigmas"
+          title="🧩 Potenciales Rentables"
           count={productsByProfitability.puzzles.length}
           description="Margen 20-30%"
           color="yellow"
           isDarkMode={isDarkMode}
         />
         <CategoryCard
-          title="🐕 Perros"
+          title="🐕 Baja Prioridad"
           count={productsByProfitability.dogs.length}
           description="Margen < 20%"
           color="red"
