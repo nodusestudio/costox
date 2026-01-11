@@ -178,21 +178,21 @@ export default function Dashboard() {
 
   // Clasificación de ítems por rentabilidad (Ingeniería de Menú) - DATOS DINÁMICOS
   const productsByProfitability = {
-    stars: itemsWithMargin.filter(item => item.contributionMarginPercent >= 50), // Estrellas
-    plowhorses: itemsWithMargin.filter(item => item.contributionMarginPercent >= 30 && item.contributionMarginPercent < 50), // Caballos
-    puzzles: itemsWithMargin.filter(item => item.contributionMarginPercent >= 20 && item.contributionMarginPercent < 30), // Enigmas
-    dogs: itemsWithMargin.filter(item => item.contributionMarginPercent < 20) // Perros
+    stars: itemsWithMargin.filter(item => item.contributionMarginPercent >= 50), // Máxima Rentabilidad
+    plowhorses: itemsWithMargin.filter(item => item.contributionMarginPercent >= 30 && item.contributionMarginPercent < 50), // Populares de Bajo Margen
+    puzzles: itemsWithMargin.filter(item => item.contributionMarginPercent >= 20 && item.contributionMarginPercent < 30), // Potenciales Rentables
+    dogs: itemsWithMargin.filter(item => item.contributionMarginPercent < 20) // Baja Prioridad
   }
 
   console.log('⭐ [Dashboard] Ingeniería de Menú:', {
-    estrellas: productsByProfitability.stars.length,
-    caballos: productsByProfitability.plowhorses.length,
-    enigmas: productsByProfitability.puzzles.length,
-    perros: productsByProfitability.dogs.length,
-    detalleEstrellas: productsByProfitability.stars.map(i => `${i.name}: ${i.contributionMarginPercent.toFixed(1)}%`),
-    detalleCaballos: productsByProfitability.plowhorses.map(i => `${i.name}: ${i.contributionMarginPercent.toFixed(1)}%`),
-    detalleEnigmas: productsByProfitability.puzzles.map(i => `${i.name}: ${i.contributionMarginPercent.toFixed(1)}%`),
-    detallePerros: productsByProfitability.dogs.map(i => `${i.name}: ${i.contributionMarginPercent.toFixed(1)}%`)
+    maximaRentabilidad: productsByProfitability.stars.length,
+    popularesbajoMargen: productsByProfitability.plowhorses.length,
+    potencialesRentables: productsByProfitability.puzzles.length,
+    bajaPrioridad: productsByProfitability.dogs.length,
+    detalleMaximaRentabilidad: productsByProfitability.stars.map(i => `${i.name}: ${i.contributionMarginPercent.toFixed(1)}%`),
+    detallePopularesBajoMargen: productsByProfitability.plowhorses.map(i => `${i.name}: ${i.contributionMarginPercent.toFixed(1)}%`),
+    detallePotencialesRentables: productsByProfitability.puzzles.map(i => `${i.name}: ${i.contributionMarginPercent.toFixed(1)}%`),
+    detalleBajaPrioridad: productsByProfitability.dogs.map(i => `${i.name}: ${i.contributionMarginPercent.toFixed(1)}%`)
   })
 
   // Datos para gráfico de barras (Top 10 por margen %) - DINÁMICO
@@ -321,7 +321,7 @@ export default function Dashboard() {
           title="Margen Promedio del Menú"
           value={`${avgMenuMargin.toFixed(1)}%`}
           icon={<TrendingUp size={24} />}
-          color={avgMenuMargin >= 40 ? "success" : avgMenuMargin >= 30 ? "warning" : "danger"}
+          color={avgMenuMargin >= (config.targetProfitMargin || 35) ? "success" : avgMenuMargin >= 25 ? "warning" : "danger"}
           isDarkMode={isDarkMode}
         />
         <KPICard 
@@ -822,6 +822,38 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Sección de Ingeniería de Menú con Tooltip Educativo */}
+      <div className={`rounded-lg p-6 border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <div className="flex items-center gap-2 mb-6">
+          <h3 className="text-xl font-semibold">🎯 Ingeniería de Menú</h3>
+          <div className="group relative inline-block">
+            <Info size={18} className={`cursor-help ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+            <div className={`invisible group-hover:visible absolute z-50 left-0 top-6 w-96 p-4 rounded-lg shadow-xl ${isDarkMode ? 'bg-gray-800 border-2 border-gray-700 text-gray-200' : 'bg-white border-2 border-gray-300 text-gray-800'}`}>
+              <p className="text-sm font-semibold mb-2">¿Qué es la Ingeniería de Menú?</p>
+              <p className="text-xs mb-3">Metodología profesional para clasificar productos según su rentabilidad y popularidad.</p>
+              
+              <div className="space-y-2 text-xs">
+                <div>
+                  <p className="font-semibold text-green-600">⭐ Máxima Rentabilidad (≥50%)</p>
+                  <p>Tus productos estrella. Promociona y mantén calidad.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-blue-600">🐴 Populares de Bajo Margen (30-50%)</p>
+                  <p>Muy vendidos pero margen moderado. Optimiza costos.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-yellow-600">🧩 Potenciales Rentables (20-30%)</p>
+                  <p>Buen margen pero poco conocidos. Aumenta visibilidad.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-red-600">🐕 Baja Prioridad (<20%)</p>
+                  <p>Bajo margen y ventas. Considera eliminar o rediseñar.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       {/* Resumen de Clasificación */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <CategoryCard
@@ -852,6 +884,7 @@ export default function Dashboard() {
           color="red"
           isDarkMode={isDarkMode}
         />
+      </div>
       </div>
     </div>
   )

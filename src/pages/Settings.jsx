@@ -455,10 +455,10 @@ export default function Settings() {
                   step="0.1"
                   min="0"
                   max="100"
-                  value={config.targetProfitMargin || 30}
-                  onChange={(e) => handleChange('targetProfitMargin', parseFloat(e.target.value) || 30)}
+                  value={config.targetProfitMargin || 35}
+                  onChange={(e) => handleChange('targetProfitMargin', parseFloat(e.target.value) || 35)}
                   className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20' : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'}`}
-                  placeholder="30"
+                  placeholder="35"
                 />
                 <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
                   Meta de margen para clasificar métricas (Rojo/Verde)
