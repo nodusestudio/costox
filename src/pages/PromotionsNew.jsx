@@ -571,6 +571,8 @@ export default function PromotionsNew() {
       <div className="flex gap-3 flex-wrap">
         <button
           onClick={() => setSelectedCategoryFilter(null)}
+          onDrop={(e) => handleDropCategory(e, null)}
+          onDragOver={handleDragOver}
           className={`px-4 py-2 rounded-lg transition-colors ${
             !selectedCategoryFilter
               ? 'bg-primary-blue text-white'

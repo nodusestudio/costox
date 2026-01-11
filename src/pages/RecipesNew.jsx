@@ -188,13 +188,12 @@ export default function RecipesNew() {
 
   const handleDuplicate = async (recipe) => {
     try {
+      setEditingId(null)
       const duplicated = {
         ...recipe,
-        name: `${recipe.name} (Copia)`,
+        id: null,
+        name: `COPIA - ${recipe.name}`,
       }
-      delete duplicated.id
-      delete duplicated.totalCost
-      delete duplicated.costoPorGramo
       await saveRecipe(duplicated)
       showToast('✅ Receta duplicada exitosamente', 'success')
       await loadData()
