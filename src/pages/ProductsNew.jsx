@@ -37,6 +37,16 @@ export default function ProductsNew() {
     realSalePrice: 0, // Precio de Venta
   })
   const searchSelectRefs = useRef({})
+  
+  // Estados derivados para subtotales
+  const [totalEmbalaje, setTotalEmbalaje] = useState(0)
+  const [totalRecetas, setTotalRecetas] = useState(0)
+  const [calculatedMetrics, setCalculatedMetrics] = useState({
+    totalCost: 0,
+    suggestedPrice: 0,
+    pContribucion: 0,
+    mContribucion: 0
+  })
 
   // Función para redondear al millar superior
   const roundToNearestThousand = (value) => {
@@ -46,6 +56,106 @@ export default function ProductsNew() {
   useEffect(() => {
     loadData()
   }, [])
+  
+  // 🔥 EFECTO DE RECÁLCULO AUTOMÁTICO - Observa cambios en items y recalcula todo
+  useEffect(() => {
+    if (!showModal) return // Solo calcular cuando el modal está abierto
+    
+    const items = Array.isArray(formData.items) ? formData.items : []
+    
+    // Calcular subtotales por categoría
+    let subtotalEmbalaje = 0
+    let subtotalRecetas = 0
+    let costoIngredientes = 0
+    
+    items.forEach(item => {
+      if (!item || !item.id) return
+      
+      const cantidadUsada = parseFloat(item.quantity || 0)
+      let itemCost = 0
+      
+      if (item.type === 'ingredient-embalaje') {
+        const ing = ingredients.find(i => i.id === item.id)
+        if (ing) {
+          if (ing.costoPorGramo && ing.costoPorGramo > 0) {
+            itemCost = ing.costoPorGramo * cantidadUsada
+          } else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
+            itemCost = calcularCostoProporcional(ing.costWithWastage, ing.pesoEmpaqueTotal, cantidadUsada)
+          } else if (ing.costWithWastage) {
+            itemCost = ing.costWithWastage * cantidadUsada
+          }
+        }
+        subtotalEmbalaje += itemCost
+        costoIngredientes += itemCost
+      } else if (item.type === 'ingredient-receta') {
+        const ing = ingredients.find(i => i.id === item.id)
+        if (ing) {
+          if (ing.costoPorGramo && ing.costoPorGramo > 0) {
+            itemCost = ing.costoPorGramo * cantidadUsada
+          } else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
+            itemCost = calcularCostoProporcional(ing.costWithWastage, ing.pesoEmpaqueTotal, cantidadUsada)
+          } else if (ing.costWithWastage) {
+            itemCost = ing.costWithWastage * cantidadUsada
+          }
+        }
+        subtotalRecetas += itemCost
+        costoIngredientes += itemCost
+      } else if (item.type === 'recipe') {
+        const rec = recipes.find(r => r.id === item.id)
+        if (rec) {
+          if (rec.costoPorGramo && rec.costoPorGramo > 0) {
+            itemCost = rec.costoPorGramo * cantidadUsada
+          } else if (rec.totalCost && rec.pesoTotal && rec.pesoTotal > 0) {
+            const costoPorGramo = rec.totalCost / rec.pesoTotal
+            itemCost = costoPorGramo * cantidadUsada
+          } else if (rec.totalCost) {
+            itemCost = rec.totalCost * cantidadUsada
+          }
+        }
+        subtotalRecetas += itemCost
+        costoIngredientes += itemCost
+      }
+    })
+    
+    // Calcular mano de obra
+    let manoDeObra = 0
+    const preparationTime = parseFloat(formData.preparationTimeMinutes || 0)
+    if (config && preparationTime > 0) {
+      const payroll = parseFloat(config.payrollCost || 0)
+      const monthlyHours = parseFloat(config.monthlyWorkHours || 176)
+      const costPerMinute = payroll / (monthlyHours * 60)
+      manoDeObra = costPerMinute * preparationTime
+    } else if (formData.laborCost) {
+      manoDeObra = parseFloat(formData.laborCost || 0)
+    }
+    
+    // Costos indirectos
+    const indirectCostsPercent = parseFloat(formData.indirectCostsPercent || 0)
+    const costosIndirectos = costoIngredientes * (indirectCostsPercent / 100)
+    const costoTotal = costoIngredientes + manoDeObra + costosIndirectos
+    
+    // Precio sugerido con fórmula corregida
+    const desiredProfitPercent = parseFloat(formData.desiredProfitPercent || 20)
+    const suggestedPriceRaw = desiredProfitPercent < 100 
+      ? costoTotal / (1 - (desiredProfitPercent / 100))
+      : costoTotal * 2
+    const suggestedPrice = roundToNearestThousand(suggestedPriceRaw)
+    
+    // P-Contribución y M-Contribución
+    const precioVenta = parseFloat(formData.realSalePrice) || 0
+    const pContribucion = precioVenta > 0 ? (1 - (costoTotal / precioVenta)) * 100 : 0
+    const mContribucion = precioVenta - costoTotal
+    
+    // Actualizar estados
+    setTotalEmbalaje(subtotalEmbalaje)
+    setTotalRecetas(subtotalRecetas)
+    setCalculatedMetrics({
+      totalCost: costoTotal,
+      suggestedPrice: suggestedPrice,
+      pContribucion: pContribucion,
+      mContribucion: mContribucion
+    })
+  }, [formData.items, formData.preparationTimeMinutes, formData.indirectCostsPercent, formData.desiredProfitPercent, formData.realSalePrice, formData.laborCost, config, ingredients, recipes, showModal])
 
   const loadData = async () => {
     setLoading(true)
@@ -351,7 +461,15 @@ export default function ProductsNew() {
     }
 
     try {
-      await saveProduct(formData, editingId)
+      // Agregar campos calculados para persistencia
+      const dataToSave = {
+        ...formData,
+        totalEmbalaje: totalEmbalaje,
+        totalRecetas: totalRecetas,
+        margenReal: calculatedMetrics.pContribucion
+      }
+      
+      await saveProduct(dataToSave, editingId)
       showToast('✅ Guardado satisfactoriamente', 'success')
       setShowModal(false)
       await loadData()
@@ -945,7 +1063,7 @@ export default function ProductsNew() {
                   <div className={`text-lg font-black ${
                     isDarkMode ? 'text-blue-400' : 'text-blue-600'
                   }`}>
-                    {formatMoneyDisplay(metrics.totalCost)}
+                    {formatMoneyDisplay(calculatedMetrics.totalCost)}
                   </div>
                 </div>
 
@@ -961,7 +1079,7 @@ export default function ProductsNew() {
                   <div className={`text-lg font-black ${
                     isDarkMode ? 'text-white' : 'text-gray-900'
                   }`}>
-                    {metrics.pContribucion.toFixed(1)}%
+                    {calculatedMetrics.pContribucion.toFixed(1)}%
                   </div>
                 </div>
 
@@ -977,7 +1095,7 @@ export default function ProductsNew() {
                   <div className={`text-lg font-black ${
                     isDarkMode ? 'text-purple-400' : 'text-purple-600'
                   }`}>
-                    {formatMoneyDisplay(metrics.mContribucion)}
+                    {formatMoneyDisplay(calculatedMetrics.mContribucion)}
                   </div>
                 </div>
               </div>
@@ -1033,7 +1151,7 @@ export default function ProductsNew() {
                         💡 PRECIO SUGERIDO
                       </div>
                       <div className={`text-2xl font-black ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                        {formatMoneyDisplay(metrics.suggestedPrice || 0)}
+                        {formatMoneyDisplay(calculatedMetrics.suggestedPrice || 0)}
                       </div>
                       <div className={`text-xs mt-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                         Para {formData.desiredProfitPercent}% utilidad
@@ -1042,48 +1160,48 @@ export default function ProductsNew() {
 
                     {/* Precio Actual */}
                     <div className={`${
-                      formData.realSalePrice > 0 && formData.realSalePrice < metrics.suggestedPrice
+                      formData.realSalePrice > 0 && formData.realSalePrice < calculatedMetrics.suggestedPrice
                         ? isDarkMode ? 'bg-red-900/40 border-2 border-red-700' : 'bg-red-100 border-2 border-red-400'
-                        : formData.realSalePrice >= metrics.suggestedPrice && formData.realSalePrice > 0
+                        : formData.realSalePrice >= calculatedMetrics.suggestedPrice && formData.realSalePrice > 0
                         ? isDarkMode ? 'bg-green-900/40 border-2 border-green-700' : 'bg-green-100 border-2 border-green-400'
                         : ''
                     } p-2 rounded-lg`}>
                       <div className={`text-xs font-medium mb-1 ${
-                        formData.realSalePrice > 0 && formData.realSalePrice < metrics.suggestedPrice
+                        formData.realSalePrice > 0 && formData.realSalePrice < calculatedMetrics.suggestedPrice
                           ? 'text-red-500'
-                          : formData.realSalePrice >= metrics.suggestedPrice && formData.realSalePrice > 0
+                          : formData.realSalePrice >= calculatedMetrics.suggestedPrice && formData.realSalePrice > 0
                           ? isDarkMode ? 'text-green-400' : 'text-green-600'
                           : isDarkMode ? 'text-gray-400' : 'text-gray-600'
                       }`}>
-                        {formData.realSalePrice > 0 && formData.realSalePrice < metrics.suggestedPrice ? '⚠️ PRECIO ACTUAL' : formData.realSalePrice >= metrics.suggestedPrice ? '✅ PRECIO ACTUAL' : 'PRECIO ACTUAL'}
+                        {formData.realSalePrice > 0 && formData.realSalePrice < calculatedMetrics.suggestedPrice ? '⚠️ PRECIO ACTUAL' : formData.realSalePrice >= calculatedMetrics.suggestedPrice ? '✅ PRECIO ACTUAL' : 'PRECIO ACTUAL'}
                       </div>
                       <div className={`text-2xl font-black ${
-                        formData.realSalePrice > 0 && formData.realSalePrice < metrics.suggestedPrice
+                        formData.realSalePrice > 0 && formData.realSalePrice < calculatedMetrics.suggestedPrice
                           ? 'text-red-500 animate-pulse'
-                          : formData.realSalePrice >= metrics.suggestedPrice && formData.realSalePrice > 0
+                          : formData.realSalePrice >= calculatedMetrics.suggestedPrice && formData.realSalePrice > 0
                           ? isDarkMode ? 'text-green-300' : 'text-green-700'
                           : isDarkMode ? 'text-gray-300' : 'text-gray-700'
                       }`}>
                         {formatMoneyDisplay(formData.realSalePrice || 0)}
                       </div>
-                      {formData.realSalePrice > 0 && formData.realSalePrice < metrics.suggestedPrice && (
+                      {formData.realSalePrice > 0 && formData.realSalePrice < calculatedMetrics.suggestedPrice && (
                         <div className="text-xs mt-1 text-red-500 font-semibold">
-                          Muy bajo (-{formatMoneyDisplay(metrics.suggestedPrice - formData.realSalePrice)})
+                          Muy bajo (-{formatMoneyDisplay(calculatedMetrics.suggestedPrice - formData.realSalePrice)})
                         </div>
                       )}
-                      {formData.realSalePrice >= metrics.suggestedPrice && formData.realSalePrice > 0 && (
+                      {formData.realSalePrice >= calculatedMetrics.suggestedPrice && formData.realSalePrice > 0 && (
                         <div className={`text-xs mt-1 ${isDarkMode ? 'text-green-400' : 'text-green-600'} font-semibold`}>
-                          Bien (+{formatMoneyDisplay(formData.realSalePrice - metrics.suggestedPrice)})
+                          Bien (+{formatMoneyDisplay(formData.realSalePrice - calculatedMetrics.suggestedPrice)})
                         </div>
                       )}
                     </div>
                   </div>
 
                   {/* Botón para aplicar precio sugerido */}
-                  {formData.realSalePrice !== metrics.suggestedPrice && (
+                  {formData.realSalePrice !== calculatedMetrics.suggestedPrice && (
                     <div className="mt-3 text-center">
                       <button
-                        onClick={() => setFormData({ ...formData, realSalePrice: parseFloat(metrics.suggestedPrice.toFixed(2)) })}
+                        onClick={() => setFormData({ ...formData, realSalePrice: parseFloat(calculatedMetrics.suggestedPrice.toFixed(2)) })}
                         className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
                           isDarkMode
                             ? 'bg-blue-700 hover:bg-blue-600 text-white'
@@ -1231,6 +1349,26 @@ export default function ProductsNew() {
                       </div>
                     )}
                   </div>
+                  
+                  {/* SUBTOTAL EMBALAJE */}
+                  {(formData.items ?? []).filter(item => item.type === 'ingredient-embalaje').length > 0 && (
+                    <div className={`px-3 py-2 border-t ${
+                      isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-100 border-blue-300'
+                    }`}>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-xs font-bold ${
+                          isDarkMode ? 'text-blue-300' : 'text-blue-700'
+                        }`}>
+                          SUBTOTAL:
+                        </span>
+                        <span className={`text-sm font-black ${
+                          isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                        }`}>
+                          {formatMoneyDisplay(totalEmbalaje)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1394,6 +1532,26 @@ export default function ProductsNew() {
                       </div>
                     )}
                   </div>
+                  
+                  {/* SUBTOTAL RECETAS/INGREDIENTES */}
+                  {(formData.items ?? []).filter(item => item.type === 'recipe' || item.type === 'ingredient-receta').length > 0 && (
+                    <div className={`px-3 py-2 border-t ${
+                      isDarkMode ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-100 border-purple-300'
+                    }`}>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-xs font-bold ${
+                          isDarkMode ? 'text-purple-300' : 'text-purple-700'
+                        }`}>
+                          SUBTOTAL:
+                        </span>
+                        <span className={`text-sm font-black ${
+                          isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                        }`}>
+                          {formatMoneyDisplay(totalRecetas)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

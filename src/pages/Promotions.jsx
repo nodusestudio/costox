@@ -564,6 +564,9 @@ export default function Promotions() {
         pvpRegular: Number(totals.totalRegularPrice) || 0,
         descuentoMonto: Number(ahorro > 0 ? ahorro : 0) || 0,
         ahorroPorcentaje: Number(descuentoPct) || 0,
+        // 🔥 SUBTOTALES POR CATEGORÍA (Alimentos vs Embalaje)
+        costoAlimentos: Number(totals.costoAlimentos) || 0,
+        costoEmbalaje: Number(totals.costoEmbalaje) || 0,
         // Campos de sincronización card-editor
         costoUnidad: Number(costoUnidad) || 0,
         pContribucion: Number(pContribucion) || 0,
