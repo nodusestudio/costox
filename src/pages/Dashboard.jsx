@@ -846,7 +846,7 @@ export default function Dashboard() {
                   <p>Buen margen pero poco conocidos. Aumenta visibilidad.</p>
                 </div>
                 <div>
-                  <p className="font-semibold text-red-600">🐕 Baja Prioridad (<20%)</p>
+                  <p className="font-semibold text-red-600">🐕 Baja Prioridad (&lt;20%)</p>
                   <p>Bajo margen y ventas. Considera eliminar o rediseñar.</p>
                 </div>
               </div>
