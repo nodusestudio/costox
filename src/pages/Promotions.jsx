@@ -445,15 +445,26 @@ export default function Promotions() {
     return { cost: 0, price: 0, name: '' }
   }
 
-  // Calcular totales en tiempo real
+  // Calcular totales en tiempo real CON SUBTOTALES POR CATEGORÍA
   const calculateTotals = (items) => {
     let totalCost = 0
     let totalRegularPrice = 0
+    let costoAlimentos = 0 // Productos y recetas
+    let costoEmbalaje = 0 // Ingredientes
 
     items.forEach(item => {
       const qty = Number(item.quantity) || 0
       const liveData = getLiveItemData(item.type, item.id)
-      totalCost += liveData.cost * qty
+      const itemCost = liveData.cost * qty
+      
+      totalCost += itemCost
+      
+      // Clasificar por categoría
+      if (item.type === 'ingredient') {
+        costoEmbalaje += itemCost
+      } else {
+        costoAlimentos += itemCost
+      }
       
       // Si es ingrediente, usar optionalPrice si existe, sino 0
       // Si es producto/receta, usar optionalPrice si existe, sino el precio del item
@@ -468,7 +479,9 @@ export default function Promotions() {
 
     return {
       totalCost: Number(totalCost) || 0,
-      totalRegularPrice: Number(totalRegularPrice) || 0
+      totalRegularPrice: Number(totalRegularPrice) || 0,
+      costoAlimentos: Number(costoAlimentos) || 0,
+      costoEmbalaje: Number(costoEmbalaje) || 0
     }
   }
 
@@ -1330,122 +1343,191 @@ export default function Promotions() {
                   <div className="col-span-1"></div>
                 </div>
 
-                {/* Lista de Items */}
+                {/* Lista de Items CON AGRUPACIÓN */}
                 <div className="max-h-[300px] overflow-y-auto">
-                  {formData.items.map((item, index) => {
-                    const liveData = getLiveItemData(item.type, item.id)
-                    const qty = Number(item.quantity) || 1
-                    const itemCost = liveData.cost * qty
+                  {(() => {
+                    // Agrupar items por categoría
+                    const alimentosItems = formData.items.filter(item => item.type === 'product' || item.type === 'recipe')
+                    const embalajeItems = formData.items.filter(item => item.type === 'ingredient')
                     
-                    // Determinar lista de origen según tipo
-                    let sourceList = []
-                    let badgeColor = ''
-                    let badgeLabel = ''
-                    let placeholder = ''
+                    // Calcular subtotales
+                    let subtotalAlimentos = 0
+                    let subtotalEmbalaje = 0
                     
-                    if (item.type === 'product') {
-                      sourceList = products
-                      badgeColor = 'bg-blue-500/20 text-blue-400'
-                      badgeLabel = '📦 P'
-                      placeholder = 'Buscar producto...'
-                    } else if (item.type === 'recipe') {
-                      sourceList = recipes
-                      badgeColor = 'bg-purple-500/20 text-purple-400'
-                      badgeLabel = '🍖 R'
-                      placeholder = 'Buscar receta...'
-                    } else if (item.type === 'ingredient') {
-                      sourceList = ingredients
-                      badgeColor = 'bg-green-500/20 text-green-400'
-                      badgeLabel = '🥕 I'
-                      placeholder = 'Buscar ingrediente...'
-                    }
+                    alimentosItems.forEach(item => {
+                      const qty = Number(item.quantity) || 0
+                      const liveData = getLiveItemData(item.type, item.id)
+                      subtotalAlimentos += liveData.cost * qty
+                    })
+                    
+                    embalajeItems.forEach(item => {
+                      const qty = Number(item.quantity) || 0
+                      const liveData = getLiveItemData(item.type, item.id)
+                      subtotalEmbalaje += liveData.cost * qty
+                    })
+                    
+                    const renderItem = (item, index, isEmbalaje = false) => {
+                      const liveData = getLiveItemData(item.type, item.id)
+                      const qty = Number(item.quantity) || 1
+                      const itemCost = liveData.cost * qty
+                      
+                      // Determinar lista de origen según tipo
+                      let sourceList = []
+                      let badgeColor = ''
+                      let badgeLabel = ''
+                      let placeholder = ''
+                      
+                      if (item.type === 'product') {
+                        sourceList = products
+                        badgeColor = 'bg-blue-500/20 text-blue-400'
+                        badgeLabel = '📦 P'
+                        placeholder = 'Buscar producto...'
+                      } else if (item.type === 'recipe') {
+                        sourceList = recipes
+                        badgeColor = 'bg-purple-500/20 text-purple-400'
+                        badgeLabel = '🍖 R'
+                        placeholder = 'Buscar receta...'
+                      } else if (item.type === 'ingredient') {
+                        sourceList = ingredients
+                        badgeColor = 'bg-green-500/20 text-green-400'
+                        badgeLabel = '🥕 I'
+                        placeholder = 'Buscar ingrediente...'
+                      }
 
-                    // Precio: usar optionalPrice si existe, sino el precio auto del item
-                    const itemPriceDisplay = Number(item.optionalPrice) > 0 
-                      ? Number(item.optionalPrice) * qty
-                      : liveData.price * qty
+                      const itemPriceDisplay = Number(item.optionalPrice) > 0 
+                        ? Number(item.optionalPrice) * qty
+                        : liveData.price * qty
 
-                    return (
-                      <div key={index} className={`grid grid-cols-10 gap-2 px-2 py-1.5 border-b text-xs ${
-                        isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
-                      }`}>
-                        <div className="col-span-3 flex items-center gap-2">
-                          <span className={`text-xs font-semibold px-2 py-1 rounded ${badgeColor}`}>
-                            {badgeLabel}
-                          </span>
-                          <SearchSelect
-                            options={sourceList}
-                            value={item.id}
-                            onChange={(val) => handleItemChange(index, 'id', val)}
-                            displayKey="name"
-                            valueKey="id"
-                            placeholder={placeholder}
-                            className="flex-1"
-                          />
-                        </div>
-
-                        <div className="col-span-2 flex items-center">
-                          <input
-                            type="number"
-                            step="1"
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value) || 1)}
-                            onFocus={(e) => e.target.select()}
-                            className={`w-full px-2 py-1 rounded border text-center text-xs ${
-                              isDarkMode
-                                ? 'bg-[#111827] border-gray-600 text-white'
-                                : 'bg-white border-gray-300 text-gray-900'
-                            }`}
-                            placeholder="1"
-                          />
-                        </div>
-
-                        <div className={`col-span-2 flex items-center justify-end ${
-                          isDarkMode ? 'text-blue-300' : 'text-blue-600'
+                      return (
+                        <div key={`${isEmbalaje ? 'emb' : 'ali'}-${index}`} className={`grid grid-cols-10 gap-2 px-2 py-1.5 border-b text-xs ${
+                          isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                         }`}>
-                          <span className="font-semibold text-xs truncate">{formatMoneyDisplay(itemCost)}</span>
-                        </div>
+                          <div className="col-span-3 flex items-center gap-2">
+                            <span className={`text-xs font-semibold px-2 py-1 rounded ${badgeColor}`}>
+                              {badgeLabel}
+                            </span>
+                            <SearchSelect
+                              options={sourceList}
+                              value={item.id}
+                              onChange={(val) => handleItemChange(formData.items.indexOf(item), 'id', val)}
+                              displayKey="name"
+                              valueKey="id"
+                              placeholder={placeholder}
+                              className="flex-1"
+                            />
+                          </div>
 
-                        <div className="col-span-2 flex items-center justify-end">
-                          <input
-                            type="number"
-                            step="1000"
-                            min="0"
-                            value={item.optionalPrice || ''}
-                            onChange={(e) => handleItemChange(index, 'optionalPrice', parseFloat(e.target.value) || 0)}
-                            onFocus={(e) => e.target.select()}
-                            onDoubleClick={(e) => e.target.select()}
-                            className={`w-full px-2 py-1 rounded border text-right text-xs ${
-                              Number(item.optionalPrice) > 0
-                                ? isDarkMode
-                                  ? 'bg-green-900/30 border-green-600 text-green-300 font-bold'
-                                  : 'bg-green-50 border-green-400 text-green-700 font-bold'
-                                : isDarkMode
-                                ? 'bg-[#111827] border-gray-600 text-gray-400'
-                                : 'bg-white border-gray-300 text-gray-500'
-                            }`}
-                            placeholder={formatMoneyDisplay(liveData.price * qty)}
-                            title="Doble clic para editar precio de venta personalizado"
-                          />
-                        </div>
+                          <div className="col-span-2 flex items-center">
+                            <input
+                              type="number"
+                              step="1"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => handleItemChange(formData.items.indexOf(item), 'quantity', parseFloat(e.target.value) || 1)}
+                              onFocus={(e) => e.target.select()}
+                              className={`w-full px-2 py-1 rounded border text-center text-xs ${
+                                isDarkMode
+                                  ? 'bg-[#111827] border-gray-600 text-white'
+                                  : 'bg-white border-gray-300 text-gray-900'
+                              }`}
+                              placeholder="1"
+                            />
+                          </div>
 
-                        <div className="col-span-1 flex items-center justify-center">
-                          <button
-                            onClick={() => handleRemoveItem(index)}
-                            className={`p-1 rounded transition-colors ${
-                              isDarkMode
-                                ? 'hover:bg-red-900/30 text-red-400'
-                                : 'hover:bg-red-100 text-red-600'
-                            }`}
-                            title="Eliminar item"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className={`col-span-2 flex items-center justify-end ${
+                            isDarkMode ? 'text-blue-300' : 'text-blue-600'
+                          }`}>
+                            <span className="font-semibold text-xs truncate">{formatMoneyDisplay(itemCost)}</span>
+                          </div>
+
+                          <div className="col-span-2 flex items-center justify-end">
+                            <input
+                              type="number"
+                              step="1000"
+                              min="0"
+                              value={item.optionalPrice || ''}
+                              onChange={(e) => handleItemChange(formData.items.indexOf(item), 'optionalPrice', parseFloat(e.target.value) || 0)}
+                              onFocus={(e) => e.target.select()}
+                              onDoubleClick={(e) => e.target.select()}
+                              className={`w-full px-2 py-1 rounded border text-right text-xs ${
+                                Number(item.optionalPrice) > 0
+                                  ? isDarkMode
+                                    ? 'bg-green-900/30 border-green-600 text-green-300 font-bold'
+                                    : 'bg-green-50 border-green-400 text-green-700 font-bold'
+                                  : isDarkMode
+                                  ? 'bg-[#111827] border-gray-600 text-gray-400'
+                                  : 'bg-white border-gray-300 text-gray-500'
+                              }`}
+                              placeholder={formatMoneyDisplay(liveData.price * qty)}
+                              title="Doble clic para editar precio de venta personalizado"
+                            />
+                          </div>
+
+                          <div className="col-span-1 flex items-center justify-center">
+                            <button
+                              onClick={() => handleRemoveItem(formData.items.indexOf(item))}
+                              className={`p-1 rounded transition-colors ${
+                                isDarkMode
+                                  ? 'hover:bg-red-900/30 text-red-400'
+                                  : 'hover:bg-red-100 text-red-600'
+                              }`}
+                              title="Eliminar item"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      )
+                    }
+                    
+                    return (
+                      <>
+                        {/* SECCIÓN 1: ALIMENTOS (Productos y Recetas) */}
+                        {alimentosItems.length > 0 && (
+                          <>
+                            <div className={`px-2 py-2 border-b font-bold text-[11px] ${
+                              isDarkMode ? 'bg-purple-950/30 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-700'
+                            }`}>
+                              🍽️ ALIMENTOS (Productos y Recetas)
+                            </div>
+                            {alimentosItems.map((item, idx) => renderItem(item, idx, false))}
+                            
+                            {/* Subtotal Alimentos */}
+                            <div className={`grid grid-cols-10 gap-2 px-2 py-2 border-b font-bold text-xs ${
+                              isDarkMode ? 'bg-purple-900/20 border-purple-800 text-purple-400' : 'bg-purple-100 border-purple-300 text-purple-700'
+                            }`}>
+                              <div className="col-span-5"></div>
+                              <div className="col-span-2 text-right">SUBTOTAL:</div>
+                              <div className="col-span-2 text-right">{formatMoneyDisplay(subtotalAlimentos)}</div>
+                              <div className="col-span-1"></div>
+                            </div>
+                          </>
+                        )}
+                        
+                        {/* SECCIÓN 2: EMBALAJE (Ingredientes) */}
+                        {embalajeItems.length > 0 && (
+                          <>
+                            <div className={`px-2 py-2 border-b font-bold text-[11px] ${
+                              isDarkMode ? 'bg-green-950/30 border-green-800 text-green-300' : 'bg-green-50 border-green-200 text-green-700'
+                            }`}>
+                              📦 EMBALAJE / INSUMOS
+                            </div>
+                            {embalajeItems.map((item, idx) => renderItem(item, idx, true))}
+                            
+                            {/* Subtotal Embalaje */}
+                            <div className={`grid grid-cols-10 gap-2 px-2 py-2 border-b font-bold text-xs ${
+                              isDarkMode ? 'bg-green-900/20 border-green-800 text-green-400' : 'bg-green-100 border-green-300 text-green-700'
+                            }`}>
+                              <div className="col-span-5"></div>
+                              <div className="col-span-2 text-right">SUBTOTAL:</div>
+                              <div className="col-span-2 text-right">{formatMoneyDisplay(subtotalEmbalaje)}</div>
+                              <div className="col-span-1"></div>
+                            </div>
+                          </>
+                        )}
+                      </>
                     )
-                  })}
+                  })()}
 
                   {formData.items.length === 0 && (
                     <div className={`text-center py-4 ${
@@ -1456,74 +1538,125 @@ export default function Promotions() {
                   )}
                 </div>
 
-                {/* Resumen de Totales */}
-                {formData.items.length > 0 && (
-                  <div className={`px-2 py-1.5 border-t ${
-                    isDarkMode ? 'border-gray-700 bg-gray-800/30' : 'border-gray-300 bg-gray-100'
-                  }`}>
-                    <div className="grid grid-cols-2 gap-2">
-                      {/* Columna Izquierda: Totales */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between items-center">
-                          <span className={`text-[10px] font-semibold ${
-                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                          }`}>
-                            💰 Total Costo:
-                          </span>
-                          <span className={`text-xs font-bold ${
-                            isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                          }`}>
-                            {formatMoneyDisplay(calculatedTotals.totalCost)}
-                          </span>
+                {/* Resumen de Totales CON DESGLOSE */}
+                {formData.items.length > 0 && (() => {
+                  const totals = calculateTotals(formData.items)
+                  
+                  return (
+                    <div className={`px-2 py-1.5 border-t ${
+                      isDarkMode ? 'border-gray-700 bg-gray-800/30' : 'border-gray-300 bg-gray-100'
+                    }`}>
+                      <div className="space-y-2">
+                        {/* DESGLOSE DE COSTOS */}
+                        <div className={`p-2 rounded-lg ${
+                          isDarkMode ? 'bg-gray-900/50 border border-gray-700' : 'bg-white border border-gray-300'
+                        }`}>
+                          <div className="space-y-1">
+                            {/* Total Alimentos */}
+                            {totals.costoAlimentos > 0 && (
+                              <div className="flex justify-between items-center">
+                                <span className={`text-[10px] font-semibold ${
+                                  isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                                }`}>
+                                  🍽️ Total Alimentos:
+                                </span>
+                                <span className={`text-xs font-bold ${
+                                  isDarkMode ? 'text-purple-300' : 'text-purple-700'
+                                }`}>
+                                  {formatMoneyDisplay(totals.costoAlimentos)}
+                                </span>
+                              </div>
+                            )}
+                            
+                            {/* Total Embalaje */}
+                            {totals.costoEmbalaje > 0 && (
+                              <div className="flex justify-between items-center">
+                                <span className={`text-[10px] font-semibold ${
+                                  isDarkMode ? 'text-green-400' : 'text-green-600'
+                                }`}>
+                                  📦 Total Insumos/Embalaje:
+                                </span>
+                                <span className={`text-xs font-bold ${
+                                  isDarkMode ? 'text-green-300' : 'text-green-700'
+                                }`}>
+                                  {formatMoneyDisplay(totals.costoEmbalaje)}
+                                </span>
+                              </div>
+                            )}
+                            
+                            {/* Separador */}
+                            <div className={`border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} my-1`}></div>
+                            
+                            {/* Total General */}
+                            <div className="flex justify-between items-center">
+                              <span className={`text-[10px] font-semibold ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                              }`}>
+                                💰 Total Costo (CT):
+                              </span>
+                              <span className={`text-xs font-bold ${
+                                isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                              }`}>
+                                {formatMoneyDisplay(calculatedTotals.totalCost)}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <span className={`text-[10px] font-semibold ${
-                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                          }`}>
-                            💵 PVP Regular:
-                          </span>
-                          <span className={`text-xs font-bold ${
-                            isDarkMode ? 'text-green-400' : 'text-green-600'
-                          }`}>
-                            {formatMoneyDisplay(calculatedTotals.totalRegularPrice)}
-                          </span>
-                        </div>
-                      </div>
+                        
+                        {/* PRECIOS Y AHORROS */}
+                        <div className="grid grid-cols-2 gap-2">
+                          {/* Columna Izquierda */}
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-center">
+                              <span className={`text-[10px] font-semibold ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                              }`}>
+                                💵 PVP Regular:
+                              </span>
+                              <span className={`text-xs font-bold ${
+                                isDarkMode ? 'text-green-400' : 'text-green-600'
+                              }`}>
+                                {formatMoneyDisplay(calculatedTotals.totalRegularPrice)}
+                              </span>
+                            </div>
+                          </div>
 
-                      {/* Columna Derecha: Ahorro y Descuento */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between items-center">
-                          <span className={`text-[10px] font-semibold ${
-                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                          }`}>
-                            🎁 Descuento ($):
-                          </span>
-                          <span className={`text-xs font-bold ${
-                            calculatedTotals.ahorro > 0
-                              ? isDarkMode ? 'text-orange-400' : 'text-orange-600'
-                              : isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                          }`}>
-                            {formatMoneyDisplay(calculatedTotals.ahorro)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className={`text-[10px] font-semibold ${
-                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                          }`}>
-                            📊 Ahorro (%):
-                          </span>
-                          <span className={`text-xs font-bold ${
-                            calculatedTotals.descuentoPct > 0
-                              ? isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
-                              : isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                          }`}>
-                            {calculatedTotals.descuentoPct.toFixed(1)}%
-                          </span>
+                          {/* Columna Derecha */}
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-center">
+                              <span className={`text-[10px] font-semibold ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                              }`}>
+                                🎁 Descuento ($):
+                              </span>
+                              <span className={`text-xs font-bold ${
+                                calculatedTotals.ahorro > 0
+                                  ? isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                                  : isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                              }`}>
+                                {formatMoneyDisplay(calculatedTotals.ahorro)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className={`text-[10px] font-semibold ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                              }`}>
+                                📊 Ahorro (%):
+                              </span>
+                              <span className={`text-xs font-bold ${
+                                calculatedTotals.descuentoPct > 0
+                                  ? isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
+                                  : isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                              }`}>
+                                {calculatedTotals.descuentoPct.toFixed(1)}%
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )
+                })()}
               </div>
             </div>
 
