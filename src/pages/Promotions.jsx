@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, Tag, Copy } from 'lucide-react'
+import { Plus, Edit2, Trash2, Tag, Copy, GripVertical } from 'lucide-react'
 import { db } from '@/config/firebase'
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
+import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore'
 import { getProducts, getRecipes, getIngredients, getAllDocs, saveDoc, deleteDocument } from '@/utils/storage'
 import { formatMoneyDisplay, roundToNearestThousand } from '@/utils/formatters'
 import Modal from '@/components/Modal'
@@ -24,6 +24,8 @@ export default function Promotions() {
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
   const [categoryName, setCategoryName] = useState('')
+  const [draggedItem, setDraggedItem] = useState(null)
+  const [dragOverCategory, setDragOverCategory] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     items: [],
@@ -170,8 +172,9 @@ export default function Promotions() {
 
   const handleOpenModal = (promo = null) => {
     if (promo) {
-      console.log('📂 Abriendo combo para editar:', promo.name, 'Items:', promo.items?.length)
+      console.log('� Abriendo combo para EDITAR:', promo.name, 'ID:', promo.id)
       
+      // 🔥 MODO EDICIÓN - Establecer editingId con el ID real
       setEditingId(promo.id)
       
       // Recalcular items con datos frescos ANTES de abrir modal
@@ -194,12 +197,15 @@ export default function Promotions() {
         console.log('✅ Recálculo automático al abrir:', {
           costoTotal: totals.totalCost,
           precioVenta: promo.promoPrice,
-          margen: ((promo.promoPrice - totals.totalCost) / promo.promoPrice * 100).toFixed(1) + '%'
+          margen: ((promo.promoPrice - totals.totalCost) / promo.promoPrice * 100).toFixed(1) + '%',
+          modoEdicion: true,
+          editingId: promo.id
         })
       }, 0)
       
-      console.log('✅ Combo cargado con costos actualizados')
+      console.log('✅ Combo cargado en MODO EDICIÓN con ID:', promo.id)
     } else {
+      console.log('➕ Abriendo modal para CREAR nuevo combo')
       setEditingId(null)
       setFormData({
         name: '',
@@ -243,10 +249,9 @@ export default function Promotions() {
       // 🔥 NOMBRE DISTINTIVO con prefijo COPIA -
       const nombreCopia = `COPIA - ${promo.name || 'Combo'}`
       
-      // Crear copia limpia del combo con id: null (copia profunda)
+      // Crear copia limpia del combo usando spread
       const comboDuplicado = {
         ...promo,
-        id: null,
         name: nombreCopia,
         items: itemsWithFreshData,
         promoPrice: Number(promo.promoPrice) || 0,
@@ -254,11 +259,17 @@ export default function Promotions() {
         // NO incluir createdAt, updatedAt (serán nuevos al guardar)
       }
       
+      // 🔥 ELIMINAR ID para que Firebase cree uno nuevo
+      delete comboDuplicado.id
+      delete comboDuplicado.createdAt
+      delete comboDuplicado.updatedAt
+      
       console.log('✅ Combo duplicado (SIN ID):', {
         nombre: comboDuplicado.name,
         items: comboDuplicado.items.length,
         precio: comboDuplicado.promoPrice,
-        tieneId: 'id' in comboDuplicado
+        tieneId: 'id' in comboDuplicado,
+        modoCreacion: true
       })
       
       // Cargar datos en el formulario
@@ -593,6 +604,65 @@ export default function Promotions() {
     }
   }
 
+  // ========== DRAG & DROP FUNCTIONS ==========
+  
+  const handleDragStart = (e, promo) => {
+    console.log('🎯 Drag Start:', promo.name)
+    setDraggedItem(promo)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragEnd = () => {
+    console.log('🎯 Drag End')
+    setDraggedItem(null)
+    setDragOverCategory(null)
+  }
+
+  const handleDragOver = (e, categoryId) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverCategory(categoryId)
+  }
+
+  const handleDragLeave = () => {
+    setDragOverCategory(null)
+  }
+
+  const handleDrop = async (e, targetCategoryId) => {
+    e.preventDefault()
+    setDragOverCategory(null)
+    
+    if (!draggedItem) return
+
+    try {
+      const currentCategoryId = String(draggedItem.categoryId || '').trim()
+      const newCategoryId = String(targetCategoryId || '').trim()
+
+      console.log('📦 Drop:', {
+        combo: draggedItem.name,
+        from: currentCategoryId || 'Sin categoría',
+        to: newCategoryId || 'Sin categoría'
+      })
+
+      // Si se mueve a una categoría diferente
+      if (currentCategoryId !== newCategoryId) {
+        const docRef = doc(db, 'promotions', draggedItem.id)
+        await updateDoc(docRef, {
+          categoryId: newCategoryId,
+          updatedAt: new Date().toISOString()
+        })
+        console.log('✅ Categoría actualizada en Firebase')
+      } else {
+        console.log('ℹ️ Mismo origen y destino, no se actualiza')
+      }
+    } catch (error) {
+      console.error('❌ Error al actualizar categoría:', error)
+      alert('Error al mover el combo')
+    } finally {
+      setDraggedItem(null)
+    }
+  }
+
   // Manejar guardado de categoría
   const handleSaveCategory = async () => {
     const sanitizedName = String(categoryName || '').trim()
@@ -712,7 +782,12 @@ export default function Promotions() {
             console.log('📋 Mostrando todas las promociones')
             setSelectedCategoryFilter(null)
           }}
+          onDragOver={(e) => handleDragOver(e, null)}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => handleDrop(e, null)}
           className={`px-6 py-2 font-semibold transition-all border-b-4 whitespace-nowrap ${
+            dragOverCategory === null && draggedItem ? 'bg-blue-100 dark:bg-blue-900/30' : ''
+          } ${
             selectedCategoryFilter === null
               ? 'border-primary-blue text-primary-blue'
               : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -734,7 +809,12 @@ export default function Promotions() {
                   console.log(`🏷️ Filtrando por categoría: ${cat.name} (ID: ${cat.id})`)
                   setSelectedCategoryFilter(cat.id)
                 }}
+                onDragOver={(e) => handleDragOver(e, cat.id)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, cat.id)}
                 className={`px-6 py-2 font-semibold transition-all border-b-4 whitespace-nowrap ${
+                  dragOverCategory === cat.id && draggedItem ? 'bg-blue-100 dark:bg-blue-900/30 scale-105' : ''
+                } ${
                   selectedCategoryFilter === cat.id
                     ? 'border-primary-blue text-primary-blue'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -831,31 +911,41 @@ export default function Promotions() {
             return (
               <div 
                 key={promo.id}
-                className={`p-4 rounded-xl border ${
-                  isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
+                draggable
+                onDragStart={(e) => handleDragStart(e, promo)}
+                onDragEnd={handleDragEnd}
+                className={`p-4 rounded-xl border cursor-move transition-all ${
+                  draggedItem?.id === promo.id 
+                    ? 'opacity-50 scale-95' 
+                    : 'opacity-100 scale-100'
+                } ${
+                  isDarkMode ? 'bg-[#1f2937] border-gray-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-400'
                 }`}
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      {promo.name}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-2">
-                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {(promo.items || []).length} item(s)
-                      </p>
-                      {promo.categoryId && (() => {
-                        const category = categories.find(c => c.id === promo.categoryId)
-                        return category ? (
-                          <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${
-                            isDarkMode 
-                              ? 'bg-primary-blue/30 text-primary-blue border border-primary-blue/50' 
-                              : 'bg-primary-blue/10 text-primary-blue border border-primary-blue/30'
-                          }`}>
-                            📁 {category.name}
-                          </span>
-                        ) : null
-                      })()}
+                  <div className="flex items-center gap-2 flex-1">
+                    <GripVertical size={18} className={`flex-shrink-0 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                    <div className="flex-1">
+                      <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {promo.name}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-2">
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {(promo.items || []).length} item(s)
+                        </p>
+                        {promo.categoryId && (() => {
+                          const category = categories.find(c => c.id === promo.categoryId)
+                          return category ? (
+                            <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${
+                              isDarkMode 
+                                ? 'bg-primary-blue/30 text-primary-blue border border-primary-blue/50' 
+                                : 'bg-primary-blue/10 text-primary-blue border border-primary-blue/30'
+                            }`}>
+                              📁 {category.name}
+                            </span>
+                          ) : null
+                        })()}
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-1">
