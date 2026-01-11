@@ -107,6 +107,16 @@ export default function Dashboard() {
     ? itemsWithMargin.reduce((sum, item) => sum + item.contributionMarginPercent, 0) / itemsWithMargin.length
     : 0
 
+  console.log('📊 [Dashboard] Métricas Calculadas:', {
+    totalItems: itemsWithMargin.length,
+    margenPromedio: avgMenuMargin.toFixed(2) + '%',
+    itemsConMargen: itemsWithMargin.map(i => ({
+      nombre: i.name,
+      tipo: i.type,
+      margen: i.contributionMarginPercent.toFixed(1) + '%'
+    }))
+  })
+
   // Ticket Promedio Estimado (precio promedio)
   const avgTicket = itemsWithMargin.length > 0
     ? itemsWithMargin.reduce((sum, item) => sum + item.price, 0) / itemsWithMargin.length
@@ -114,6 +124,14 @@ export default function Dashboard() {
 
   // Costos Fijos Totales desde Config (datos reales del usuario)
   const totalFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)
+
+  console.log('💼 [Dashboard] Costos Fijos:', {
+    arriendo: config.rentCost || 0,
+    servicios: config.utilitiesCost || 0,
+    nomina: config.payrollCost || 0,
+    otros: config.otherFixedCosts || 0,
+    total: totalFixedCosts
+  })
 
   // Margen de Contribución Promedio por Ítem (en dinero)
   const avgContributionMargin = itemsWithMargin.length > 0
@@ -125,6 +143,13 @@ export default function Dashboard() {
   const breakEvenSales = avgMarginDecimal > 0 
     ? totalFixedCosts / avgMarginDecimal
     : 0
+
+  console.log('🎯 [Dashboard] Punto de Equilibrio:', {
+    gastosFijos: totalFixedCosts,
+    margenPromedioDecimal: avgMarginDecimal.toFixed(4),
+    ventasNecesarias: breakEvenSales.toFixed(2),
+    formula: `${totalFixedCosts} / ${avgMarginDecimal.toFixed(4)} = ${breakEvenSales.toFixed(2)}`
+  })
 
   // Unidades necesarias para punto de equilibrio
   const breakEvenUnits = avgTicket > 0
@@ -158,6 +183,17 @@ export default function Dashboard() {
     puzzles: itemsWithMargin.filter(item => item.contributionMarginPercent >= 20 && item.contributionMarginPercent < 30), // Enigmas
     dogs: itemsWithMargin.filter(item => item.contributionMarginPercent < 20) // Perros
   }
+
+  console.log('⭐ [Dashboard] Ingeniería de Menú:', {
+    estrellas: productsByProfitability.stars.length,
+    caballos: productsByProfitability.plowhorses.length,
+    enigmas: productsByProfitability.puzzles.length,
+    perros: productsByProfitability.dogs.length,
+    detalleEstrellas: productsByProfitability.stars.map(i => `${i.name}: ${i.contributionMarginPercent.toFixed(1)}%`),
+    detalleCaballos: productsByProfitability.plowhorses.map(i => `${i.name}: ${i.contributionMarginPercent.toFixed(1)}%`),
+    detalleEnigmas: productsByProfitability.puzzles.map(i => `${i.name}: ${i.contributionMarginPercent.toFixed(1)}%`),
+    detallePerros: productsByProfitability.dogs.map(i => `${i.name}: ${i.contributionMarginPercent.toFixed(1)}%`)
+  })
 
   // Datos para gráfico de barras (Top 10 por margen %) - DINÁMICO
   const top10ByMargin = [...itemsWithMargin]
@@ -479,6 +515,16 @@ export default function Dashboard() {
         
         // % actual de gastos sobre ventas
         const currentCostPercent = currentEstimatedSales > 0 ? (totalFixedCosts / currentEstimatedSales) * 100 : 0
+        
+        console.log('🎯 [Dashboard] Meta de Eficiencia:', {
+          gastosFijos: totalFixedCosts,
+          ventasEstimadasActuales: currentEstimatedSales,
+          ventasNecesariasParaEficiencia: salesNeededForEfficiency,
+          deficit: salesDeficit,
+          metaDiaria: dailyTarget,
+          porcentajeCostoActual: currentCostPercent.toFixed(2) + '%',
+          formula: `${totalFixedCosts} / (20% / 100) = ${salesNeededForEfficiency}`
+        })
         
         // Solo mostrar si hay déficit
         const hasDeficit = salesDeficit > 0 && currentEstimatedSales > 0
