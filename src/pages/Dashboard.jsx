@@ -498,36 +498,39 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Meta de Eficiencia */}
+      {/* Meta de Punto de Equilibrio */}
       {(() => {
-        // Calcular ventas necesarias para que gastos fijos sean 20%
-        const targetEfficiencyPercent = 20
-        const salesNeededForEfficiency = totalFixedCosts > 0 ? totalFixedCosts / (targetEfficiencyPercent / 100) : 0
-        
         // Ventas estimadas actuales desde config
         const currentEstimatedSales = config.estimatedMonthlySales || 0
         
-        // Déficit de ventas
-        const salesDeficit = Math.max(0, salesNeededForEfficiency - currentEstimatedSales)
+        // Déficit de ventas (Punto de Equilibrio - Ventas Actuales)
+        const salesDeficit = Math.max(0, breakEvenSales - currentEstimatedSales)
         
-        // Meta diaria
+        // Meta diaria para alcanzar el punto de equilibrio
         const dailyTarget = salesDeficit / 30
         
         // % actual de gastos sobre ventas
         const currentCostPercent = currentEstimatedSales > 0 ? (totalFixedCosts / currentEstimatedSales) * 100 : 0
         
-        console.log('🎯 [Dashboard] Meta de Eficiencia:', {
+        // % de margen sobre ventas actuales
+        const currentMarginPercent = currentEstimatedSales > 0 
+          ? ((currentEstimatedSales - totalFixedCosts) / currentEstimatedSales) * 100 
+          : 0
+        
+        console.log('🎯 [Dashboard] Punto de Equilibrio vs Ventas:', {
           gastosFijos: totalFixedCosts,
+          margenPromedio: avgMenuMargin.toFixed(2) + '%',
+          puntoEquilibrio: breakEvenSales,
           ventasEstimadasActuales: currentEstimatedSales,
-          ventasNecesariasParaEficiencia: salesNeededForEfficiency,
           deficit: salesDeficit,
           metaDiaria: dailyTarget,
           porcentajeCostoActual: currentCostPercent.toFixed(2) + '%',
-          formula: `${totalFixedCosts} / (20% / 100) = ${salesNeededForEfficiency}`
+          formula: `PE = ${totalFixedCosts} / (${avgMenuMargin.toFixed(2)}% / 100) = ${breakEvenSales.toFixed(2)}`
         })
         
         // Solo mostrar si hay déficit
         const hasDeficit = salesDeficit > 0 && currentEstimatedSales > 0
+        const hasReachedBreakEven = currentEstimatedSales >= breakEvenSales
         
         return (
           <div className={`rounded-lg p-6 border ${
@@ -550,42 +553,36 @@ export default function Dashboard() {
                       ? isDarkMode ? 'text-orange-300' : 'text-orange-700'
                       : isDarkMode ? 'text-green-300' : 'text-green-700'
                   }`}>
-                    🎯 Meta de Eficiencia Financiera
+                    🎯 Meta de Punto de Equilibrio
                   </h3>
                   <p className={`text-sm ${
                     hasDeficit
                       ? isDarkMode ? 'text-orange-400' : 'text-orange-600'
                       : isDarkMode ? 'text-green-400' : 'text-green-600'
                   }`}>
-                    Objetivo: Gastos Fijos = 20% de Ventas (Saludable)
+                    Objetivo: Cubrir gastos fijos ({formatMoneyDisplay(totalFixedCosts)}) con margen promedio de {avgMenuMargin.toFixed(1)}%
                   </p>
                 </div>
               </div>
               {currentEstimatedSales > 0 && (
                 <div className={`px-4 py-2 rounded-full text-center ${
-                  currentCostPercent > 35
-                    ? isDarkMode ? 'bg-red-900/50 border-2 border-red-600' : 'bg-red-100 border-2 border-red-400'
-                    : currentCostPercent > 20
-                    ? isDarkMode ? 'bg-orange-900/50 border-2 border-orange-600' : 'bg-orange-100 border-2 border-orange-400'
-                    : isDarkMode ? 'bg-green-900/50 border-2 border-green-600' : 'bg-green-100 border-2 border-green-400'
+                  hasReachedBreakEven
+                    ? isDarkMode ? 'bg-green-900/50 border-2 border-green-600' : 'bg-green-100 border-2 border-green-400'
+                    : isDarkMode ? 'bg-orange-900/50 border-2 border-orange-600' : 'bg-orange-100 border-2 border-orange-400'
                 }`}>
                   <p className={`text-xs font-medium ${
-                    currentCostPercent > 35
-                      ? 'text-red-500'
-                      : currentCostPercent > 20
-                      ? isDarkMode ? 'text-orange-400' : 'text-orange-600'
-                      : isDarkMode ? 'text-green-400' : 'text-green-600'
+                    hasReachedBreakEven
+                      ? isDarkMode ? 'text-green-400' : 'text-green-600'
+                      : isDarkMode ? 'text-orange-400' : 'text-orange-600'
                   }`}>
-                    % Actual
+                    Estado
                   </p>
                   <p className={`text-2xl font-black ${
-                    currentCostPercent > 35
-                      ? 'text-red-500 animate-pulse'
-                      : currentCostPercent > 20
-                      ? isDarkMode ? 'text-orange-400' : 'text-orange-600'
-                      : isDarkMode ? 'text-green-400' : 'text-green-600'
+                    hasReachedBreakEven
+                      ? isDarkMode ? 'text-green-400' : 'text-green-600'
+                      : isDarkMode ? 'text-orange-400 animate-pulse' : 'text-orange-600 animate-pulse'
                   }`}>
-                    {currentCostPercent.toFixed(1)}%
+                    {hasReachedBreakEven ? '✅' : '⚠️'}
                   </p>
                 </div>
               )}
@@ -594,7 +591,7 @@ export default function Dashboard() {
             {currentEstimatedSales === 0 ? (
               <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-yellow-900/20 border border-yellow-700' : 'bg-yellow-50 border border-yellow-200'}`}>
                 <p className={`text-sm ${isDarkMode ? 'text-yellow-300' : 'text-yellow-700'}`}>
-                  ⚠️ <strong>Configura tus Ventas Estimadas</strong> en la sección de Configuración para ver tu meta de eficiencia y el déficit de ventas.
+                  ⚠️ <strong>Configura tus Ventas Estimadas</strong> en la sección de Configuración para ver si has alcanzado el punto de equilibrio.
                 </p>
               </div>
             ) : (
@@ -614,10 +611,13 @@ export default function Dashboard() {
                     </p>
                   </div>
 
-                  <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-green-900/30 border border-green-700' : 'bg-green-50 border border-green-300'}`}>
-                    <p className={`text-xs mb-2 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>🎯 Ventas Necesarias (20%)</p>
-                    <p className={`text-2xl font-bold ${isDarkMode ? 'text-green-300' : 'text-green-700'}`}>
-                      {formatMoneyDisplay(salesNeededForEfficiency)}
+                  <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-purple-900/30 border border-purple-700' : 'bg-purple-50 border border-purple-300'}`}>
+                    <p className={`text-xs mb-2 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>🎯 Punto de Equilibrio (PE)</p>
+                    <p className={`text-2xl font-bold ${isDarkMode ? 'text-purple-300' : 'text-purple-700'}`}>
+                      {formatMoneyDisplay(breakEvenSales)}
+                    </p>
+                    <p className={`text-xs mt-1 ${isDarkMode ? 'text-purple-400/70' : 'text-purple-600/70'}`}>
+                      Fórmula: {formatMoneyDisplay(totalFixedCosts)} ÷ {avgMenuMargin.toFixed(1)}%
                     </p>
                   </div>
                 </div>
@@ -629,13 +629,13 @@ export default function Dashboard() {
                         <AlertCircle className={`flex-shrink-0 mt-1 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} size={28} />
                         <div className="flex-1">
                           <p className={`text-lg font-bold mb-2 ${isDarkMode ? 'text-orange-300' : 'text-orange-700'}`}>
-                            📈 Para llegar a un 20% de costos indirectos (saludable):
+                            📈 Para alcanzar el punto de equilibrio:
                           </p>
                           <p className={`text-3xl font-black mb-3 ${isDarkMode ? 'text-orange-200' : 'text-orange-800'}`}>
                             Necesitas vender {formatMoneyDisplay(salesDeficit)} adicionales al mes
                           </p>
                           <div className={`inline-block px-4 py-2 rounded-lg ${isDarkMode ? 'bg-orange-700' : 'bg-orange-500'}`}>
-                            <p className="text-white text-sm font-medium">⏰ Meta Diaria para Recuperación</p>
+                            <p className="text-white text-sm font-medium">⏰ Meta Diaria para Alcanzar PE</p>
                             <p className="text-white text-2xl font-black">
                               {formatMoneyDisplay(dailyTarget)} / día
                             </p>
@@ -648,22 +648,22 @@ export default function Dashboard() {
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
                         <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          Progreso hacia meta saludable
+                          Progreso hacia punto de equilibrio
                         </span>
                         <span className={`text-sm font-bold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
-                          {((currentEstimatedSales / salesNeededForEfficiency) * 100).toFixed(1)}%
+                          {((currentEstimatedSales / breakEvenSales) * 100).toFixed(1)}%
                         </span>
                       </div>
                       <div className={`w-full h-4 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                         <div 
                           className={`h-full transition-all duration-500 ${
-                            (currentEstimatedSales / salesNeededForEfficiency) * 100 < 50
+                            (currentEstimatedSales / breakEvenSales) * 100 < 50
                               ? 'bg-gradient-to-r from-red-500 to-red-600'
-                              : (currentEstimatedSales / salesNeededForEfficiency) * 100 < 80
+                              : (currentEstimatedSales / breakEvenSales) * 100 < 80
                               ? 'bg-gradient-to-r from-orange-500 to-orange-600'
                               : 'bg-gradient-to-r from-green-500 to-green-600'
                           }`}
-                          style={{ width: `${Math.min((currentEstimatedSales / salesNeededForEfficiency) * 100, 100)}%` }}
+                          style={{ width: `${Math.min((currentEstimatedSales / breakEvenSales) * 100, 100)}%` }}
                         ></div>
                       </div>
                     </div>
@@ -676,10 +676,11 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <p className={`text-xl font-bold ${isDarkMode ? 'text-green-300' : 'text-green-700'}`}>
-                          ✅ ¡Excelente! Ya alcanzaste la meta de eficiencia
+                          ✅ ¡Excelente! Ya alcanzaste el punto de equilibrio
                         </p>
                         <p className={`text-sm ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                          Tus gastos fijos representan solo el {currentCostPercent.toFixed(1)}% de tus ventas estimadas, lo cual es saludable para tu negocio.
+                          Tus ventas estimadas de {formatMoneyDisplay(currentEstimatedSales)} superan el punto de equilibrio de {formatMoneyDisplay(breakEvenSales)}. 
+                          El excedente de {formatMoneyDisplay(currentEstimatedSales - breakEvenSales)} representa tu utilidad potencial.
                         </p>
                       </div>
                     </div>
