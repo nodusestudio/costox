@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { TrendingUp, AlertCircle, DollarSign, TrendingDown } from 'lucide-react'
-import { getProducts, getConfig } from '@/utils/storage'
+import { getProducts, getRecipes, getPromotions, getConfig } from '@/utils/storage'
 import { useI18n } from '@/context/I18nContext'
 import { formatMoneyDisplay } from '@/utils/formatters'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js'
@@ -11,6 +11,8 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 export default function Dashboard() {
   const { t, isDarkMode } = useI18n()
   const [products, setProducts] = useState([])
+  const [recipes, setRecipes] = useState([])
+  const [promotions, setPromotions] = useState([])
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -20,15 +22,21 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      const [productsData, configData] = await Promise.all([
+      const [productsData, recipesData, promotionsData, configData] = await Promise.all([
         getProducts(),
+        getRecipes(),
+        getPromotions(),
         getConfig()
       ])
       setProducts(Array.isArray(productsData) ? productsData : [])
+      setRecipes(Array.isArray(recipesData) ? recipesData : [])
+      setPromotions(Array.isArray(promotionsData) ? promotionsData : [])
       setConfig(configData)
     } catch (error) {
       console.error('Error loading dashboard data:', error)
       setProducts([])
+      setRecipes([])
+      setPromotions([])
     } finally {
       setLoading(false)
     }
@@ -44,100 +52,136 @@ export default function Dashboard() {
 
   // ========== CÁLCULOS DE MÉTRICAS ==========
   
-  // Productos con datos completos de margen
-  const productsWithMargin = products.filter(p => {
-    const cost = (p.totalCost ?? p.realCost) || 0
-    const price = (p.realSalePrice || p.salePrice) || 0
-    return price > 0 && cost > 0
-  }).map(p => {
-    const cost = (p.totalCost ?? p.realCost) || 0
-    const price = (p.realSalePrice || p.salePrice) || 0
-    const contributionMargin = price - cost
-    const contributionMarginPercent = (contributionMargin / price) * 100
+  // Combinar productos, recetas y promociones para análisis unificado
+  const allItems = [
+    ...products.map(p => ({
+      ...p,
+      type: 'product',
+      cost: Number(p.totalCost ?? p.realCost ?? p.costoUnidad ?? 0),
+      price: Number(p.realSalePrice ?? p.salePrice ?? 0),
+      marginPercent: Number(p.pContribucion ?? 0), // % de margen guardado en Firebase
+      contributionAmount: Number(p.mContribucion ?? 0) // $ de contribución guardado
+    })),
+    ...recipes.map(r => ({
+      ...r,
+      type: 'recipe',
+      cost: Number(r.totalCost ?? r.costoUnidad ?? 0),
+      price: Number(r.realSalePrice ?? r.salePrice ?? 0),
+      marginPercent: Number(r.pContribucion ?? 0),
+      contributionAmount: Number(r.mContribucion ?? 0)
+    })),
+    ...promotions.map(p => ({
+      ...p,
+      type: 'promotion',
+      cost: Number(p.totalCosto ?? p.costoUnidad ?? 0),
+      price: Number(p.promoPrice ?? 0),
+      marginPercent: Number(p.pContribucion ?? 0),
+      contributionAmount: Number(p.mContribucion ?? 0)
+    }))
+  ]
+
+  // Filtrar ítems con datos completos
+  const itemsWithMargin = allItems.filter(item => {
+    const hasPrice = item.price > 0
+    const hasCost = item.cost >= 0
+    return hasPrice && hasCost
+  }).map(item => {
+    // Usar el marginPercent guardado en Firebase o calcularlo si no existe
+    let marginPercent = item.marginPercent
+    let contributionAmount = item.contributionAmount
+    
+    if (marginPercent === 0 && item.price > 0) {
+      contributionAmount = item.price - item.cost
+      marginPercent = (contributionAmount / item.price) * 100
+    }
     
     return {
-      ...p,
-      cost,
-      price,
-      contributionMargin,
-      contributionMarginPercent
+      ...item,
+      contributionMargin: contributionAmount,
+      contributionMarginPercent: marginPercent
     }
   })
 
-  // Margen Promedio del Menú
-  const avgMenuMargin = productsWithMargin.length > 0
-    ? productsWithMargin.reduce((sum, p) => sum + p.contributionMarginPercent, 0) / productsWithMargin.length
+  // Margen Promedio del Menú (usando datos reales de Firebase)
+  const avgMenuMargin = itemsWithMargin.length > 0
+    ? itemsWithMargin.reduce((sum, item) => sum + item.contributionMarginPercent, 0) / itemsWithMargin.length
     : 0
 
   // Ticket Promedio Estimado (precio promedio)
-  const avgTicket = productsWithMargin.length > 0
-    ? productsWithMargin.reduce((sum, p) => sum + p.price, 0) / productsWithMargin.length
+  const avgTicket = itemsWithMargin.length > 0
+    ? itemsWithMargin.reduce((sum, item) => sum + item.price, 0) / itemsWithMargin.length
     : 0
 
-  // Costos Fijos Totales desde Config
+  // Costos Fijos Totales desde Config (datos reales del usuario)
   const totalFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.payrollCost || 0) + (config.otherFixedCosts || 0)
 
-  // Margen de Contribución Promedio por Producto
-  const avgContributionMargin = productsWithMargin.length > 0
-    ? productsWithMargin.reduce((sum, p) => sum + p.contributionMargin, 0) / productsWithMargin.length
+  // Margen de Contribución Promedio por Ítem (en dinero)
+  const avgContributionMargin = itemsWithMargin.length > 0
+    ? itemsWithMargin.reduce((sum, item) => sum + item.contributionMargin, 0) / itemsWithMargin.length
     : 0
 
-  // Punto de Equilibrio (en unidades)
-  const breakEvenUnits = avgContributionMargin > 0
-    ? Math.ceil(totalFixedCosts / avgContributionMargin)
+  // Punto de Equilibrio usando fórmula: Ventas Necesarias = Gastos Fijos / (Margen Promedio % / 100)
+  const avgMarginDecimal = avgMenuMargin / 100
+  const breakEvenSales = avgMarginDecimal > 0 
+    ? totalFixedCosts / avgMarginDecimal
     : 0
 
-  // Ventas Necesarias para Punto de Equilibrio (en dinero)
-  const breakEvenSales = breakEvenUnits * avgTicket
+  // Unidades necesarias para punto de equilibrio
+  const breakEvenUnits = avgTicket > 0
+    ? Math.ceil(breakEvenSales / avgTicket)
+    : 0
 
-  // Productos con margen bajo (< 30%)
-  const lowMarginProducts = productsWithMargin.filter(p => p.contributionMarginPercent < 30)
+  // Ítems con margen bajo (< 30%)
+  const lowMarginProducts = itemsWithMargin.filter(item => item.contributionMarginPercent < 30)
 
   // ========== TERMÓMETRO DE RENTABILIDAD ==========
   // Food Cost Ideal: Costo base de ingredientes sin merma (asumiendo 0% merma)
   // Food Cost Real: Costo con merma incluida (el que realmente pagamos)
   
-  const totalIdealCost = productsWithMargin.reduce((sum, p) => {
+  const totalIdealCost = itemsWithMargin.reduce((sum, item) => {
     // Costo ideal sin merma (dividimos el costo real entre 1.30 para quitar el 30% de merma)
-    const idealCost = p.cost / 1.30 // Asumiendo 30% merma promedio
+    const idealCost = item.cost / 1.30 // Asumiendo 30% merma promedio
     return sum + idealCost
   }, 0)
 
-  const totalRealCost = productsWithMargin.reduce((sum, p) => sum + p.cost, 0)
-  const totalRevenue = productsWithMargin.reduce((sum, p) => sum + p.price, 0)
+  const totalRealCost = itemsWithMargin.reduce((sum, item) => sum + item.cost, 0)
+  const totalRevenue = itemsWithMargin.reduce((sum, item) => sum + item.price, 0)
 
   const foodCostIdealPercent = totalRevenue > 0 ? (totalIdealCost / totalRevenue) * 100 : 0
   const foodCostRealPercent = totalRevenue > 0 ? (totalRealCost / totalRevenue) * 100 : 0
   const wastageImpact = foodCostRealPercent - foodCostIdealPercent
 
-  // Clasificación de productos por rentabilidad (Ingeniería de Menú)
+  // Clasificación de ítems por rentabilidad (Ingeniería de Menú) - DATOS DINÁMICOS
   const productsByProfitability = {
-    stars: productsWithMargin.filter(p => p.contributionMarginPercent >= 50), // Estrellas
-    plowhorses: productsWithMargin.filter(p => p.contributionMarginPercent >= 30 && p.contributionMarginPercent < 50), // Caballos de batalla
-    puzzles: productsWithMargin.filter(p => p.contributionMarginPercent >= 20 && p.contributionMarginPercent < 30), // Enigmas
-    dogs: productsWithMargin.filter(p => p.contributionMarginPercent < 20) // Perros
+    stars: itemsWithMargin.filter(item => item.contributionMarginPercent >= 50), // Estrellas
+    plowhorses: itemsWithMargin.filter(item => item.contributionMarginPercent >= 30 && item.contributionMarginPercent < 50), // Caballos
+    puzzles: itemsWithMargin.filter(item => item.contributionMarginPercent >= 20 && item.contributionMarginPercent < 30), // Enigmas
+    dogs: itemsWithMargin.filter(item => item.contributionMarginPercent < 20) // Perros
   }
 
-  // Datos para gráfico de barras (Top 10 productos por margen %)
-  const top10ByMargin = [...productsWithMargin]
+  // Datos para gráfico de barras (Top 10 por margen %) - DINÁMICO
+  const top10ByMargin = [...itemsWithMargin]
     .sort((a, b) => b.contributionMarginPercent - a.contributionMarginPercent)
     .slice(0, 10)
 
   const barChartData = {
-    labels: top10ByMargin.map(p => p.name?.substring(0, 20) || 'Sin nombre'),
+    labels: top10ByMargin.map(item => {
+      const prefix = item.type === 'product' ? '📦' : item.type === 'recipe' ? '🍽️' : '🎁'
+      return `${prefix} ${(item.name || 'Sin nombre').substring(0, 18)}`
+    }),
     datasets: [{
       label: 'Margen de Contribución (%)',
-      data: top10ByMargin.map(p => p.contributionMarginPercent),
-      backgroundColor: top10ByMargin.map(p => {
-        if (p.contributionMarginPercent >= 50) return 'rgba(34, 197, 94, 0.8)' // Verde
-        if (p.contributionMarginPercent >= 30) return 'rgba(59, 130, 246, 0.8)' // Azul
-        if (p.contributionMarginPercent >= 20) return 'rgba(251, 191, 36, 0.8)' // Amarillo
+      data: top10ByMargin.map(item => item.contributionMarginPercent),
+      backgroundColor: top10ByMargin.map(item => {
+        if (item.contributionMarginPercent >= 50) return 'rgba(34, 197, 94, 0.8)' // Verde
+        if (item.contributionMarginPercent >= 30) return 'rgba(59, 130, 246, 0.8)' // Azul
+        if (item.contributionMarginPercent >= 20) return 'rgba(251, 191, 36, 0.8)' // Amarillo
         return 'rgba(239, 68, 68, 0.8)' // Rojo
       }),
-      borderColor: top10ByMargin.map(p => {
-        if (p.contributionMarginPercent >= 50) return 'rgb(34, 197, 94)'
-        if (p.contributionMarginPercent >= 30) return 'rgb(59, 130, 246)'
-        if (p.contributionMarginPercent >= 20) return 'rgb(251, 191, 36)'
+      borderColor: top10ByMargin.map(item => {
+        if (item.contributionMarginPercent >= 50) return 'rgb(34, 197, 94)'
+        if (item.contributionMarginPercent >= 30) return 'rgb(59, 130, 246)'
+        if (item.contributionMarginPercent >= 20) return 'rgb(251, 191, 36)'
         return 'rgb(239, 68, 68)'
       }),
       borderWidth: 2
@@ -153,7 +197,7 @@ export default function Dashboard() {
       },
       title: {
         display: true,
-        text: 'Top 10 Productos por Rentabilidad',
+        text: 'Top 10 Ítems por Rentabilidad (Productos, Recetas y Promociones)',
         color: isDarkMode ? '#fff' : '#111827',
         font: { size: 16, weight: 'bold' }
       }
@@ -409,9 +453,10 @@ export default function Dashboard() {
 
         <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-blue-900/20 border border-blue-700' : 'bg-blue-50 border border-blue-200'}`}>
           <p className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-            💡 <strong>Punto de Equilibrio:</strong> Necesitas vender <strong>{breakEvenUnits} unidades</strong> al mes (aproximadamente <strong>{Math.ceil(breakEvenUnits / 30)} unidades/día</strong>) para cubrir tus costos fijos. 
-            {totalFixedCosts > 0 && avgContributionMargin > 0 && (
-              <span> Con un margen promedio de {formatMoneyDisplay(avgContributionMargin)} por producto, debes alcanzar ventas de <strong>{formatMoneyDisplay(breakEvenSales)}</strong> mensuales.</span>
+            💡 <strong>Punto de Equilibrio:</strong> Con un margen promedio de {avgMenuMargin.toFixed(1)}%, necesitas generar ventas por <strong>{formatMoneyDisplay(breakEvenSales)}</strong> mensuales 
+            (aproximadamente <strong>{formatMoneyDisplay(breakEvenSales / 30)}/día</strong>) para cubrir tus gastos fijos de {formatMoneyDisplay(totalFixedCosts)}.
+            {breakEvenUnits > 0 && (
+              <span> Esto equivale a vender aproximadamente <strong>{breakEvenUnits} unidades al mes</strong> o <strong>{Math.ceil(breakEvenUnits / 30)} unidades/día</strong>.</span>
             )}
           </p>
         </div>
@@ -624,36 +669,36 @@ export default function Dashboard() {
             <AlertCircle className={`flex-shrink-0 mt-0.5 ${isDarkMode ? 'text-red-500' : 'text-red-600'}`} size={24} />
             <div>
               <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-red-400' : 'text-red-700'}`}>
-                ⚠️ Productos con Margen Crítico (Menos del 30%)
+                ⚠️ Ítems con Margen Crítico (Menos del 30%)
               </h3>
               <p className={`text-sm ${isDarkMode ? 'text-red-300' : 'text-red-600'}`}>
-                {lowMarginProducts.length} productos requieren atención urgente debido a baja rentabilidad
+                {lowMarginProducts.length} ítems requieren atención urgente debido a baja rentabilidad
               </p>
             </div>
           </div>
 
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {lowMarginProducts.map((product, idx) => (
+            {lowMarginProducts.map((item, idx) => (
               <div 
-                key={product.id || idx} 
+                key={item.id || idx} 
                 className={`p-3 rounded-lg flex items-center justify-between ${
                   isDarkMode ? 'bg-red-900/30' : 'bg-red-100'
                 }`}
               >
                 <div className="flex-1">
                   <p className={`font-medium ${isDarkMode ? 'text-red-200' : 'text-red-800'}`}>
-                    {product.name}
+                    {item.type === 'product' ? '📦' : item.type === 'recipe' ? '🍽️' : '🎁'} {item.name}
                   </p>
                   <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
-                    Costo: {formatMoneyDisplay(product.cost)} | Precio: {formatMoneyDisplay(product.price)}
+                    Costo: {formatMoneyDisplay(item.cost)} | Precio: {formatMoneyDisplay(item.price)}
                   </p>
                 </div>
                 <div className={`text-right px-3 py-1 rounded-lg font-bold ${
-                  product.contributionMarginPercent < 20 
+                  item.contributionMarginPercent < 20 
                     ? isDarkMode ? 'bg-red-700 text-red-100' : 'bg-red-600 text-white'
                     : isDarkMode ? 'bg-orange-700 text-orange-100' : 'bg-orange-500 text-white'
                 }`}>
-                  {product.contributionMarginPercent.toFixed(1)}%
+                  {item.contributionMarginPercent.toFixed(1)}%
                 </div>
               </div>
             ))}
