@@ -73,7 +73,7 @@ export default function Promotions() {
     
     // Suscripción en tiempo real a promociones
     const unsubscribePromotions = onSnapshot(
-      query(collection(db, 'promotions'), orderBy('updatedAt', 'desc')),
+      query(collection(db, 'promotions'), orderBy('order', 'asc')),
       (snapshot) => {
         try {
           const promoData = snapshot.docs.map(doc => {
@@ -84,9 +84,11 @@ export default function Promotions() {
               categoryId: String(data.categoryId || '').trim() // Normalizar ID
             }
           })
-          setPromotions(promoData)
-          console.log('✅ Promociones sincronizadas:', promoData.length)
-          promoData.forEach(p => console.log(`  - ${p.name} → Cat: ${p.categoryId || 'Sin categoría'}`))
+          // Ordenar localmente por campo order (ascendente) para items sin order
+          const sorted = promoData.sort((a, b) => (a.order || 0) - (b.order || 0))
+          setPromotions(sorted)
+          console.log('✅ Promociones sincronizadas:', sorted.length)
+          sorted.forEach(p => console.log(`  - ${p.name} → Cat: ${p.categoryId || 'Sin categoría'}`))
         } catch (error) {
           console.error('❌ Error procesando promociones:', error)
           setPromotions([])
@@ -616,17 +618,66 @@ export default function Promotions() {
     setDragOverCategory(null)
   }
 
-  const handleDragOver = (e, categoryId) => {
+  const handleDragOver = (e, categoryId = null) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
-    setDragOverCategory(categoryId)
+    if (categoryId !== null) {
+      setDragOverCategory(categoryId)
+    }
   }
 
   const handleDragLeave = () => {
     setDragOverCategory(null)
   }
 
-  const handleDrop = async (e, targetCategoryId) => {
+  // Reordenar dentro de la misma categoría
+  const handleDrop = async (e, targetPromo) => {
+    e.preventDefault()
+    
+    if (!draggedItem || draggedItem.id === targetPromo.id) {
+      setDraggedItem(null)
+      return
+    }
+
+    // Solo reordenar dentro de la misma categoría
+    if (draggedItem.categoryId !== targetPromo.categoryId) {
+      setDraggedItem(null)
+      return
+    }
+
+    try {
+      const filtered = selectedCategoryFilter
+        ? promotions.filter(p => p.categoryId === selectedCategoryFilter)
+        : promotions
+      
+      const draggedIndex = filtered.findIndex(p => p.id === draggedItem.id)
+      const targetIndex = filtered.findIndex(p => p.id === targetPromo.id)
+      
+      const reordered = [...filtered]
+      const [removed] = reordered.splice(draggedIndex, 1)
+      reordered.splice(targetIndex, 0, removed)
+      
+      // Asignar nuevos índices
+      const updates = reordered.map((promo, index) => {
+        const docRef = doc(db, 'promotions', promo.id)
+        return updateDoc(docRef, {
+          order: index,
+          updatedAt: new Date().toISOString()
+        })
+      })
+      
+      await Promise.all(updates)
+      console.log('✅ Orden actualizado')
+    } catch (error) {
+      console.error('Error reordering:', error)
+      alert('Error al reordenar')
+    } finally {
+      setDraggedItem(null)
+    }
+  }
+
+  // Cambiar de categoría
+  const handleDropCategory = async (e, targetCategoryId) => {
     e.preventDefault()
     setDragOverCategory(null)
     
@@ -636,7 +687,7 @@ export default function Promotions() {
       const currentCategoryId = String(draggedItem.categoryId || '').trim()
       const newCategoryId = String(targetCategoryId || '').trim()
 
-      console.log('📦 Drop:', {
+      console.log('📦 Drop Category:', {
         combo: draggedItem.name,
         from: currentCategoryId || 'Sin categoría',
         to: newCategoryId || 'Sin categoría'
@@ -782,7 +833,7 @@ export default function Promotions() {
           }}
           onDragOver={(e) => handleDragOver(e, null)}
           onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, null)}
+          onDrop={(e) => handleDropCategory(e, null)}
           className={`px-6 py-2 font-semibold transition-all border-b-4 whitespace-nowrap ${
             dragOverCategory === null && draggedItem ? 'bg-blue-100 dark:bg-blue-900/30' : ''
           } ${
@@ -809,7 +860,7 @@ export default function Promotions() {
                 }}
                 onDragOver={(e) => handleDragOver(e, cat.id)}
                 onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, cat.id)}
+                onDrop={(e) => handleDropCategory(e, cat.id)}
                 className={`px-6 py-2 font-semibold transition-all border-b-4 whitespace-nowrap ${
                   dragOverCategory === cat.id && draggedItem ? 'bg-blue-100 dark:bg-blue-900/30 scale-105' : ''
                 } ${
@@ -912,6 +963,8 @@ export default function Promotions() {
                 draggable
                 onDragStart={(e) => handleDragStart(e, promo)}
                 onDragEnd={handleDragEnd}
+                onDragOver={(e) => handleDragOver(e)}
+                onDrop={(e) => handleDrop(e, promo)}
                 className={`p-4 rounded-xl border cursor-move transition-all ${
                   draggedItem?.id === promo.id 
                     ? 'opacity-50 scale-95' 
