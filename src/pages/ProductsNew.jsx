@@ -850,7 +850,7 @@ export default function ProductsNew() {
       </div>
 
       {/* Grid de Productos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
         {(filteredProducts ?? []).map(product => {
           const recalculated = recalculateProductMetrics(product)
           return (
@@ -860,142 +860,98 @@ export default function ProductsNew() {
             onDragStart={(e) => handleDragStart(e, product)}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, product)}
-            className={`p-4 rounded-xl border cursor-move ${
+            className={`p-2 rounded-lg border cursor-move relative ${
               isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
             }`}
           >
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {product.name}
-                </h3>
-                {product.categoryId && (
-                  <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-blue-500/20 text-blue-400 rounded-full">
-                    {categories.find(c => c.id === product.categoryId)?.name || 'Sin categoría'}
-                  </span>
-                )}
-                {product.description && (
-                  <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {product.description}
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => handleDuplicate(product)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isDarkMode
-                      ? 'hover:bg-[#111827] text-green-400'
-                      : 'hover:bg-gray-100 text-green-600'
-                  }`}
-                  title="Duplicar producto"
-                >
-                  <Plus size={16} />
-                </button>
-                <button
-                  onClick={() => handleOpenModal(product)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isDarkMode
-                      ? 'hover:bg-[#111827] text-blue-400'
-                      : 'hover:bg-gray-100 text-blue-600'
-                  }`}
-                >
-                  <Edit2 size={16} />
-                </button>
-                <button
-                  onClick={() => handleDelete(product.id)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isDarkMode
-                      ? 'hover:bg-[#111827] text-red-400'
-                      : 'hover:bg-gray-100 text-red-600'
-                  }`}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
+            {/* Botones en esquina superior derecha */}
+            <div className="absolute top-1 right-1 flex gap-0.5">
+              <button
+                onClick={() => handleDuplicate(product)}
+                className={`p-1 rounded transition-colors ${
+                  isDarkMode ? 'hover:bg-[#111827] text-green-400' : 'hover:bg-gray-100 text-green-600'
+                }`}
+                title="Duplicar"
+              >
+                <Plus size={14} />
+              </button>
+              <button
+                onClick={() => handleOpenModal(product)}
+                className={`p-1 rounded transition-colors ${
+                  isDarkMode ? 'hover:bg-[#111827] text-blue-400' : 'hover:bg-gray-100 text-blue-600'
+                }`}
+                title="Editar"
+              >
+                <Edit2 size={14} />
+              </button>
+              <button
+                onClick={() => handleDelete(product.id)}
+                className={`p-1 rounded transition-colors ${
+                  isDarkMode ? 'hover:bg-[#111827] text-red-400' : 'hover:bg-gray-100 text-red-600'
+                }`}
+                title="Eliminar"
+              >
+                <Trash2 size={14} />
+              </button>
             </div>
 
-            <div className="space-y-2 mb-3">
-              <div className="flex justify-between text-sm">
-                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                  Ingredientes
+            {/* Título y categoría en una línea */}
+            <div className="pr-24 mb-2">
+              <h3 className={`font-semibold text-sm truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`} title={product.name}>
+                {product.name}
+              </h3>
+              {product.categoryId && (
+                <span className="inline-block px-1.5 py-0.5 text-[10px] font-medium bg-blue-500/20 text-blue-400 rounded">
+                  {categories.find(c => c.id === product.categoryId)?.name || 'Sin cat'}
                 </span>
-                <span className={`font-semibold ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
-                  {formatMoneyDisplay(recalculated.ingredientsCost)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                  Mano de Obra
-                </span>
-                <span className={`font-semibold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
-                  {formatMoneyDisplay(product.laborCost || 0)}
-                </span>
-              </div>
-              <div className={`flex justify-between text-sm pt-2 border-t ${
-                isDarkMode ? 'border-gray-700' : 'border-gray-300'
-              }`}>
-                <span className={`font-bold ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                  COSTO UNIDAD (CT)
-                </span>
-                <span className={`font-bold text-xl ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+              )}
+            </div>
+
+            {/* Métricas en formato compacto horizontal */}
+            <div className={`space-y-1 text-[11px] mb-2 pb-2 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className="flex justify-between">
+                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>CT</span>
+                <span className={`font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                   {formatMoneyDisplay(recalculated.totalCost)}
                 </span>
               </div>
-            </div>
-
-            <div className={`pt-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} space-y-2`}>
-              <div className="flex justify-between items-center">
-                <span className={`text-sm font-bold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  💵 Precio de Venta
-                </span>
-                <span className={`font-bold text-2xl ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+              <div className="flex justify-between">
+                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>PV</span>
+                <span className={`font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
                   {formatMoneyDisplay(product.realSalePrice || 0)}
                 </span>
               </div>
-              
-              {/* P-CONTRIBUCIÓN (% Utilidad) */}
-              <div className={`mt-2 p-3 rounded-lg border-2 ${
-                recalculated.pContribucion < (product.desiredProfitPercent || 20)
-                  ? isDarkMode ? 'bg-red-900/40 border-red-600' : 'bg-red-100 border-red-400'
-                  : isDarkMode ? 'bg-green-900/40 border-green-700' : 'bg-green-100 border-green-400'
-              }`}>
-                <div className="flex justify-between items-center">
-                  <span className={`text-xs font-bold ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    P-CONTRIBUCIÓN
-                  </span>
-                  <span className={`text-2xl font-black ${
-                    recalculated.pContribucion < (product.desiredProfitPercent || 20)
-                      ? isDarkMode ? 'text-red-400' : 'text-red-600'
-                      : isDarkMode ? 'text-green-400' : 'text-green-600'
-                  }`}>
-                    {recalculated.pContribucion.toFixed(1)}%
-                  </span>
-                </div>
-              </div>
+            </div>
 
-              {/* M-CONTRIBUCIÓN (Utilidad $) */}
-              <div className={`p-3 rounded-lg ${
+            {/* P y M Contribución en fila compacta */}
+            <div className="grid grid-cols-2 gap-1 text-[11px]">
+              <div className={`p-1.5 rounded text-center ${
+                recalculated.pContribucion < (product.desiredProfitPercent || config?.targetProfitMargin || 35)
+                  ? isDarkMode ? 'bg-red-900/40' : 'bg-red-100'
+                  : isDarkMode ? 'bg-green-900/40' : 'bg-green-100'
+              }`}>
+                <div className={`font-bold ${
+                  recalculated.pContribucion < (product.desiredProfitPercent || config?.targetProfitMargin || 35)
+                    ? isDarkMode ? 'text-red-400' : 'text-red-600'
+                    : isDarkMode ? 'text-green-400' : 'text-green-600'
+                }`}>
+                  {recalculated.pContribucion.toFixed(1)}%
+                </div>
+                <div className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>P-Cont</div>
+              </div>
+              <div className={`p-1.5 rounded text-center ${
                 recalculated.mContribucion >= 0
                   ? isDarkMode ? 'bg-green-900/40' : 'bg-green-100'
                   : isDarkMode ? 'bg-red-900/40' : 'bg-red-100'
               }`}>
-                <div className="flex justify-between items-center">
-                  <span className={`text-xs font-bold ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    M-CONTRIBUCIÓN
-                  </span>
-                  <span className={`text-xl font-black ${
-                    recalculated.mContribucion >= 0
-                      ? isDarkMode ? 'text-green-400' : 'text-green-600'
-                      : isDarkMode ? 'text-red-400' : 'text-red-600'
-                  }`}>
-                    {formatMoneyDisplay(recalculated.mContribucion)}
-                  </span>
+                <div className={`font-bold ${
+                  recalculated.mContribucion >= 0
+                    ? isDarkMode ? 'text-green-400' : 'text-green-600'
+                    : isDarkMode ? 'text-red-400' : 'text-red-600'
+                }`}>
+                  {formatMoneyDisplay(recalculated.mContribucion)}
                 </div>
+                <div className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>M-Cont</div>
               </div>
             </div>
           </div>

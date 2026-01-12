@@ -602,7 +602,7 @@ export default function RecipesNew() {
       </div>
 
       {/* Grid de Recetas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
         {(filteredRecipes || []).map(recipe => (
           <div 
             key={recipe.id} 
@@ -610,78 +610,70 @@ export default function RecipesNew() {
             onDragStart={(e) => handleDragStart(e, recipe)}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, recipe)}
-            className={`p-4 rounded-xl border cursor-move ${
+            className={`p-2 rounded-lg border cursor-move relative ${
               isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-white border-gray-200'
             }`}
           >
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {recipe.name}
-                </h3>
-                {recipe.categoryId && (
-                  <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-blue-500/20 text-blue-400 rounded-full">
-                    {categories.find(c => c.id === recipe.categoryId)?.name || 'Sin categoría'}
-                  </span>
-                )}
-                {recipe.description && (
-                  <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {recipe.description}
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => handleDuplicate(recipe)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isDarkMode
-                      ? 'hover:bg-[#111827] text-green-400'
-                      : 'hover:bg-gray-100 text-green-600'
-                  }`}
-                  title="Duplicar receta"
-                >
-                  <Plus size={16} />
-                </button>
-                <button
-                  onClick={() => handleOpenModal(recipe)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isDarkMode
-                      ? 'hover:bg-[#111827] text-blue-400'
-                      : 'hover:bg-gray-100 text-blue-600'
-                  }`}
-                >
-                  <Edit2 size={16} />
-                </button>
-                <button
-                  onClick={() => handleDelete(recipe.id)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isDarkMode
-                      ? 'hover:bg-[#111827] text-red-400'
-                      : 'hover:bg-gray-100 text-red-600'
-                  }`}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
+            {/* Botones en esquina superior derecha */}
+            <div className="absolute top-1 right-1 flex gap-0.5">
+              <button
+                onClick={() => handleDuplicate(recipe)}
+                className={`p-1 rounded transition-colors ${
+                  isDarkMode ? 'hover:bg-[#111827] text-green-400' : 'hover:bg-gray-100 text-green-600'
+                }`}
+                title="Duplicar"
+              >
+                <Plus size={14} />
+              </button>
+              <button
+                onClick={() => handleOpenModal(recipe)}
+                className={`p-1 rounded transition-colors ${
+                  isDarkMode ? 'hover:bg-[#111827] text-blue-400' : 'hover:bg-gray-100 text-blue-600'
+                }`}
+                title="Editar"
+              >
+                <Edit2 size={14} />
+              </button>
+              <button
+                onClick={() => handleDelete(recipe.id)}
+                className={`p-1 rounded transition-colors ${
+                  isDarkMode ? 'hover:bg-[#111827] text-red-400' : 'hover:bg-gray-100 text-red-600'
+                }`}
+                title="Eliminar"
+              >
+                <Trash2 size={14} />
+              </button>
             </div>
 
-            <div className={`text-sm space-y-1 mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              <p>{recipe.ingredients?.length || 0} componente(s)</p>
-            </div>
-
-            <div className={`pt-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-              <div className="flex justify-between items-center mb-2">
-                <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Costo Total
+            {/* Título y categoría en una línea */}
+            <div className="pr-24 mb-2">
+              <h3 className={`font-semibold text-sm truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`} title={recipe.name}>
+                {recipe.name}
+              </h3>
+              {recipe.categoryId && (
+                <span className="inline-block px-1.5 py-0.5 text-[10px] font-medium bg-blue-500/20 text-blue-400 rounded">
+                  {categories.find(c => c.id === recipe.categoryId)?.name || 'Sin cat'}
                 </span>
-                <span className={`font-bold text-lg ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+              )}
+            </div>
+
+            {/* Información compacta */}
+            <div className={`text-[11px] mb-2 pb-2 border-b ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-600'}`}>
+              {recipe.ingredients?.length || 0} componente(s)
+            </div>
+
+            {/* Métricas en formato compacto */}
+            <div className="space-y-1 text-[11px]">
+              <div className="flex justify-between">
+                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Costo Total</span>
+                <span className={`font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
                   {formatMoneyDisplay(recipe.totalCost || 0)}
                 </span>
               </div>
               {recipe.costoPorGramo && recipe.costoPorGramo > 0 && (
-                <div className="flex justify-between items-center">
-                  <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Costo por Gramo {recipe.wastagePercent ? `(${recipe.wastagePercent}% merma)` : ''}
+                <div className="flex justify-between">
+                  <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                    {recipe.wastagePercent ? `${recipe.wastagePercent}% merma` : 'Por gramo'}
                   </span>
                   <span className={`font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                     {formatMoneyDisplay(recipe.costoPorGramo)}/g
