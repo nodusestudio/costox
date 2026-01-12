@@ -468,6 +468,18 @@ export default function ProductsNew() {
         totalRecetas: totalRecetas,
         margenReal: calculatedMetrics.pContribucion
       }
+
+      // 🔥 PRESERVAR ORDER al editar, asignar 0 si es nuevo
+      if (editingId) {
+        // Edición: mantener order existente si existe
+        const currentProduct = products.find(p => p.id === editingId)
+        if (currentProduct && 'order' in currentProduct) {
+          dataToSave.order = currentProduct.order
+        }
+      } else {
+        // Nuevo: colocar al inicio
+        dataToSave.order = 0
+      }
       
       await saveProduct(dataToSave, editingId)
       showToast('✅ Guardado satisfactoriamente', 'success')

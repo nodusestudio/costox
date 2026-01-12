@@ -149,7 +149,21 @@ export default function RecipesNew() {
     }
 
     try {
-      await saveRecipe(formData, editingId)
+      // 🔥 PRESERVAR ORDER al editar, asignar 0 si es nuevo
+      const dataToSave = { ...formData }
+      
+      if (editingId) {
+        // Edición: mantener order existente si existe
+        const currentRecipe = recipes.find(r => r.id === editingId)
+        if (currentRecipe && 'order' in currentRecipe) {
+          dataToSave.order = currentRecipe.order
+        }
+      } else {
+        // Nuevo: colocar al inicio
+        dataToSave.order = 0
+      }
+
+      await saveRecipe(dataToSave, editingId)
       showToast('✅ Guardado satisfactoriamente', 'success')
       setShowModal(false)
       await loadData()

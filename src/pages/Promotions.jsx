@@ -218,15 +218,9 @@ export default function Promotions() {
     }
   }
 
-  const handleDuplicate = (promo) => {
+  const handleDuplicate = async (promo) => {
     try {
       console.log('📋 Duplicando combo:', promo.name)
-      console.log('📦 Datos originales:', {
-        id: promo.id,
-        items: promo.items?.length || 0,
-        precio: promo.promoPrice,
-        categoria: promo.categoryId
-      })
       
       // Validar que el combo tenga datos
       if (!promo) {
@@ -235,78 +229,50 @@ export default function Promotions() {
         return
       }
       
-      // 🔥 FORZAR MODO CREACIÓN - Limpiar editingId ANTES de todo
-      setEditingId(null)
-      
       // Inicializar items como array vacío si no existe
       const itemsOriginales = Array.isArray(promo.items) ? promo.items : []
-      console.log(`🔄 Procesando ${itemsOriginales.length} items...`)
       
-      // Recalcular items con datos frescos
-      const itemsWithFreshData = recalculateCombo(itemsOriginales)
-      console.log(`✅ Items recalculados: ${itemsWithFreshData.length}`)
+      // 🔥 DUPLICACIÓN DIRECTA SIN MODAL
+      const totals = calculateTotals(itemsOriginales)
+      const promoPrice = Number(promo.promoPrice) || 0
+      const ahorro = totals.totalRegularPrice - promoPrice
+      const descuentoPct = totals.totalRegularPrice > 0 && ahorro > 0
+        ? (ahorro / totals.totalRegularPrice) * 100
+        : 0
       
-      // 🔥 NOMBRE DISTINTIVO con prefijo COPIA -
-      const nombreCopia = `COPIA - ${promo.name || 'Combo'}`
-      
-      // Crear copia limpia del combo usando spread
+      const costoUnidad = Number(totals.totalCost) || 0
+      const utilidadDinero = promoPrice - costoUnidad
+      const pContribucion = promoPrice > 0 ? ((utilidadDinero / promoPrice) * 100) : 0
+
+      // Crear copia con TODOS los campos calculados
       const comboDuplicado = {
-        ...promo,
-        name: nombreCopia,
-        items: itemsWithFreshData,
-        promoPrice: Number(promo.promoPrice) || 0,
+        name: `COPIA - ${promo.name}`,
+        items: itemsOriginales,
+        promoPrice: promoPrice,
         categoryId: String(promo.categoryId || ''),
-        // NO incluir createdAt, updatedAt (serán nuevos al guardar)
+        totalCosto: Number(totals.totalCost) || 0,
+        totalPrecioCarta: Number(totals.totalRegularPrice) || 0,
+        ahorroDinero: Number(ahorro > 0 ? ahorro : 0) || 0,
+        porcentajeDescuento: Number(descuentoPct) || 0,
+        pvpRegular: Number(totals.totalRegularPrice) || 0,
+        descuentoMonto: Number(ahorro > 0 ? ahorro : 0) || 0,
+        ahorroPorcentaje: Number(descuentoPct) || 0,
+        costoAlimentos: Number(totals.costoAlimentos) || 0,
+        costoEmbalaje: Number(totals.costoEmbalaje) || 0,
+        costoUnidad: Number(costoUnidad) || 0,
+        pContribucion: Number(pContribucion) || 0,
+        mContribucion: Number(utilidadDinero) || 0,
+        order: 0, // Colocar al inicio
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
       
-      // 🔥 ELIMINAR ID para que Firebase cree uno nuevo
-      delete comboDuplicado.id
-      delete comboDuplicado.createdAt
-      delete comboDuplicado.updatedAt
+      // Guardar directamente en Firebase
+      await saveDoc('promotions', comboDuplicado)
+      console.log('✅ Combo duplicado y guardado automáticamente')
       
-      console.log('✅ Combo duplicado (SIN ID):', {
-        nombre: comboDuplicado.name,
-        items: comboDuplicado.items.length,
-        precio: comboDuplicado.promoPrice,
-        tieneId: 'id' in comboDuplicado,
-        modoCreacion: true
-      })
-      
-      // Cargar datos en el formulario
-      setFormData(comboDuplicado)
-      
-      // 🔥 FORZAR RECÁLCULO INMEDIATO de totales
-      setTimeout(() => {
-        const totals = calculateTotals(itemsWithFreshData)
-        const promoPrice = Number(promo.promoPrice) || 0
-        const ahorro = totals.totalRegularPrice - promoPrice
-        const descuentoPct = totals.totalRegularPrice > 0 && ahorro > 0
-          ? (ahorro / totals.totalRegularPrice) * 100
-          : 0
-        
-        setCalculatedTotals({
-          totalCost: totals.totalCost,
-          totalRegularPrice: totals.totalRegularPrice,
-          ahorro: ahorro > 0 ? ahorro : 0,
-          descuentoPct: descuentoPct
-        })
-        
-        console.log('✅ Totales recalculados automáticamente:', {
-          costo: totals.totalCost,
-          pvpRegular: totals.totalRegularPrice,
-          descuento: ahorro,
-          ahorroPct: descuentoPct.toFixed(1) + '%'
-        })
-      }, 0)
-      
-      // Abrir modal después de cargar los datos
-      setModalLoading(false)
-      setShowModal(true)
-      
-      console.log('✅ Modal abierto en MODO CREACIÓN - Nuevo combo listo para guardar')
     } catch (error) {
       console.error('❌ Error al duplicar combo:', error)
-      console.error('Stack:', error.stack)
       alert(`Error al duplicar combo: ${error.message}`)
     }
   }
@@ -573,6 +539,19 @@ export default function Promotions() {
         mContribucion: Number(utilidadDinero) || 0,
         updatedAt: new Date().toISOString()
       }
+
+      // 🔥 PRESERVAR ORDER al editar, asignar 0 si es nuevo
+      if (editingId) {
+        // Edición: mantener order existente si existe
+        const currentPromo = promotions.find(p => p.id === editingId)
+        if (currentPromo && 'order' in currentPromo) {
+          promoData.order = currentPromo.order
+        }
+      } else {
+        // Nuevo: colocar al inicio
+        promoData.order = 0
+        promoData.createdAt = new Date().toISOString()
+      }
       
       console.log('📦 Datos del combo a guardar:', {
         nombre: promoData.name,
@@ -587,7 +566,7 @@ export default function Promotions() {
       if (editingId) {
         await saveDoc('promotions', promoData, editingId)
       } else {
-        await saveDoc('promotions', { ...promoData, createdAt: new Date().toISOString() })
+        await saveDoc('promotions', promoData)
       }
       
       console.log('✅ Promoción guardada exitosamente en Firebase')
@@ -973,12 +952,12 @@ export default function Promotions() {
                       }}
                       className={`p-2 rounded-lg transition-colors ${
                         isDarkMode
-                          ? 'hover:bg-[#111827] text-purple-400 hover:text-purple-300'
-                          : 'hover:bg-purple-50 text-purple-600 hover:text-purple-700'
+                          ? 'hover:bg-[#111827] text-green-400 hover:text-green-300'
+                          : 'hover:bg-green-50 text-green-600 hover:text-green-700'
                       }`}
                       title="Duplicar combo"
                     >
-                      <Copy size={16} />
+                      <Plus size={16} />
                     </button>
                     <button
                       onClick={() => handleOpenModal(promo)}
