@@ -1243,7 +1243,7 @@ export default function Promotions() {
                     <span className={`text-[10px] ${
                       isDarkMode ? 'text-yellow-400/70' : 'text-yellow-600/70'
                     }`}>
-                      (40% margen)
+                      ({config?.targetProfitMargin || 35}% margen)
                     </span>
                   </div>
                   <button
