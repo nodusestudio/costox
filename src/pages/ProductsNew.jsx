@@ -618,12 +618,12 @@ export default function ProductsNew() {
           return {
             'Nombre': product.name || 'Sin nombre',
             'Categoría': categoryName,
-            'Costo Ingredientes': Number(metrics.ingredientsCost || 0).toFixed(2),
-            'Mano de Obra': Number(metrics.laborCost || 0).toFixed(2),
-            'Costo Total': Number(metrics.totalCost || 0).toFixed(2),
-            'Precio Venta': Number(metrics.realSalePrice || 0).toFixed(2),
-            '% Margen': Number(metrics.pContribucion || 0).toFixed(2),
-            'Utilidad $': Number(metrics.mContribucion || 0).toFixed(2)
+            'Costo Ingredientes': Number(calculatedMetrics.ingredientsCost || 0).toFixed(2),
+            'Mano de Obra': Number(calculatedMetrics.laborCost || 0).toFixed(2),
+            'Costo Total': Number(calculatedMetrics.totalCost || 0).toFixed(2),
+            'Precio Venta': Number(calculatedMetrics.realSalePrice || 0).toFixed(2),
+            '% Margen': Number(calculatedMetrics.pContribucion || 0).toFixed(2),
+            'Utilidad $': Number(calculatedMetrics.mContribucion || 0).toFixed(2)
           }
         } catch (itemError) {
           console.error(`Error exportando producto en índice ${index}:`, product.name, itemError)
@@ -1656,7 +1656,7 @@ export default function ProductsNew() {
                 <p className={`text-xs mt-2 text-center ${
                   isDarkMode ? 'text-purple-400' : 'text-purple-600'
                 }`}>
-                  Monto aprox: {formatMoneyDisplay(metrics.indirectCosts || 0)}
+                  Monto aprox: {formatMoneyDisplay(calculatedMetrics.indirectCosts || 0)}
                 </p>
               )}
             </div>
