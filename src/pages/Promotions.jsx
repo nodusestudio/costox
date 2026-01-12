@@ -1102,7 +1102,7 @@ export default function Promotions() {
           title={editingId ? 'Editar Combo' : 'Nuevo Combo'}
           onClose={() => !modalLoading && setShowModal(false)}
         >
-          <div className="space-y-3 relative">
+          <div className="space-y-2 pb-2 relative">
             {/* Loading Overlay */}
             {modalLoading && (
               <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center rounded-lg">
@@ -1115,11 +1115,12 @@ export default function Promotions() {
               </div>
             )}
             
-            {/* Nombre del Combo y Categoría - Grid 1fr 1fr */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* CABECERA EN 3 COLUMNAS */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* Nombre */}
               <div>
                 <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  📋 Nombre del Combo *
+                  📋 Nombre del Combo
                 </label>
                 <input
                   type="text"
@@ -1134,6 +1135,7 @@ export default function Promotions() {
                 />
               </div>
 
+              {/* Categoría */}
               <div>
                 <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   🏷️ Categoría
@@ -1142,42 +1144,37 @@ export default function Promotions() {
                   options={(categories || []).map(cat => ({ id: cat.id, name: cat.name }))}
                   value={formData.categoryId}
                   onChange={(val) => setFormData(prev => ({ ...prev, categoryId: val }))}
-                  placeholder="Seleccionar categoría..."
+                  placeholder="Seleccionar..."
                   displayKey="name"
                   valueKey="id"
                 />
               </div>
+
+              {/* Precio de Venta */}
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${
+                  isDarkMode ? 'text-green-300' : 'text-green-700'
+                }`}>
+                  💵 PRECIO VENTA
+                </label>
+                <input
+                  type="number"
+                  step="1000"
+                  min="0"
+                  value={formData.promoPrice}
+                  onChange={(e) => setFormData(prev => ({ ...prev, promoPrice: e.target.value }))}
+                  onFocus={(e) => e.target.select()}
+                  className={`w-full px-2 py-1.5 rounded-lg border-2 font-bold text-base text-center ${
+                    isDarkMode
+                      ? 'bg-[#1f2937] border-green-600 text-green-300'
+                      : 'bg-white border-green-500 text-green-700'
+                  }`}
+                  placeholder="0"
+                />
+              </div>
             </div>
 
-            {/* Precio de Venta - Centro con recuadro verde */}
-            <div className={`p-3 rounded-lg border-2 text-center ${
-              isDarkMode
-                ? 'bg-green-950/50 border-green-600'
-                : 'bg-green-50 border-green-400'
-            }`}>
-              <label className={`block text-xs font-bold mb-1.5 ${
-                isDarkMode ? 'text-green-300' : 'text-green-700'
-              }`}>
-                💵 PRECIO DE VENTA DEL COMBO
-              </label>
-              <input
-                type="number"
-                step="1000"
-                min="0"
-                value={formData.promoPrice}
-                onChange={(e) => setFormData(prev => ({ ...prev, promoPrice: e.target.value }))}
-                onFocus={(e) => e.target.select()}
-                className={`w-40 px-3 py-1 rounded-lg border-2 font-black text-center ${
-                  isDarkMode
-                    ? 'bg-[#0a2818] border-green-500 text-green-300'
-                    : 'bg-white border-green-500 text-green-700'
-                }`}
-                style={{ fontSize: '1.75rem' }}
-                placeholder="$ 0"
-              />
-            </div>
-
-            {/* Tres Bloques de Métricas */}
+            {/* MÉTRICAS COMPACTAS */}
             {(() => {
               const totals = calculateTotals(formData.items)
               const promoPrice = Number(formData.promoPrice) || 0
@@ -1187,7 +1184,12 @@ export default function Promotions() {
                 : 0
 
               return (
-                <div className="grid grid-cols-3 gap-2">
+                <div className={`p-2 rounded-lg border ${
+                  isDarkMode 
+                    ? 'bg-gray-900/50 border-gray-700' 
+                    : 'bg-gray-50 border-gray-300'
+                }`}>
+                  <div className="grid grid-cols-3 gap-2">
                   {/* Costo Unidad */}
                   <div className={`p-2 rounded-lg text-center ${
                     isDarkMode ? 'bg-blue-950/50 border border-blue-700' : 'bg-blue-50 border border-blue-300'
@@ -1236,8 +1238,11 @@ export default function Promotions() {
                     </div>
                   </div>
                 </div>
+              </div>
               )
             })()}
+
+            <div className="border-t border-gray-600 my-1"></div>
 
             {/* Precio Sugerido */}
             {formData.items.length > 0 && (() => {
@@ -1249,24 +1254,24 @@ export default function Promotions() {
               const suggestedPrice = roundToNearestThousand(totals.totalCost / (1 - targetMargin))
               
               return (
-                <div className={`flex items-center justify-between px-3 py-2 rounded-lg border ${
-                  isDarkMode ? 'bg-yellow-950/30 border-yellow-600' : 'bg-yellow-50 border-yellow-400'
+                <div className={`flex items-center justify-between px-2 py-1.5 rounded-lg border ${
+                  isDarkMode ? 'bg-blue-950/30 border-blue-600' : 'bg-blue-50 border-blue-400'
                 }`}>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <span className={`text-[10px] font-bold ${
-                      isDarkMode ? 'text-yellow-300' : 'text-yellow-700'
+                      isDarkMode ? 'text-blue-300' : 'text-blue-700'
                     }`}>
                       💡 SUGERIDO
                     </span>
-                    <span className={`text-lg font-black ${
-                      isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
+                    <span className={`text-base font-black ${
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
                     }`}>
                       {formatMoneyDisplay(suggestedPrice)}
                     </span>
                     <span className={`text-[10px] ${
-                      isDarkMode ? 'text-yellow-400/70' : 'text-yellow-600/70'
+                      isDarkMode ? 'text-blue-400/70' : 'text-blue-600/70'
                     }`}>
-                      ({config?.targetProfitMargin || 35}% margen)
+                      ({config?.targetProfitMargin || 35}%)
                     </span>
                   </div>
                   <button
@@ -1296,10 +1301,10 @@ export default function Promotions() {
                         })
                       }, 0)
                     }}
-                    className={`px-3 py-1 rounded-md font-bold text-xs transition-all ${
+                    className={`px-2 py-1 rounded-md font-bold text-[10px] transition-all ${
                       isDarkMode
-                        ? 'bg-yellow-600 hover:bg-yellow-500 text-white'
-                        : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                        ? 'bg-blue-600 hover:bg-blue-500 text-white'
+                        : 'bg-blue-500 hover:bg-blue-600 text-white'
                     }`}
                   >
                     ⚡ Aplicar
@@ -1670,11 +1675,11 @@ export default function Promotions() {
             </div>
 
             {/* Botones */}
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setShowModal(false)}
                 disabled={modalLoading}
-                className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                className={`flex-1 px-6 py-2.5 rounded-lg transition-colors font-medium ${
                   modalLoading
                     ? 'bg-gray-500 cursor-not-allowed opacity-50'
                     : isDarkMode
@@ -1687,7 +1692,7 @@ export default function Promotions() {
               <button
                 onClick={handleSave}
                 disabled={modalLoading}
-                className={`flex-1 px-4 py-2 rounded-lg transition-colors font-medium ${
+                className={`flex-1 px-6 py-2.5 rounded-lg transition-colors font-medium ${
                   modalLoading
                     ? 'bg-blue-400 cursor-not-allowed opacity-50'
                     : 'bg-primary-blue hover:bg-blue-700'

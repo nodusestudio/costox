@@ -986,81 +986,134 @@ export default function ProductsNew() {
           }
           onClose={() => setShowModal(false)}
         >
-          <div className="space-y-6 pb-6">
-            {/* HEADER COMPACTO: Precio de Venta */}
-            <div className={`p-2 rounded-xl border-2 ${
-              isDarkMode 
-                ? 'bg-gradient-to-br from-green-950 to-gray-900 border-green-700' 
-                : 'bg-gradient-to-br from-green-50 to-white border-green-300'
-            }`}>
-              {/* Precio de Venta Centrado */}
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <label className={`text-xs font-bold ${
+          <div className="space-y-2 pb-2">
+            {/* CABECERA EN 3 COLUMNAS */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* Precio de Venta */}
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${
                   isDarkMode ? 'text-green-300' : 'text-green-700'
                 }`}>
-                  💵 PRECIO DE VENTA:
+                  💵 PRECIO VENTA
                 </label>
                 <input
                   type="number"
                   step="0.01"
-                  min="0"
                   value={formData.realSalePrice}
                   onChange={(e) => setFormData({ ...formData, realSalePrice: parseFloat(e.target.value) || 0 })}
                   onFocus={(e) => e.target.select()}
-                  className={`w-40 px-3 py-1 rounded-lg border-2 font-black text-center ${
+                  className={`w-full px-2 py-1.5 rounded-lg border-2 font-bold text-base text-center ${
                     isDarkMode
-                      ? 'bg-[#0a2818] border-green-500 text-green-300'
+                      ? 'bg-[#1f2937] border-green-600 text-green-300'
                       : 'bg-white border-green-500 text-green-700'
                   }`}
-                  style={{ fontSize: '2rem' }}
-                  placeholder="$ 0"
+                  placeholder="0.00"
                 />
               </div>
 
-              {/* Tres Cajas de Métricas - MÁS COMPACTAS */}
-              <div className="grid grid-cols-3 gap-2">
-                {/* Costo Unidad */}
-                <div className={`p-2 rounded-lg text-center ${
-                  isDarkMode ? 'bg-blue-950/50 border border-blue-700' : 'bg-blue-50 border border-blue-300'
+              {/* Categoría */}
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>
-                  <div className={`text-xs font-bold mb-1 ${
-                    isDarkMode ? 'text-blue-300' : 'text-blue-700'
+                  🏷️ CATEGORÍA
+                </label>
+                <select
+                  value={formData.categoryId}
+                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                  className={`w-full px-2 py-1.5 rounded-lg border text-sm ${
+                    isDarkMode
+                      ? 'bg-[#111827] border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                >
+                  <option value="">Sin categoría</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Utilidad Deseada */}
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${
+                  isDarkMode ? 'text-blue-300' : 'text-blue-700'
+                }`}>
+                  🎯 UTILIDAD DESEADA
+                </label>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    max="100"
+                    value={formData.desiredProfitPercent}
+                    onChange={(e) => setFormData({ ...formData, desiredProfitPercent: parseFloat(e.target.value) || config?.targetProfitMargin || 35 })}
+                    onFocus={(e) => e.target.select()}
+                    className={`w-full px-2 py-1.5 rounded-lg border-2 font-bold text-base text-center ${
+                      isDarkMode
+                        ? 'bg-[#1f2937] border-blue-600 text-blue-300'
+                        : 'bg-white border-blue-500 text-blue-700'
+                    }`}
+                    placeholder="35"
+                  />
+                  <span className={`text-base font-bold ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* MÉTRICAS COMPACTAS */}
+            <div className={`p-2 rounded-lg border ${
+              isDarkMode 
+                ? 'bg-gray-900/50 border-gray-700' 
+                : 'bg-gray-50 border-gray-300'
+            }`}>
+              {/* Tres Cajas de Métricas */}
+              <div className="grid grid-cols-3 gap-2">
+                {/* Costo Total */}
+                <div className={`p-1.5 rounded text-center ${
+                  isDarkMode ? 'bg-red-950/50 border border-red-700' : 'bg-red-50 border border-red-300'
+                }`}>
+                  <div className={`text-[10px] font-bold ${
+                    isDarkMode ? 'text-red-300' : 'text-red-700'
                   }`}>
                     COSTO
                   </div>
-                  <div className={`text-lg font-black ${
-                    isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                  <div className={`text-sm font-black ${
+                    isDarkMode ? 'text-red-400' : 'text-red-600'
                   }`}>
-                    {formatMoneyDisplay(calculatedMetrics.totalCost)}
+                    {formatMoneyDisplay(calculatedMetrics.costoTotal)}
                   </div>
                 </div>
 
-                {/* P-Contribución (Food Cost %) - SIN ALERTAS ROJAS */}
-                <div className={`p-2 rounded-lg text-center ${
-                  isDarkMode ? 'bg-gray-800/50 border border-gray-600' : 'bg-gray-100 border border-gray-300'
+                {/* P-Contribución (Utilidad %) */}
+                <div className={`p-1.5 rounded text-center ${
+                  isDarkMode ? 'bg-green-950/50 border border-green-700' : 'bg-green-50 border border-green-300'
                 }`}>
-                  <div className={`text-xs font-bold mb-1 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  <div className={`text-[10px] font-bold ${
+                    isDarkMode ? 'text-green-300' : 'text-green-700'
                   }`}>
                     P-CONTRIB.
                   </div>
-                  <div className={`text-lg font-black ${
-                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  <div className={`text-sm font-black ${
+                    isDarkMode ? 'text-green-400' : 'text-green-600'
                   }`}>
                     {calculatedMetrics.pContribucion.toFixed(1)}%
                   </div>
                 </div>
 
                 {/* M-Contribución (Utilidad $) */}
-                <div className={`p-2 rounded-lg text-center ${
+                <div className={`p-1.5 rounded text-center ${
                   isDarkMode ? 'bg-purple-950/50 border border-purple-700' : 'bg-purple-50 border border-purple-300'
                 }`}>
-                  <div className={`text-xs font-bold mb-1 ${
+                  <div className={`text-[10px] font-bold ${
                     isDarkMode ? 'text-purple-300' : 'text-purple-700'
                   }`}>
                     M-CONTRIB.
                   </div>
-                  <div className={`text-lg font-black ${
+                  <div className={`text-sm font-black ${
                     isDarkMode ? 'text-purple-400' : 'text-purple-600'
                   }`}>
                     {formatMoneyDisplay(calculatedMetrics.mContribucion)}
@@ -1069,120 +1122,70 @@ export default function ProductsNew() {
               </div>
             </div>
 
-            {/* PRECIO SUGERIDO POR UTILIDAD */}
-            <div className={`p-4 rounded-xl border-2 ${
+            <div className="border-t border-gray-600 my-1"></div>
+
+            {/* PRECIO SUGERIDO COMPACTO */}
+            <div className={`p-2 rounded-lg border ${
               isDarkMode 
-                ? 'bg-gradient-to-br from-blue-950 to-gray-900 border-blue-700' 
-                : 'bg-gradient-to-br from-blue-50 to-white border-blue-300'
+                ? 'bg-blue-950/30 border-blue-700' 
+                : 'bg-blue-50 border-blue-300'
             }`}>
-              <div className="space-y-3">
-                {/* Input de Utilidad Deseada */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className={`block text-sm font-bold ${
-                      isDarkMode ? 'text-blue-300' : 'text-blue-700'
-                    }`}>
-                      🎯 UTILIDAD DESEADA
-                    </label>
-                    <p className={`text-xs mt-1 ${
-                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                    }`}>
-                      Meta de ganancia sobre el costo
-                    </p>
+              <div className="grid grid-cols-2 gap-2">
+                {/* Precio Sugerido */}
+                <div>
+                  <div className={`text-[10px] font-medium ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                    💡 SUGERIDO ({formData.desiredProfitPercent}%)
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      step="1"
-                      min="0"
-                      max="100"
-                      value={formData.desiredProfitPercent}
-                      onChange={(e) => setFormData({ ...formData, desiredProfitPercent: parseFloat(e.target.value) || config?.targetProfitMargin || 35 })}
-                      onFocus={(e) => e.target.select()}
-                      className={`w-20 px-3 py-2 rounded-lg border-2 font-bold text-lg text-center ${
-                        isDarkMode
-                          ? 'bg-[#1f2937] border-blue-600 text-blue-300'
-                          : 'bg-white border-blue-500 text-blue-700'
-                      }`}
-                      placeholder="20"
-                    />
-                    <span className={`text-xl font-bold ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>%</span>
+                  <div className={`text-lg font-black ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                    {formatMoneyDisplay(calculatedMetrics.suggestedPrice || 0)}
                   </div>
                 </div>
 
-                {/* Comparativa de Precios */}
-                <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/40 border border-blue-700' : 'bg-blue-100 border border-blue-400'}`}>
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Precio Sugerido */}
-                    <div>
-                      <div className={`text-xs font-medium mb-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                        💡 PRECIO SUGERIDO
-                      </div>
-                      <div className={`text-2xl font-black ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                        {formatMoneyDisplay(calculatedMetrics.suggestedPrice || 0)}
-                      </div>
-                      <div className={`text-xs mt-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                        Para {formData.desiredProfitPercent}% utilidad
-                      </div>
-                    </div>
-
-                    {/* Precio Actual */}
-                    <div className={`${
-                      formData.realSalePrice > 0 && formData.realSalePrice < calculatedMetrics.suggestedPrice
-                        ? isDarkMode ? 'bg-red-900/40 border-2 border-red-700' : 'bg-red-100 border-2 border-red-400'
-                        : formData.realSalePrice >= calculatedMetrics.suggestedPrice && formData.realSalePrice > 0
-                        ? isDarkMode ? 'bg-green-900/40 border-2 border-green-700' : 'bg-green-100 border-2 border-green-400'
-                        : ''
-                    } p-2 rounded-lg`}>
-                      <div className={`text-xs font-medium mb-1 ${
-                        formData.realSalePrice > 0 && formData.realSalePrice < calculatedMetrics.suggestedPrice
-                          ? 'text-red-500'
-                          : formData.realSalePrice >= calculatedMetrics.suggestedPrice && formData.realSalePrice > 0
-                          ? isDarkMode ? 'text-green-400' : 'text-green-600'
-                          : isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        {formData.realSalePrice > 0 && formData.realSalePrice < calculatedMetrics.suggestedPrice ? '⚠️ PRECIO ACTUAL' : formData.realSalePrice >= calculatedMetrics.suggestedPrice ? '✅ PRECIO ACTUAL' : 'PRECIO ACTUAL'}
-                      </div>
-                      <div className={`text-2xl font-black ${
-                        formData.realSalePrice > 0 && formData.realSalePrice < calculatedMetrics.suggestedPrice
-                          ? 'text-red-500 animate-pulse'
-                          : formData.realSalePrice >= calculatedMetrics.suggestedPrice && formData.realSalePrice > 0
-                          ? isDarkMode ? 'text-green-300' : 'text-green-700'
-                          : isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        {formatMoneyDisplay(formData.realSalePrice || 0)}
-                      </div>
-                      {formData.realSalePrice > 0 && formData.realSalePrice < calculatedMetrics.suggestedPrice && (
-                        <div className="text-xs mt-1 text-red-500 font-semibold">
-                          Muy bajo (-{formatMoneyDisplay(calculatedMetrics.suggestedPrice - formData.realSalePrice)})
-                        </div>
-                      )}
-                      {formData.realSalePrice >= calculatedMetrics.suggestedPrice && formData.realSalePrice > 0 && (
-                        <div className={`text-xs mt-1 ${isDarkMode ? 'text-green-400' : 'text-green-600'} font-semibold`}>
-                          Bien (+{formatMoneyDisplay(formData.realSalePrice - calculatedMetrics.suggestedPrice)})
-                        </div>
-                      )}
-                    </div>
+                {/* Precio Actual */}
+                <div className={`${
+                  formData.realSalePrice > 0 && formData.realSalePrice < calculatedMetrics.suggestedPrice
+                    ? isDarkMode ? 'bg-red-900/40 border border-red-700' : 'bg-red-100 border border-red-400'
+                    : formData.realSalePrice >= calculatedMetrics.suggestedPrice && formData.realSalePrice > 0
+                    ? isDarkMode ? 'bg-green-900/40 border border-green-700' : 'bg-green-100 border border-green-400'
+                    : ''
+                } p-1.5 rounded`}>
+                  <div className={`text-[10px] font-medium ${
+                    formData.realSalePrice > 0 && formData.realSalePrice < calculatedMetrics.suggestedPrice
+                      ? 'text-red-500'
+                      : formData.realSalePrice >= calculatedMetrics.suggestedPrice && formData.realSalePrice > 0
+                      ? isDarkMode ? 'text-green-400' : 'text-green-600'
+                      : isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    {formData.realSalePrice > 0 && formData.realSalePrice < calculatedMetrics.suggestedPrice ? '⚠️ ACTUAL' : formData.realSalePrice >= calculatedMetrics.suggestedPrice ? '✅ ACTUAL' : 'ACTUAL'}
                   </div>
-
-                  {/* Botón para aplicar precio sugerido */}
-                  {formData.realSalePrice !== calculatedMetrics.suggestedPrice && (
-                    <div className="mt-3 text-center">
-                      <button
-                        onClick={() => setFormData({ ...formData, realSalePrice: parseFloat(calculatedMetrics.suggestedPrice.toFixed(2)) })}
-                        className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                          isDarkMode
-                            ? 'bg-blue-700 hover:bg-blue-600 text-white'
-                            : 'bg-blue-600 hover:bg-blue-500 text-white'
-                        }`}
-                      >
-                        📋 Aplicar Precio Sugerido
-                      </button>
-                    </div>
-                  )}
+                  <div className={`text-lg font-black ${
+                    formData.realSalePrice > 0 && formData.realSalePrice < calculatedMetrics.suggestedPrice
+                      ? 'text-red-500'
+                      : formData.realSalePrice >= calculatedMetrics.suggestedPrice && formData.realSalePrice > 0
+                      ? isDarkMode ? 'text-green-300' : 'text-green-700'
+                      : isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    {formatMoneyDisplay(formData.realSalePrice || 0)}
+                  </div>
                 </div>
               </div>
+
+              {/* Botón aplicar precio sugerido */}
+              {formData.realSalePrice !== calculatedMetrics.suggestedPrice && (
+                <button
+                  onClick={() => setFormData({ ...formData, realSalePrice: parseFloat(calculatedMetrics.suggestedPrice.toFixed(2)) })}
+                  className={`w-full mt-1.5 px-2 py-1 rounded text-xs font-semibold ${
+                    isDarkMode
+                      ? 'bg-blue-700 hover:bg-blue-600 text-white'
+                      : 'bg-blue-600 hover:bg-blue-500 text-white'
+                  }`}
+                >
+                  📋 Aplicar Sugerido
+                </button>
+              )}
             </div>
+
+            <div className="border-t border-gray-600 my-1"></div>
 
             {/* TABLA UNIFICADA DE INSUMOS (FILAS) */}
             <div>
@@ -1211,7 +1214,7 @@ export default function ProductsNew() {
                   isDarkMode ? 'bg-[#0a0e1a] border-gray-700' : 'bg-gray-50 border-gray-300'
                 }`}>
                   {/* Cabecera de Tabla */}
-                  <div className={`grid grid-cols-12 gap-2 p-3 border-b font-bold text-xs ${
+                  <div className={`grid grid-cols-12 gap-2 p-1.5 border-b font-bold text-xs ${
                     isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
                   }`}>
                     <div className="col-span-6">NOMBRE</div>
@@ -1243,12 +1246,12 @@ export default function ProductsNew() {
                         }
 
                         return (
-                          <div key={index} className={`flex gap-2 p-3 border-b text-sm ${
+                          <div key={index} className={`flex gap-2 p-1 border-b text-sm ${
                             isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                           }`}>
                             {/* Icono de Tipo */}
-                            <div className="flex items-center flex-shrink-0 mr-2">
-                              <span className="w-7 h-7 flex items-center justify-center rounded-md text-xs font-bold text-white bg-orange-500 shadow-sm">
+                            <div className="flex items-center flex-shrink-0 mr-1">
+                              <span className="w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-bold text-white bg-orange-500 shadow-sm">
                                 I
                               </span>
                             </div>
@@ -1372,7 +1375,7 @@ export default function ProductsNew() {
                   isDarkMode ? 'bg-[#0a0e1a] border-gray-700' : 'bg-gray-50 border-gray-300'
                 }`}>
                   {/* Cabecera de Tabla */}
-                  <div className={`flex gap-2 p-3 border-b font-bold text-xs ${
+                  <div className={`flex gap-2 p-1.5 border-b font-bold text-xs ${
                     isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
                   }`}>
                     <div style={{ width: '75%' }}>NOMBRE</div>
@@ -1422,12 +1425,12 @@ export default function ProductsNew() {
                         }
 
                         return (
-                          <div key={index} className={`flex gap-2 p-3 border-b text-sm ${
+                          <div key={index} className={`flex gap-2 p-1 border-b text-sm ${
                             isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                           }`}>
                             {/* Icono de Tipo */}
-                            <div className="flex items-center flex-shrink-0 mr-2">
-                              <span className={`w-7 h-7 flex items-center justify-center rounded-md text-xs font-bold text-white shadow-sm ${
+                            <div className="flex items-center flex-shrink-0 mr-1">
+                              <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-bold text-white shadow-sm ${
                                 item.type === 'recipe'
                                   ? 'bg-purple-600'
                                   : 'bg-cyan-500'
@@ -1525,22 +1528,17 @@ export default function ProductsNew() {
             </div>
 
             {/* TIEMPO DE PREPARACIÓN */}
-            <div className={`p-4 rounded-lg border ${
+            <div className={`p-2 rounded-lg border ${
               isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-300'
             }`}>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className={`block text-sm font-bold ${
+                    <label className={`block text-xs font-bold ${
                       isDarkMode ? 'text-slate-300' : 'text-slate-700'
                     }`}>
-                      ⏱️ TIEMPO DE PREPARACIÓN
+                      ⏱️ TIEMPO PREP.
                     </label>
-                    <p className={`text-xs mt-1 ${
-                      isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                    }`}>
-                      Calcula automáticamente la MANO DE OBRA
-                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -1550,14 +1548,14 @@ export default function ProductsNew() {
                       value={formData.preparationTimeMinutes}
                       onChange={(e) => setFormData({ ...formData, preparationTimeMinutes: parseFloat(e.target.value) || 0 })}
                       onFocus={(e) => e.target.select()}
-                      className={`w-24 px-4 py-3 rounded-lg border-2 font-bold text-xl text-center ${
+                      className={`w-16 px-2 py-1.5 rounded-lg border-2 font-bold text-base text-center ${
                         isDarkMode
                           ? 'bg-[#1f2937] border-slate-600 text-slate-300'
                           : 'bg-white border-slate-500 text-slate-700'
                       }`}
                       placeholder="0"
                     />
-                    <span className={`text-sm font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    <span className={`text-xs font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                       min
                     </span>
                   </div>
@@ -1606,44 +1604,34 @@ export default function ProductsNew() {
             </div>
 
             {/* COSTOS INDIRECTOS */}
-            <div className={`p-4 rounded-lg border ${
+            <div className={`p-2 rounded-lg border ${
               isDarkMode ? 'bg-purple-950/50 border-purple-700' : 'bg-purple-50 border-purple-300'
             }`}>
-              <div className="grid grid-cols-2 gap-4 items-center">
+              <div className="grid grid-cols-2 gap-2 items-center">
                 <div>
-                  <label className={`block text-sm font-bold ${
+                  <label className={`block text-xs font-bold ${
                     isDarkMode ? 'text-purple-300' : 'text-purple-700'
                   }`}>
-                    ⚡ COSTOS INDIRECTOS %
+                    ⚡ COSTOS IND. %
                   </label>
-                  <p className={`text-xs mt-1 ${
-                    isDarkMode ? 'text-purple-400' : 'text-purple-600'
-                  }`}>
-                    Luz, gas, alquiler, etc.
-                  </p>
                   {config && config.estimatedMonthlySales > 0 && (
-                    <div className={`mt-2 p-2 rounded text-xs ${isDarkMode ? 'bg-purple-900/30 text-purple-300' : 'bg-purple-100 text-purple-700'}`}>
-                      💡 Sugerido: {(() => {
-                        // SOLO costos indirectos: arriendo + servicios + otros (SIN nómina)
+                    <button
+                      onClick={() => {
                         const indirectFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.otherFixedCosts || 0)
                         const suggestedPercent = (indirectFixedCosts / config.estimatedMonthlySales) * 100
-                        return suggestedPercent.toFixed(2)
-                      })()}% 
-                      <button
-                        onClick={() => {
-                          // SOLO costos indirectos: arriendo + servicios + otros (SIN nómina)
-                          const indirectFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.otherFixedCosts || 0)
-                          const suggestedPercent = (indirectFixedCosts / config.estimatedMonthlySales) * 100
-                          setFormData({ ...formData, indirectCostsPercent: parseFloat(suggestedPercent.toFixed(2)) })
-                        }}
-                        className={`ml-2 px-2 py-0.5 rounded ${isDarkMode ? 'bg-purple-700 hover:bg-purple-600' : 'bg-purple-600 hover:bg-purple-500'} text-white font-medium text-xs`}
-                      >
-                        Aplicar
-                      </button>
-                    </div>
+                        setFormData({ ...formData, indirectCostsPercent: parseFloat(suggestedPercent.toFixed(2)) })
+                      }}
+                      className={`mt-1 px-2 py-0.5 rounded text-[10px] ${isDarkMode ? 'bg-purple-700 hover:bg-purple-600' : 'bg-purple-600 hover:bg-purple-500'} text-white font-medium`}
+                    >
+                      💡 Aplicar {(() => {
+                        const indirectFixedCosts = (config.rentCost || 0) + (config.utilitiesCost || 0) + (config.otherFixedCosts || 0)
+                        const suggestedPercent = (indirectFixedCosts / config.estimatedMonthlySales) * 100
+                        return suggestedPercent.toFixed(1)
+                      })()}%
+                    </button>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <input
                     type="number"
                     step="0.1"
@@ -1652,14 +1640,14 @@ export default function ProductsNew() {
                     value={formData.indirectCostsPercent}
                     onChange={(e) => setFormData({ ...formData, indirectCostsPercent: parseFloat(e.target.value) || 0 })}
                     onFocus={(e) => e.target.select()}
-                    className={`flex-1 px-4 py-3 rounded-lg border-2 font-bold text-xl text-center ${
+                    className={`flex-1 px-2 py-1.5 rounded-lg border-2 font-bold text-base text-center ${
                       isDarkMode
                         ? 'bg-[#1f2937] border-purple-600 text-purple-300'
                         : 'bg-white border-purple-500 text-purple-700'
                     }`}
                     placeholder="0"
                   />
-                  <span className={`text-2xl font-bold ${
+                  <span className={`text-base font-bold ${
                     isDarkMode ? 'text-purple-300' : 'text-purple-700'
                   }`}>%</span>
                 </div>
@@ -1673,9 +1661,9 @@ export default function ProductsNew() {
               )}
             </div>
 
-            {/* Descripción - Movida al final */}
+            {/* Descripción Compacta */}
             <div>
-              <label className={`block text-sm font-medium mb-2 ${
+              <label className={`block text-xs font-medium mb-1 ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 📝 Descripción (Opcional)
@@ -1683,7 +1671,7 @@ export default function ProductsNew() {
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg border ${
+                className={`w-full px-2 py-1.5 rounded-lg border text-sm ${
                   isDarkMode
                     ? 'bg-[#111827] border-gray-600 text-white'
                     : 'bg-white border-gray-300 text-gray-900'
@@ -1691,31 +1679,6 @@ export default function ProductsNew() {
                 rows="2"
                 placeholder="Detalles adicionales..."
               />
-            </div>
-
-            {/* Categoría */}
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                🏷️ Categoría (Opcional)
-              </label>
-              <select
-                value={formData.categoryId}
-                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg border ${
-                  isDarkMode
-                    ? 'bg-[#111827] border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-              >
-                <option value="">Sin categoría</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
             </div>
 
             {/* Botones de Acción */}

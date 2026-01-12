@@ -712,29 +712,154 @@ export default function RecipesNew() {
           }
           onClose={() => setShowModal(false)}
         >
-          <div className="space-y-4">
-
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <label className={`block text-sm font-medium ${
+          <div className="space-y-2 pb-2">
+            {/* CABECERA EN 3 COLUMNAS */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* Peso Total */}
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>
-                  Componentes
+                  ⚖️ PESO TOTAL (g)
                 </label>
-                <div className="flex gap-3">
+                <input
+                  type="number"
+                  step="1"
+                  value={formData.totalWeight}
+                  onChange={(e) => setFormData({ ...formData, totalWeight: parseFloat(e.target.value) || 0 })}
+                  onFocus={(e) => e.target.select()}
+                  className={`w-full px-2 py-1.5 rounded-lg border-2 font-bold text-base text-center ${
+                    isDarkMode
+                      ? 'bg-[#1f2937] border-blue-600 text-blue-300'
+                      : 'bg-white border-blue-500 text-blue-700'
+                  }`}
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Categoría */}
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  🏷️ CATEGORÍA
+                </label>
+                <select
+                  value={formData.categoryId}
+                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                  className={`w-full px-2 py-1.5 rounded-lg border text-sm ${
+                    isDarkMode
+                      ? 'bg-[#111827] border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                >
+                  <option value="">Sin categoría</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Rendimiento (porciones) */}
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${
+                  isDarkMode ? 'text-green-300' : 'text-green-700'
+                }`}>
+                  🍽️ PORCIONES
+                </label>
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={formData.servings}
+                  onChange={(e) => setFormData({ ...formData, servings: parseFloat(e.target.value) || 1 })}
+                  onFocus={(e) => e.target.select()}
+                  className={`w-full px-2 py-1.5 rounded-lg border-2 font-bold text-base text-center ${
+                    isDarkMode
+                      ? 'bg-[#1f2937] border-green-600 text-green-300'
+                      : 'bg-white border-green-500 text-green-700'
+                  }`}
+                  placeholder="1"
+                />
+              </div>
+            </div>
+
+            {/* MÉTRICAS COMPACTAS */}
+            <div className={`p-2 rounded-lg border ${
+              isDarkMode 
+                ? 'bg-gray-900/50 border-gray-700' 
+                : 'bg-gray-50 border-gray-300'
+            }`}>
+              <div className="grid grid-cols-3 gap-2">
+                <div className={`p-1.5 rounded text-center ${
+                  isDarkMode ? 'bg-blue-950/50 border border-blue-700' : 'bg-blue-50 border border-blue-300'
+                }`}>
+                  <div className={`text-[10px] font-bold ${
+                    isDarkMode ? 'text-blue-300' : 'text-blue-700'
+                  }`}>
+                    COSTO TOTAL
+                  </div>
+                  <div className={`text-sm font-black ${
+                    isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                  }`}>
+                    {formatMoneyDisplay(metrics.totalCost)}
+                  </div>
+                </div>
+                <div className={`p-1.5 rounded text-center ${
+                  isDarkMode ? 'bg-green-950/50 border border-green-700' : 'bg-green-50 border border-green-300'
+                }`}>
+                  <div className={`text-[10px] font-bold ${
+                    isDarkMode ? 'text-green-300' : 'text-green-700'
+                  }`}>
+                    COSTO/PORCIÓN
+                  </div>
+                  <div className={`text-sm font-black ${
+                    isDarkMode ? 'text-green-400' : 'text-green-600'
+                  }`}>
+                    {formatMoneyDisplay(metrics.costPerServing)}
+                  </div>
+                </div>
+                <div className={`p-1.5 rounded text-center ${
+                  isDarkMode ? 'bg-purple-950/50 border border-purple-700' : 'bg-purple-50 border border-purple-300'
+                }`}>
+                  <div className={`text-[10px] font-bold ${
+                    isDarkMode ? 'text-purple-300' : 'text-purple-700'
+                  }`}>
+                    COSTO/GRAMO
+                  </div>
+                  <div className={`text-sm font-black ${
+                    isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                  }`}>
+                    {formatMoneyDisplay(metrics.costPerGram)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-600 my-1"></div>
+
+            {/* TABLA DE COMPONENTES */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className={`block text-xs font-bold ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  📦 COMPONENTES
+                </label>
+                <div className="flex gap-2">
                   <button
                     onClick={() => handleAddItem('ingredient')}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md font-medium"
+                    className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium"
                   >
-                    <Package size={18} />
-                    Ingrediente
+                    + Ing
                   </button>
                   <button
                     onClick={() => handleAddItem('recipe')}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors shadow-md font-medium"
+                    className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs font-medium"
                   >
-                    <BookOpen size={18} />
-                    Receta
+                    + Receta
                   </button>
                 </div>
               </div>
@@ -743,7 +868,7 @@ export default function RecipesNew() {
                 isDarkMode ? 'bg-[#0a0e1a] border-gray-700' : 'bg-gray-50 border-gray-300'
               }`}>
                 {/* Cabecera de Tabla */}
-                <div className={`grid grid-cols-12 gap-2 p-3 border-b font-bold text-xs ${
+                <div className={`grid grid-cols-12 gap-2 p-1.5 border-b font-bold text-xs ${
                   isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
                 }`}>
                   <div className="col-span-6">NOMBRE</div>
@@ -757,12 +882,12 @@ export default function RecipesNew() {
                     const costoProporcional = calculateItemCost(item)
 
                     return (
-                      <div key={index} className={`flex gap-2 p-3 border-b text-sm ${
+                      <div key={index} className={`flex gap-2 p-1 border-b text-sm ${
                         isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                       }`}>
                         {/* Icono de Tipo */}
-                        <div className="flex items-center flex-shrink-0 mr-2">
-                          <span className={`w-7 h-7 flex items-center justify-center rounded-md text-xs font-bold text-white shadow-sm ${
+                        <div className="flex items-center flex-shrink-0 mr-1">
+                          <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-bold text-white shadow-sm ${
                             item.type === 'recipe'
                               ? 'bg-purple-600'
                               : 'bg-orange-500'
@@ -831,174 +956,79 @@ export default function RecipesNew() {
               </div>
             </div>
 
-            {/* Dashboard Excel - Recetas */}
-            {(formData.ingredients || []).length > 0 && (
-              <div className={`p-2 rounded-xl border-2 ${
-                isDarkMode 
-                  ? 'bg-gradient-to-br from-green-950 to-gray-900 border-green-700' 
-                  : 'bg-gradient-to-br from-green-50 to-white border-green-300'
-              }`}>
-                {/* Valor Principal: Costo Total CENTRADO */}
-                <div className="text-center mb-2">
-                  <div className={`text-xs font-bold mb-1 ${
-                    isDarkMode ? 'text-green-300' : 'text-green-700'
-                  }`}>
-                    💰 COSTO TOTAL
-                  </div>
-                  <div className={`font-black ${
-                    isDarkMode ? 'text-green-400' : 'text-green-600'
-                  }`} style={{ fontSize: '2rem' }}>
-                    {formatMoneyDisplay(calculatePreviewCost())}
-                  </div>
-                </div>
-
-                {/* 4 Cajas de Métricas Horizontales */}
-                <div className="grid grid-cols-4 gap-2">
-                  {/* Costo/Gramo (CON MERMA) */}
-                  <div className={`p-2 rounded-lg text-center ${
-                    isDarkMode ? 'bg-blue-950/50 border border-blue-700' : 'bg-blue-50 border border-blue-300'
-                  }`}>
-                    <div className={`text-xs font-bold mb-1 ${
-                      isDarkMode ? 'text-blue-300' : 'text-blue-700'
-                    }`}>
-                      COSTO/GRAMO
-                    </div>
-                    <div className={`text-lg font-black ${
-                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                    }`}>
-                      {(() => {
-                        if (formData.pesoTotal <= 0) return '$ 0/g'
-                        const pesoNeto = formData.pesoTotal * (1 - (formData.wastagePercent || 0) / 100)
-                        return pesoNeto > 0 ? formatMoneyDisplay(calculatePreviewCost() / pesoNeto) + '/g' : '$ 0/g'
-                      })()}
-                    </div>
-                  </div>
-
-                  {/* Peso Total */}
-                  <div className={`p-2 rounded-lg text-center ${
-                    isDarkMode ? 'bg-purple-950/50 border border-purple-700' : 'bg-purple-50 border border-purple-300'
-                  }`}>
-                    <div className={`text-xs font-bold mb-1 ${
-                      isDarkMode ? 'text-purple-300' : 'text-purple-700'
-                    }`}>
-                      ⚖️ PESO TOTAL (g)
-                    </div>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={formData.pesoTotal}
-                      onChange={(e) => setFormData({ ...formData, pesoTotal: parseFloat(e.target.value) || 0 })}
-                      onFocus={(e) => e.target.select()}
-                      placeholder="1000"
-                      className={`w-full text-center px-2 py-1 rounded-lg border font-black text-lg ${
-                        isDarkMode
-                          ? 'bg-[#0a1828] border-purple-500 text-purple-400'
-                          : 'bg-white border-purple-500 text-purple-600'
-                      }`}
-                    />
-                  </div>
-
-                  {/* % Merma */}
-                  <div className={`p-2 rounded-lg text-center ${
-                    isDarkMode ? 'bg-yellow-950/50 border border-yellow-700' : 'bg-yellow-50 border border-yellow-300'
-                  }`}>
-                    <div className={`text-xs font-bold mb-1 ${
-                      isDarkMode ? 'text-yellow-300' : 'text-yellow-700'
-                    }`}>
-                      🔥 % MERMA
-                    </div>
-                    <input
-                      type="number"
-                      value={formData.wastagePercent}
-                      onChange={(e) => setFormData({ ...formData, wastagePercent: parseFloat(e.target.value) || 0 })}
-                      onFocus={(e) => e.target.select()}
-                      className={`w-full text-center px-2 py-1 rounded-lg border font-black text-lg ${
-                        isDarkMode
-                          ? 'bg-[#0a1828] border-yellow-500 text-yellow-400'
-                          : 'bg-white border-yellow-500 text-yellow-600'
-                      }`}
-                      placeholder="30"
-                      min="0"
-                      max="100"
-                      step="1"
-                    />
-                  </div>
-
-                  {/* Cantidad de Ítems */}
-                  <div className={`p-2 rounded-lg text-center ${
-                    isDarkMode ? 'bg-orange-950/50 border border-orange-700' : 'bg-orange-50 border border-orange-300'
-                  }`}>
-                    <div className={`text-xs font-bold mb-1 ${
-                      isDarkMode ? 'text-orange-300' : 'text-orange-700'
-                    }`}>
-                      📦 CANTIDAD ÍTEMS
-                    </div>
-                    <div className={`text-lg font-black ${
-                      isDarkMode ? 'text-orange-400' : 'text-orange-600'
-                    }`}>
-                      {(formData.ingredients || []).length}
-                    </div>
-                  </div>
+            {/* Campos adicionales compactos */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${
+                  isDarkMode ? 'text-yellow-300' : 'text-yellow-700'
+                }`}>
+                  🔥 % MERMA
+                </label>
+                <input
+                  type="number"
+                  value={formData.wastagePercent}
+                  onChange={(e) => setFormData({ ...formData, wastagePercent: parseFloat(e.target.value) || 0 })}
+                  onFocus={(e) => e.target.select()}
+                  className={`w-full px-2 py-1.5 rounded-lg border-2 font-bold text-base text-center ${
+                    isDarkMode
+                      ? 'bg-[#1f2937] border-yellow-600 text-yellow-300'
+                      : 'bg-white border-yellow-500 text-yellow-700'
+                  }`}
+                  placeholder="30"
+                  min="0"
+                  max="100"
+                  step="1"
+                />
+              </div>
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  📦 COMPONENTES
+                </label>
+                <div className={`px-2 py-1.5 rounded-lg border-2 text-center font-bold text-base ${
+                  isDarkMode
+                    ? 'bg-[#1f2937] border-gray-600 text-gray-300'
+                    : 'bg-white border-gray-300 text-gray-700'
+                }`}>
+                  {(formData.ingredients || []).length}
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* Descripción al final */}
+            {/* Descripción compacta */}
             <div>
-              <label className={`block text-sm font-medium mb-2 ${
+              <label className={`block text-xs font-medium mb-1 ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
-                Descripción (opcional)
+                📝 Descripción (Opcional)
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg border ${
+                className={`w-full px-2 py-1.5 rounded-lg border text-sm ${
                   isDarkMode
                     ? 'bg-[#111827] border-gray-600 text-white'
                     : 'bg-white border-gray-300 text-gray-900'
                 }`}
                 rows={2}
-                placeholder="Agrega una descripción opcional..."
+                placeholder="Detalles adicionales..."
               />
             </div>
-            {/* Categoría */}
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                🏷️ Categoría (Opcional)
-              </label>
-              <select
-                value={formData.categoryId}
-                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg border ${
-                  isDarkMode
-                    ? 'bg-[#111827] border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-              >
-                <option value="">Sin categoría</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex justify-end gap-6 mt-10 pt-8 border-t-2 border-gray-600 pb-12 bg-gray-800/50 -mx-8 px-8 -mb-8 rounded-b-2xl">
+
+            {/* Botones de Acción */}
+            <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex items-center gap-3 px-12 py-5 bg-gray-600 hover:bg-gray-500 text-white rounded-xl transition-all font-bold shadow-2xl text-xl hover:scale-105"
+                className="px-6 py-2.5 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors font-medium"
               >
-                <span className="text-2xl">❌</span> Cancelar
+                Cancelar
               </button>
               <button
                 onClick={handleSave}
-                className="flex items-center gap-3 px-12 py-5 bg-green-600 hover:bg-green-500 text-white rounded-xl transition-all font-bold shadow-2xl text-xl hover:scale-105"
+                className="px-6 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors font-medium"
               >
-                <span className="text-2xl">💾</span> Guardar
+                Guardar
               </button>
             </div>
           </div>
