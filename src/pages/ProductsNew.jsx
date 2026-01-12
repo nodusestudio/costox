@@ -1228,8 +1228,8 @@ export default function ProductsNew() {
               </div>
             </div>
 
-            {/* DOBLE BLOQUE DE INSUMOS */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* TABLA UNIFICADA DE INSUMOS (FILAS) */}
+            <div>
               
               {/* Bloque 1: EMBALAJE */}
               <div>
@@ -1385,7 +1385,7 @@ export default function ProductsNew() {
               </div>
 
               {/* Bloque 2: RECETAS / INGREDIENTES */}
-              <div>
+              <div className="mt-6">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className={`text-sm font-bold ${
                     isDarkMode ? 'text-purple-300' : 'text-purple-700'
