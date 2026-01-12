@@ -73,7 +73,7 @@ export default function Promotions() {
     
     // Suscripción en tiempo real a promociones
     const unsubscribePromotions = onSnapshot(
-      query(collection(db, 'promotions'), orderBy('order', 'asc')),
+      collection(db, 'promotions'),
       (snapshot) => {
         try {
           const promoData = snapshot.docs.map(doc => {
@@ -84,8 +84,12 @@ export default function Promotions() {
               categoryId: String(data.categoryId || '').trim() // Normalizar ID
             }
           })
-          // Ordenar localmente por campo order (ascendente) para items sin order
-          const sorted = promoData.sort((a, b) => (a.order || 0) - (b.order || 0))
+          // Ordenar localmente por campo order (ascendente) - items sin order van al final
+          const sorted = promoData.sort((a, b) => {
+            const orderA = typeof a.order === 'number' ? a.order : 999999
+            const orderB = typeof b.order === 'number' ? b.order : 999999
+            return orderA - orderB
+          })
           setPromotions(sorted)
           console.log('✅ Promociones sincronizadas:', sorted.length)
           sorted.forEach(p => console.log(`  - ${p.name} → Cat: ${p.categoryId || 'Sin categoría'}`))
