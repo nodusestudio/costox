@@ -33,7 +33,7 @@ export default function ProductsNew() {
     laborCost: 0, // Mano de Obra (Operario) - DEPRECATED, ahora se calcula automáticamente
     preparationTimeMinutes: 0, // Tiempo de preparación en minutos (NUEVO)
     indirectCostsPercent: 0, // Costos Indirectos % (luz, gas, etc.)
-    desiredProfitPercent: 20, // Utilidad Deseada % (NUEVO)
+    desiredProfitPercent: 35, // Utilidad Deseada % - se actualizará con config
     realSalePrice: 0, // Precio de Venta
   })
   const searchSelectRefs = useRef({})
@@ -135,7 +135,7 @@ export default function ProductsNew() {
     const costoTotal = costoIngredientes + manoDeObra + costosIndirectos
     
     // Precio sugerido con fórmula corregida
-    const desiredProfitPercent = parseFloat(formData.desiredProfitPercent || 20)
+    const desiredProfitPercent = parseFloat(formData.desiredProfitPercent || config?.targetProfitMargin || 35)
     const suggestedPriceRaw = desiredProfitPercent < 100 
       ? costoTotal / (1 - (desiredProfitPercent / 100))
       : costoTotal * 2
@@ -204,7 +204,7 @@ export default function ProductsNew() {
         laborCost: product.laborCost || 0,
         preparationTimeMinutes: product.preparationTimeMinutes || 0,
         indirectCostsPercent: product.indirectCostsPercent || 0,
-        desiredProfitPercent: product.desiredProfitPercent || 20,
+        desiredProfitPercent: product.desiredProfitPercent || config?.targetProfitMargin || 35,
         realSalePrice: product.realSalePrice || 0,
       })
     } else {
@@ -217,7 +217,7 @@ export default function ProductsNew() {
         laborCost: 0,
         preparationTimeMinutes: 0,
         indirectCostsPercent: suggestedIndirectCostsPercent, // Pre-cargar con valor sugerido
-        desiredProfitPercent: 20, // Utilidad deseada por defecto
+        desiredProfitPercent: config?.targetProfitMargin || 35, // Usar margen configurado
         realSalePrice: 0,
       })
     }
@@ -424,7 +424,7 @@ export default function ProductsNew() {
     // PRECIO SUGERIDO basado en Utilidad Deseada
     // FÓRMULA CORREGIDA: Precio = Costo Total / (1 - (Utilidad Deseada / 100))
     // Esto es margen sobre precio de venta, NO recargo sobre costo
-    const desiredProfitPercent = parseFloat(formData.desiredProfitPercent || 20)
+    const desiredProfitPercent = parseFloat(formData.desiredProfitPercent || config?.targetProfitMargin || 35)
     const suggestedPriceRaw = desiredProfitPercent < 100 
       ? costoTotal / (1 - (desiredProfitPercent / 100))
       : costoTotal * 2 // Fallback si el margen es >= 100%
@@ -1141,7 +1141,7 @@ export default function ProductsNew() {
                       min="0"
                       max="100"
                       value={formData.desiredProfitPercent}
-                      onChange={(e) => setFormData({ ...formData, desiredProfitPercent: parseFloat(e.target.value) || 20 })}
+                      onChange={(e) => setFormData({ ...formData, desiredProfitPercent: parseFloat(e.target.value) || config?.targetProfitMargin || 35 })}
                       onFocus={(e) => e.target.select()}
                       className={`w-20 px-3 py-2 rounded-lg border-2 font-bold text-lg text-center ${
                         isDarkMode

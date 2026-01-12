@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, AlertTriangle, TrendingUp, TrendingDown, Upload, Download } from 'lucide-react'
-import { getPromotions, savePromotion, deletePromotion, getProducts, getIngredients } from '@/utils/storage'
+import { getPromotions, savePromotion, deletePromotion, getProducts, getIngredients, getConfig } from '@/utils/storage'
 import { formatMoneyDisplay, calcularCostoProporcional } from '@/utils/formatters'
 import { showToast } from '@/utils/toast'
 import Modal from '@/components/Modal'
@@ -16,6 +16,7 @@ export default function PromotionsNew() {
   const [promotions, setPromotions] = useState([])
   const [products, setProducts] = useState([])
   const [ingredients, setIngredients] = useState([])
+  const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -53,10 +54,11 @@ export default function PromotionsNew() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [promotionsData, productsData, ingredientsData] = await Promise.all([
+      const [promotionsData, productsData, ingredientsData, configData] = await Promise.all([
         getPromotions(),
         getProducts(),
-        getIngredients()
+        getIngredients(),
+        getConfig()
       ])
       
       const sortedPromotions = Array.isArray(promotionsData)
@@ -66,6 +68,7 @@ export default function PromotionsNew() {
       setPromotions(sortedPromotions)
       setProducts(Array.isArray(productsData) ? productsData : [])
       setIngredients(Array.isArray(ingredientsData) ? ingredientsData : [])
+      setConfig(configData)
     } catch (error) {
       console.error('Error loading data:', error)
       showToast('⚠️ Error de conexión con la base de datos', 'error')
@@ -151,7 +154,9 @@ export default function PromotionsNew() {
         const itemCost = toNumber(liveData.costoPorGramo) * quantity
         
         totalCost += itemCost
-        totalSuggestedPrice += itemCost * 1.4 // Margen 40% para ingredientes
+        // FÓRMULA CORREGIDA: usar margen configurado por el usuario
+        const targetMargin = (config?.targetProfitMargin || 35) / 100
+        totalSuggestedPrice += itemCost / (1 - targetMargin)
       }
     })
 
@@ -205,7 +210,9 @@ export default function PromotionsNew() {
         const liveData = getLiveIngredientData(item.id)
         const itemCost = toNumber(liveData.costoPorGramo) * quantity
         totalCost += itemCost
-        totalSuggestedPrice += itemCost * 1.4
+        // FÓRMULA CORREGIDA: usar margen configurado por el usuario
+        const targetMargin = (config?.targetProfitMargin || 35) / 100
+        totalSuggestedPrice += itemCost / (1 - targetMargin)
       }
     })
 

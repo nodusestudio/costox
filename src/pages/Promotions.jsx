@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Tag, Copy, GripVertical } from 'lucide-react'
 import { db } from '@/config/firebase'
 import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore'
-import { getProducts, getRecipes, getIngredients, getAllDocs, saveDoc, deleteDocument } from '@/utils/storage'
+import { getProducts, getRecipes, getIngredients, getAllDocs, saveDoc, deleteDocument, getConfig } from '@/utils/storage'
 import { formatMoneyDisplay, roundToNearestThousand } from '@/utils/formatters'
 import Modal from '@/components/Modal'
 import Button from '@/components/Button'
@@ -16,6 +16,7 @@ export default function Promotions() {
   const [products, setProducts] = useState([])
   const [recipes, setRecipes] = useState([])
   const [ingredients, setIngredients] = useState([])
+  const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -131,14 +132,16 @@ export default function Promotions() {
 
   const loadStaticData = async () => {
     try {
-      const [prodData, recData, ingData] = await Promise.all([
+      const [prodData, recData, ingData, configData] = await Promise.all([
         getProducts(),
         getRecipes(),
-        getIngredients()
+        getIngredients(),
+        getConfig()
       ])
       setProducts(Array.isArray(prodData) ? prodData : [])
       setRecipes(Array.isArray(recData) ? recData : [])
       setIngredients(Array.isArray(ingData) ? ingData : [])
+      setConfig(configData)
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -1218,8 +1221,9 @@ export default function Promotions() {
               const totals = calculateTotals(formData.items)
               // FÓRMULA CORREGIDA: margen sobre precio de venta, no recargo sobre costo
               // Precio = Costo / (1 - Margen Deseado)
-              // Para 40% de margen: Precio = Costo / (1 - 0.40)
-              const suggestedPrice = roundToNearestThousand(totals.totalCost / (1 - 0.40))
+              // Usar margen configurado por el usuario
+              const targetMargin = (config?.targetProfitMargin || 35) / 100
+              const suggestedPrice = roundToNearestThousand(totals.totalCost / (1 - targetMargin))
               
               return (
                 <div className={`flex items-center justify-between px-3 py-2 rounded-lg border ${
