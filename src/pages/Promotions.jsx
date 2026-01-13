@@ -1012,9 +1012,9 @@ export default function Promotions() {
                   </button>
                 </div>
 
-                {/* Título y categoría en una línea */}
+                {/* Título y categoría */}
                 <div className="pr-24 mb-2">
-                  <h3 className={`font-semibold text-sm truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`} title={promo.name}>
+                  <h3 className={`font-semibold text-sm break-words leading-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`} title={promo.name}>
                     {promo.name}
                   </h3>
                   <div className="flex items-center gap-2 mt-0.5">

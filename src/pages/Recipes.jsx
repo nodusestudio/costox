@@ -152,7 +152,7 @@ export default function Recipes() {
                 />
               )}
               
-              <h3 className="font-semibold text-lg text-white mb-1">{recipe.name}</h3>
+              <h3 className="font-semibold text-lg text-white mb-1 break-words min-h-[3.5rem]">{recipe.name}</h3>
               {recipe.description && (
                 <p className="text-sm text-gray-400 mb-3 line-clamp-2">{recipe.description}</p>
               )}
