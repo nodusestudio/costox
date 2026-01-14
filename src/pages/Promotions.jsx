@@ -597,33 +597,20 @@ export default function Promotions() {
   }
 
   const handleDelete = async (id) => {
-    // 1. Validación robusta del ID
-    if (!id) {
-      console.error('❌ ID no encontrado')
-      // Limpiar documentos con ID nulo del estado
-      setPromotions(prev => prev.filter(p => p.id))
-      return
+    if (!window.confirm('¿Deseas eliminar este ítem?')) return;
+    if (!id || typeof id !== 'string') {
+      console.log('Intentando borrar ID:', id);
+      setPromotions(prev => prev.filter(item => item.id));
+      return;
     }
-
-    if (!confirm('¿Eliminar este combo?')) return
-
-    // Guardar referencia del estado actual para revertir si falla
-    const previousPromotions = [...promotions]
-
+    console.log('Intentando borrar ID:', id);
+    setPromotions(prev => prev.filter(item => item.id !== id));
     try {
-      // 2. Actualización optimista: eliminar del estado local primero
-      setPromotions(prev => prev.filter(p => p.id !== id))
-
-      // 3. Ejecutar eliminación en Firebase
-      await deleteDocument('promotions', id)
-      
-      console.log('✅ Combo eliminado correctamente')
+      // await deleteDoc(doc(db, 'promotions', id));
+      await deleteDocument('promotions', id);
     } catch (error) {
-      // 4. Manejo de errores
-      console.error('❌ Error al eliminar combo:', error)
-      alert('Error al eliminar el combo. Por favor, intenta nuevamente.')
-      // Revertir el estado en caso de error
-      setPromotions(previousPromotions)
+      console.error('Error al eliminar promoción:', error);
+      alert('Error al eliminar la promoción.');
     }
   }
 

@@ -110,31 +110,20 @@ export default function Recipes() {
   }
 
   const handleDelete = (id) => {
-    // 1. Validación robusta del ID
-    if (!id) {
-      console.error('❌ ID no encontrado')
-      // Limpiar documentos con ID nulo del estado
-      setRecipes(prev => prev.filter(r => r.id))
-      return
+    if (!window.confirm('¿Deseas eliminar este ítem?')) return;
+    if (!id || typeof id !== 'string') {
+      console.log('Intentando borrar ID:', id);
+      setRecipes(prev => prev.filter(item => item.id));
+      return;
     }
-
-    if (!window.confirm('¿Eliminar esta receta?')) return
-
+    console.log('Intentando borrar ID:', id);
+    setRecipes(prev => prev.filter(item => item.id !== id));
     try {
-      // 2. Actualización optimista: eliminar del estado local primero
-      const updatedRecipes = recipes.filter(r => r.id !== id)
-      setRecipes(updatedRecipes)
-
-      // 3. Guardar en Firebase/localStorage
-      saveRecipes(updatedRecipes)
-      
-      console.log('✅ Receta eliminada correctamente')
+      // await deleteDoc(doc(db, 'recipes', id));
+      saveRecipes(recipes.filter(item => item.id !== id));
     } catch (error) {
-      // 4. Manejo de errores
-      console.error('❌ Error al eliminar receta:', error)
-      alert('Error al eliminar la receta. Por favor, intenta nuevamente.')
-      // Revertir el estado en caso de error
-      setRecipes(recipes)
+      console.error('Error al eliminar receta:', error);
+      alert('Error al eliminar la receta.');
     }
   }
 
@@ -144,10 +133,10 @@ export default function Recipes() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-white">Recetas (Escandallos)</h2>
-          <p className="text-gray-400 text-sm mt-1">Crea bases como masas con ingredientes y preparación</p>
+      <div className="grid grid-cols-3 gap-2 items-center">
+        <div className="col-span-2">
+          <h2 className="text-2xl font-bold text-white">Recetas (Escandallos)</h2>
+          <p className="text-gray-400 text-xs mt-1">Crea bases como masas con ingredientes y preparación</p>
         </div>
         <Button
           onClick={() => handleOpenModal()}

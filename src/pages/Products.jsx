@@ -118,31 +118,20 @@ export default function Products() {
   }
 
   const handleDelete = (id) => {
-    // 1. Validación robusta del ID
-    if (!id) {
-      console.error('❌ ID no encontrado')
-      // Limpiar documentos con ID nulo del estado
-      setProducts(prev => prev.filter(p => p.id))
-      return
+    if (!window.confirm('¿Deseas eliminar este ítem?')) return;
+    if (!id || typeof id !== 'string') {
+      console.log('Intentando borrar ID:', id);
+      setProducts(prev => prev.filter(item => item.id));
+      return;
     }
-
-    if (!window.confirm('¿Eliminar este producto?')) return
-
+    console.log('Intentando borrar ID:', id);
+    setProducts(prev => prev.filter(item => item.id !== id));
     try {
-      // 2. Actualización optimista: eliminar del estado local primero
-      const updatedProducts = products.filter(p => p.id !== id)
-      setProducts(updatedProducts)
-
-      // 3. Guardar en Firebase/localStorage
-      saveProducts(updatedProducts)
-      
-      console.log('✅ Producto eliminado correctamente')
+      // await deleteDoc(doc(db, 'products', id));
+      saveProducts(products.filter(item => item.id !== id));
     } catch (error) {
-      // 4. Manejo de errores
-      console.error('❌ Error al eliminar producto:', error)
-      alert('Error al eliminar el producto. Por favor, intenta nuevamente.')
-      // Revertir el estado en caso de error
-      setProducts(products)
+      console.error('Error al eliminar producto:', error);
+      alert('Error al eliminar el producto.');
     }
   }
 
@@ -152,10 +141,10 @@ export default function Products() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-white">Productos Finales</h2>
-          <p className="text-gray-400 text-sm mt-1">Combina recetas e ingredientes para venta</p>
+      <div className="grid grid-cols-3 gap-2 items-center">
+        <div className="col-span-2">
+          <h2 className="text-2xl font-bold text-white">Productos Finales</h2>
+          <p className="text-gray-400 text-xs mt-1">Combina recetas e ingredientes para venta</p>
         </div>
         <Button
           onClick={() => handleOpenModal()}
