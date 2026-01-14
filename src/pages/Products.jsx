@@ -118,6 +118,11 @@ export default function Products() {
   }
 
   const handleDelete = (id) => {
+    if (!id) {
+      // Si no hay ID, solo filtrar del estado local
+      console.warn('⚠️ ID nulo detectado, filtrando solo del estado local')
+      return
+    }
     if (window.confirm('¿Eliminar este producto?')) {
       const updatedProducts = products.filter(p => p.id !== id)
       setProducts(updatedProducts)
@@ -203,138 +208,173 @@ export default function Products() {
           title={editingId ? 'Editar Producto' : 'Nuevo Producto'}
           onClose={() => setShowModal(false)}
         >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Nombre del Producto *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-dark-bg border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:border-primary-blue focus:outline-none"
-                placeholder="Ej: Pan Integral"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Receta Base
-              </label>
-              <select
-                value={formData.recipeId}
-                onChange={(e) => setFormData({ ...formData, recipeId: e.target.value })}
-                className="w-full bg-dark-bg border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-primary-blue focus:outline-none"
-              >
-                <option value="">Sin receta base</option>
-                {(recipes ?? []).map(recipe => (
-                  <option key={recipe.id} value={recipe.id}>{recipe.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Ingredientes Adicionales
-              </label>
-              <div className="space-y-2 bg-dark-bg/50 p-3 rounded-lg max-h-40 overflow-y-auto">
-                {(formData.baseIngredients ?? []).map((item, idx) => (
-                  <div key={idx} className="flex gap-2 items-end">
-                    <select
-                      value={item.ingredientId}
-                      onChange={(e) => handleIngredientChange(idx, 'ingredientId', e.target.value)}
-                      className="flex-1 bg-dark-bg border border-gray-600 rounded px-2 py-1 text-white text-sm"
-                    >
-                      <option value="">Seleccionar</option>
-                      {(ingredients ?? []).map(ing => (
-                        <option key={ing.id} value={ing.id}>{ing.name}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => handleIngredientChange(idx, 'quantity', e.target.value)}
-                      className="w-20 bg-dark-bg border border-gray-600 rounded px-2 py-1 text-white text-sm"
-                      placeholder="Cant."
-                    />
-                    <button
-                      onClick={() => handleRemoveIngredient(idx)}
-                      className="bg-red-900/20 hover:bg-red-900/30 text-red-400 px-2 py-1 rounded text-sm"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
+          <div className="space-y-2">
+            {/* CABECERA EN 3 COLUMNAS */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* Nombre del Producto */}
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-300 mb-1">
+                  📋 Nombre del Producto *
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full bg-dark-bg border border-gray-600 rounded-lg px-2 py-1.5 text-white placeholder-gray-500 focus:border-primary-blue focus:outline-none text-sm"
+                  placeholder="Ej: Pan Integral"
+                />
               </div>
-              <button
-                onClick={handleAddIngredient}
-                className="w-full mt-2 text-sm text-primary-blue hover:text-blue-400 border border-dashed border-primary-blue rounded-lg py-2"
-              >
-                + Agregar Ingrediente
-              </button>
+
+              {/* Utilidad Deseada */}
+              <div>
+                <label className="block text-xs font-medium text-blue-300 mb-1">
+                  🎯 Utilidad Deseada
+                </label>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    step="1"
+                    value={formData.profitMarginPercent}
+                    onChange={(e) => setFormData({ ...formData, profitMarginPercent: e.target.value })}
+                    className="w-full bg-dark-bg border-2 border-blue-600 rounded-lg px-2 py-1.5 text-blue-300 font-bold text-sm text-center focus:outline-none"
+                  />
+                  <span className="text-blue-300 font-bold">%</span>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Costo Adicional ($)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.additionalCost}
-                onChange={(e) => setFormData({ ...formData, additionalCost: e.target.value })}
-                className="w-full bg-dark-bg border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:border-primary-blue focus:outline-none"
-                placeholder="Ej: 0.50"
-              />
-            </div>
+            {/* Segunda fila */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Receta Base */}
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">
+                  📖 Receta Base
+                </label>
+                <select
+                  value={formData.recipeId}
+                  onChange={(e) => setFormData({ ...formData, recipeId: e.target.value })}
+                  className="w-full bg-dark-bg border border-gray-600 rounded-lg px-2 py-1.5 text-white focus:border-primary-blue focus:outline-none text-sm"
+                >
+                  <option value="">Sin receta base</option>
+                  {(recipes ?? []).map(recipe => (
+                    <option key={recipe.id} value={recipe.id}>{recipe.name}</option>
+                  ))}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                % de Utilidad Deseado *
-              </label>
-              <div className="flex items-center gap-2">
+              {/* Costo Adicional */}
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">
+                  💰 Costo Adicional
+                </label>
                 <input
                   type="number"
-                  step="1"
-                  value={formData.profitMarginPercent}
-                  onChange={(e) => setFormData({ ...formData, profitMarginPercent: e.target.value })}
-                  className="flex-1 bg-dark-bg border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-primary-blue focus:outline-none"
+                  step="0.01"
+                  value={formData.additionalCost}
+                  onChange={(e) => setFormData({ ...formData, additionalCost: e.target.value })}
+                  className="w-full bg-dark-bg border border-gray-600 rounded-lg px-2 py-1.5 text-white placeholder-gray-500 focus:border-primary-blue focus:outline-none text-sm"
+                  placeholder="0.00"
                 />
-                <span className="text-gray-400">%</span>
               </div>
             </div>
 
-            {/* Resumen de Cálculos */}
-            <div className="bg-primary-blue/10 rounded-lg p-4 border border-primary-blue">
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
+            {/* Tabla de Ingredientes DENSA */}
+            <div>
+              <label className="block text-xs font-medium text-gray-300 mb-1">
+                🥖 Ingredientes Adicionales
+              </label>
+              <div className="bg-dark-bg/50 rounded-lg border border-gray-700">
+                {/* Cabecera */}
+                <div className="grid grid-cols-12 gap-2 px-2 py-1 border-b border-gray-700 bg-gray-800 text-xs font-bold text-gray-300">
+                  <div className="col-span-8">INGREDIENTE</div>
+                  <div className="col-span-3 text-center">CANTIDAD</div>
+                  <div className="col-span-1"></div>
+                </div>
+                
+                {/* Filas DENSAS */}
+                <div className="max-h-32 overflow-y-auto">
+                  {(formData.baseIngredients ?? []).map((item, idx) => (
+                    <div key={idx} className="grid grid-cols-12 gap-2 px-2 py-1 border-b border-gray-700/50 hover:bg-gray-800/50 text-sm">
+                      <div className="col-span-8">
+                        <select
+                          value={item.ingredientId}
+                          onChange={(e) => handleIngredientChange(idx, 'ingredientId', e.target.value)}
+                          className="w-full bg-dark-bg border border-gray-600 rounded px-2 py-1 text-white text-xs"
+                        >
+                          <option value="">Seleccionar</option>
+                          {(ingredients ?? []).map(ing => (
+                            <option key={ing.id} value={ing.id}>{ing.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="col-span-3">
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleIngredientChange(idx, 'quantity', e.target.value)}
+                          className="w-full bg-dark-bg border border-gray-600 rounded px-2 py-1 text-white text-xs text-center"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div className="col-span-1 flex items-center justify-center">
+                        <button
+                          onClick={() => handleRemoveIngredient(idx)}
+                          className="text-red-400 hover:text-red-300 p-1"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {(formData.baseIngredients ?? []).length === 0 && (
+                    <div className="text-center py-4 text-gray-500 text-xs">
+                      Sin ingredientes adicionales
+                    </div>
+                  )}
+                </div>
+                
+                {/* Botón agregar */}
+                <button
+                  onClick={handleAddIngredient}
+                  className="w-full py-1.5 text-xs text-primary-blue hover:text-blue-400 border-t border-gray-700 hover:bg-gray-800/50"
+                >
+                  + Agregar Ingrediente
+                </button>
+              </div>
+            </div>
+
+            {/* Resumen COMPACTO */}
+            <div className="bg-primary-blue/10 rounded-lg p-2 border border-primary-blue">
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-300">Costo Real:</span>
                   <span className="text-gray-200 font-semibold">{formatMoneyDisplay(realCost)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-300">Utilidad ({formData.profitMarginPercent}%):</span>
                   <span className="text-gray-200 font-semibold">{formatMoneyDisplay((realCost * formData.profitMarginPercent) / 100)}</span>
                 </div>
-                <div className="border-t border-primary-blue/30 pt-3">
+                <div className="border-t border-primary-blue/30 pt-1.5">
                   <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold text-primary-blue">Precio Sugerido:</span>
-                    <span className="text-3xl font-bold text-primary-blue">{formatMoneyDisplay(salePrice)}</span>
+                    <span className="text-sm font-semibold text-primary-blue">Precio Sugerido:</span>
+                    <span className="text-xl font-bold text-primary-blue">{formatMoneyDisplay(salePrice)}</span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-2">Margen: {margin.toFixed(1)}%</p>
+                  <p className="text-[10px] text-gray-400 mt-1">Margen: {margin.toFixed(1)}%</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-3 pt-4">
+            {/* Botones */}
+            <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded-lg transition-colors text-sm"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSave}
-                className="flex-1 bg-primary-blue hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+                className="flex-1 bg-primary-blue hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors font-medium text-sm"
               >
                 Guardar
               </button>

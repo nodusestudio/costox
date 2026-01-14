@@ -597,6 +597,12 @@ export default function Promotions() {
   }
 
   const handleDelete = async (id) => {
+    if (!id) {
+      // Si no hay ID, solo filtrar del estado local para que desaparezca visualmente
+      console.warn('⚠️ ID nulo detectado, filtrando solo del estado local')
+      setPromotions(prev => prev.filter(p => p.id !== id))
+      return
+    }
     if (!confirm('¿Eliminar este combo?')) return
     try {
       await deleteDocument('promotions', id)

@@ -12,7 +12,7 @@ export default function Modal({ title, titleInput, onClose, children, size = 'la
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 md:p-8">
       <div className={`bg-[#1f2937] border-2 border-gray-700 rounded-2xl ${sizeClasses[size]} max-h-[85vh] overflow-hidden shadow-2xl`}>
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-6 border-b-2 border-gray-700 bg-[#111827]">
+        <div className="flex items-center justify-between px-4 py-3 border-b-2 border-gray-700 bg-[#111827]">
           {titleInput ? titleInput : <h2 className="text-2xl font-bold text-white">{title}</h2>}
           <button
             onClick={onClose}
@@ -23,7 +23,7 @@ export default function Modal({ title, titleInput, onClose, children, size = 'la
         </div>
 
         {/* Content */}
-        <div className="p-8 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 88px)' }}>
+        <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 88px)' }}>
           {children}
         </div>
       </div>

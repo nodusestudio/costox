@@ -327,6 +327,7 @@ export default function PromotionsNew() {
 
   // ===== ELIMINAR COMBO =====
   const handleDelete = async (id) => {
+    if (!id) return
     if (window.confirm('¿Eliminar este combo?')) {
       try {
         await deletePromotion(id)
@@ -341,6 +342,7 @@ export default function PromotionsNew() {
 
   // ===== DUPLICAR COMBO =====
   const handleDuplicate = async (promotion) => {
+    if (!promotion || !promotion.id) return
     try {
       setEditingId(null)
       const duplicated = {
@@ -788,13 +790,13 @@ export default function PromotionsNew() {
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Tipo</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Item</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Cantidad</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Costo Unit.</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Precio Venta</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Subtotal</th>
-                      <th className="px-4 py-2"></th>
+                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Tipo</th>
+                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Item</th>
+                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Cantidad</th>
+                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Costo Unit.</th>
+                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Precio Venta</th>
+                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Subtotal</th>
+                      <th className="px-2 py-1"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -819,7 +821,7 @@ export default function PromotionsNew() {
 
                       return (
                         <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                          <td className="px-4 py-2 text-sm">
+                          <td className="px-2 py-1 text-sm">
                             <div className="flex items-center gap-2">
                               <span className={`w-7 h-7 flex items-center justify-center rounded-md text-xs font-bold text-white shadow-sm ${
                                 item.type === 'product' ? 'bg-blue-600' : 'bg-orange-500'
@@ -831,7 +833,7 @@ export default function PromotionsNew() {
                               </span>
                             </div>
                           </td>
-                          <td className="px-4 py-2">
+                          <td className="px-2 py-1">
                             <SearchSelect
                               options={
                                 item.type === 'product'
@@ -843,7 +845,7 @@ export default function PromotionsNew() {
                               placeholder={`Seleccionar ${item.type === 'product' ? 'producto' : 'ingrediente'}`}
                             />
                           </td>
-                          <td className="px-4 py-2">
+                          <td className="px-2 py-1">
                             <input
                               type="number"
                               value={item.quantity}
@@ -853,16 +855,16 @@ export default function PromotionsNew() {
                               className="w-20 px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-dark-text dark:text-light-text"
                             />
                           </td>
-                          <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">
+                          <td className="px-2 py-1 text-sm text-gray-700 dark:text-gray-300">
                             {formatMoneyDisplay(costoUnit)}
                           </td>
-                          <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">
+                          <td className="px-2 py-1 text-sm text-gray-700 dark:text-gray-300">
                             {item.type === 'product' ? formatMoneyDisplay(precioVenta) : '-'}
                           </td>
-                          <td className="px-4 py-2 text-sm font-semibold text-dark-text dark:text-light-text">
+                          <td className="px-2 py-1 text-sm font-semibold text-dark-text dark:text-light-text">
                             {formatMoneyDisplay(subtotalCosto)}
                           </td>
-                          <td className="px-4 py-2">
+                          <td className="px-2 py-1">
                             <button
                               onClick={() => handleRemoveItem(index)}
                               className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"

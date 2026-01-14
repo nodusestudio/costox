@@ -63,59 +63,62 @@ export default function ProductsNew() {
     
     const items = Array.isArray(formData.items) ? formData.items : []
     
-    // Calcular subtotales por categoría
-    let subtotalEmbalaje = 0
-    let subtotalRecetas = 0
-    let costoIngredientes = 0
+    // Calcular subtotales por categoría usando .reduce() con validación de valores nulos
+    const subtotalEmbalaje = items
+      .filter(item => item && item.id && item.type === 'ingredient-embalaje')
+      .reduce((acc, item) => {
+        const cantidadUsada = parseFloat(item.quantity) || 0
+        const ing = ingredients.find(i => i.id === item.id)
+        let itemCost = 0
+        
+        if (ing) {
+          if (ing.costoPorGramo && ing.costoPorGramo > 0) {
+            itemCost = ing.costoPorGramo * cantidadUsada
+          } else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
+            itemCost = calcularCostoProporcional(ing.costWithWastage, ing.pesoEmpaqueTotal, cantidadUsada)
+          } else if (ing.costWithWastage) {
+            itemCost = ing.costWithWastage * cantidadUsada
+          }
+        }
+        
+        return acc + (isFinite(itemCost) ? itemCost : 0)
+      }, 0)
     
-    items.forEach(item => {
-      if (!item || !item.id) return
-      
-      const cantidadUsada = parseFloat(item.quantity || 0)
-      let itemCost = 0
-      
-      if (item.type === 'ingredient-embalaje') {
-        const ing = ingredients.find(i => i.id === item.id)
-        if (ing) {
-          if (ing.costoPorGramo && ing.costoPorGramo > 0) {
-            itemCost = ing.costoPorGramo * cantidadUsada
-          } else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
-            itemCost = calcularCostoProporcional(ing.costWithWastage, ing.pesoEmpaqueTotal, cantidadUsada)
-          } else if (ing.costWithWastage) {
-            itemCost = ing.costWithWastage * cantidadUsada
+    const subtotalRecetas = items
+      .filter(item => item && item.id && (item.type === 'ingredient-receta' || item.type === 'recipe'))
+      .reduce((acc, item) => {
+        const cantidadUsada = parseFloat(item.quantity) || 0
+        let itemCost = 0
+        
+        if (item.type === 'ingredient-receta') {
+          const ing = ingredients.find(i => i.id === item.id)
+          if (ing) {
+            if (ing.costoPorGramo && ing.costoPorGramo > 0) {
+              itemCost = ing.costoPorGramo * cantidadUsada
+            } else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
+              itemCost = calcularCostoProporcional(ing.costWithWastage, ing.pesoEmpaqueTotal, cantidadUsada)
+            } else if (ing.costWithWastage) {
+              itemCost = ing.costWithWastage * cantidadUsada
+            }
+          }
+        } else if (item.type === 'recipe') {
+          const rec = recipes.find(r => r.id === item.id)
+          if (rec) {
+            if (rec.costoPorGramo && rec.costoPorGramo > 0) {
+              itemCost = rec.costoPorGramo * cantidadUsada
+            } else if (rec.totalCost && rec.pesoTotal && rec.pesoTotal > 0) {
+              const costoPorGramo = rec.totalCost / rec.pesoTotal
+              itemCost = costoPorGramo * cantidadUsada
+            } else if (rec.totalCost) {
+              itemCost = rec.totalCost * cantidadUsada
+            }
           }
         }
-        subtotalEmbalaje += itemCost
-        costoIngredientes += itemCost
-      } else if (item.type === 'ingredient-receta') {
-        const ing = ingredients.find(i => i.id === item.id)
-        if (ing) {
-          if (ing.costoPorGramo && ing.costoPorGramo > 0) {
-            itemCost = ing.costoPorGramo * cantidadUsada
-          } else if (ing.pesoEmpaqueTotal && ing.pesoEmpaqueTotal > 0 && ing.costWithWastage) {
-            itemCost = calcularCostoProporcional(ing.costWithWastage, ing.pesoEmpaqueTotal, cantidadUsada)
-          } else if (ing.costWithWastage) {
-            itemCost = ing.costWithWastage * cantidadUsada
-          }
-        }
-        subtotalRecetas += itemCost
-        costoIngredientes += itemCost
-      } else if (item.type === 'recipe') {
-        const rec = recipes.find(r => r.id === item.id)
-        if (rec) {
-          if (rec.costoPorGramo && rec.costoPorGramo > 0) {
-            itemCost = rec.costoPorGramo * cantidadUsada
-          } else if (rec.totalCost && rec.pesoTotal && rec.pesoTotal > 0) {
-            const costoPorGramo = rec.totalCost / rec.pesoTotal
-            itemCost = costoPorGramo * cantidadUsada
-          } else if (rec.totalCost) {
-            itemCost = rec.totalCost * cantidadUsada
-          }
-        }
-        subtotalRecetas += itemCost
-        costoIngredientes += itemCost
-      }
-    })
+        
+        return acc + (isFinite(itemCost) ? itemCost : 0)
+      }, 0)
+    
+    const costoIngredientes = subtotalEmbalaje + subtotalRecetas
     
     // Calcular mano de obra
     let manoDeObra = 0
@@ -508,6 +511,7 @@ export default function ProductsNew() {
   }
 
   const handleDelete = async (id) => {
+    if (!id) return
     if (window.confirm('¿Eliminar este producto?')) {
       try {
         await deleteProduct(id)
@@ -520,6 +524,7 @@ export default function ProductsNew() {
   }
 
   const handleDuplicate = async (product) => {
+    if (!product || !product.id) return
     try {
       setEditingId(null)
       const duplicated = {

@@ -110,6 +110,11 @@ export default function Recipes() {
   }
 
   const handleDelete = (id) => {
+    if (!id) {
+      // Si no hay ID, solo filtrar del estado local
+      console.warn('⚠️ ID nulo detectado, filtrando solo del estado local')
+      return
+    }
     if (window.confirm('¿Eliminar esta receta?')) {
       const updatedRecipes = recipes.filter(r => r.id !== id)
       setRecipes(updatedRecipes)
@@ -188,127 +193,163 @@ export default function Recipes() {
           title={editingId ? 'Editar Receta' : 'Nueva Receta'}
           onClose={() => setShowModal(false)}
         >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Nombre de la Receta *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-dark-bg border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:border-primary-blue focus:outline-none"
-                placeholder="Ej: Masa de Pan"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Descripción
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full bg-dark-bg border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:border-primary-blue focus:outline-none resize-none"
-                rows="2"
-                placeholder="Descripción breve"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Foto de Referencia
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                className="w-full bg-dark-bg border border-gray-600 rounded-lg px-4 py-2 text-white text-sm"
-              />
-              {formData.referencePhoto && (
-                <img src={formData.referencePhoto} alt="Preview" className="w-20 h-20 object-cover rounded mt-2" />
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Ingredientes
-              </label>
-              <div className="space-y-3 bg-dark-bg/50 p-3 rounded-lg max-h-48 overflow-y-auto">
-                {(formData.ingredients ?? []).map((item, idx) => (
-                  <div key={idx} className="flex gap-2 items-end">
-                    <select
-                      value={item.ingredientId}
-                      onChange={(e) => handleIngredientChange(idx, 'ingredientId', e.target.value)}
-                      className="flex-1 bg-dark-bg border border-gray-600 rounded px-2 py-1 text-white text-sm"
-                    >
-                      <option value="">Seleccionar</option>
-                      {(ingredients ?? []).map(ing => (
-                        <option key={ing.id} value={ing.id}>{ing.name}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => handleIngredientChange(idx, 'quantity', e.target.value)}
-                      className="w-16 bg-dark-bg border border-gray-600 rounded px-2 py-1 text-white text-sm"
-                      placeholder="Cant."
-                    />
-                    <select
-                      value={item.unit}
-                      onChange={(e) => handleIngredientChange(idx, 'unit', e.target.value)}
-                      className="w-16 bg-dark-bg border border-gray-600 rounded px-2 py-1 text-white text-sm"
-                    >
-                      <option value="gr">gr</option>
-                      <option value="ml">ml</option>
-                      <option value="unid">unid</option>
-                    </select>
-                    <button
-                      onClick={() => handleRemoveIngredient(idx)}
-                      className="bg-red-900/20 hover:bg-red-900/30 text-red-400 px-2 py-1 rounded text-sm"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
+          <div className="space-y-2">
+            {/* Nombre y Descripción */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">
+                  📋 Nombre de la Receta *
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full bg-dark-bg border border-gray-600 rounded-lg px-2 py-1.5 text-white placeholder-gray-500 focus:border-primary-blue focus:outline-none text-sm"
+                  placeholder="Ej: Masa de Pan"
+                />
               </div>
-              <button
-                onClick={handleAddIngredient}
-                className="w-full mt-2 text-sm text-primary-blue hover:text-blue-400 border border-dashed border-primary-blue rounded-lg py-2"
-              >
-                + Agregar Ingrediente
-              </button>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">
+                  📝 Descripción
+                </label>
+                <input
+                  type="text"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full bg-dark-bg border border-gray-600 rounded-lg px-2 py-1.5 text-white placeholder-gray-500 focus:border-primary-blue focus:outline-none text-sm"
+                  placeholder="Descripción breve"
+                />
+              </div>
             </div>
 
+            {/* Foto de Referencia */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Preparación / Instrucciones
+              <label className="block text-xs font-medium text-gray-300 mb-1">
+                📷 Foto de Referencia
+              </label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="flex-1 bg-dark-bg border border-gray-600 rounded-lg px-2 py-1 text-white text-xs"
+                />
+                {formData.referencePhoto && (
+                  <img src={formData.referencePhoto} alt="Preview" className="w-12 h-12 object-cover rounded" />
+                )}
+              </div>
+            </div>
+
+            {/* Tabla de Ingredientes DENSA */}
+            <div>
+              <label className="block text-xs font-medium text-gray-300 mb-1">
+                🥖 Ingredientes
+              </label>
+              <div className="bg-dark-bg/50 rounded-lg border border-gray-700">
+                {/* Cabecera */}
+                <div className="grid grid-cols-12 gap-2 px-2 py-1 border-b border-gray-700 bg-gray-800 text-xs font-bold text-gray-300">
+                  <div className="col-span-6">INGREDIENTE</div>
+                  <div className="col-span-3 text-center">CANTIDAD</div>
+                  <div className="col-span-2 text-center">UNIDAD</div>
+                  <div className="col-span-1"></div>
+                </div>
+                
+                {/* Filas DENSAS */}
+                <div className="max-h-32 overflow-y-auto">
+                  {(formData.ingredients ?? []).map((item, idx) => (
+                    <div key={idx} className="grid grid-cols-12 gap-2 px-2 py-1 border-b border-gray-700/50 hover:bg-gray-800/50 text-sm">
+                      <div className="col-span-6">
+                        <select
+                          value={item.ingredientId}
+                          onChange={(e) => handleIngredientChange(idx, 'ingredientId', e.target.value)}
+                          className="w-full bg-dark-bg border border-gray-600 rounded px-2 py-1 text-white text-xs"
+                        >
+                          <option value="">Seleccionar</option>
+                          {(ingredients ?? []).map(ing => (
+                            <option key={ing.id} value={ing.id}>{ing.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="col-span-3">
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleIngredientChange(idx, 'quantity', e.target.value)}
+                          className="w-full bg-dark-bg border border-gray-600 rounded px-2 py-1 text-white text-xs text-center"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <select
+                          value={item.unit}
+                          onChange={(e) => handleIngredientChange(idx, 'unit', e.target.value)}
+                          className="w-full bg-dark-bg border border-gray-600 rounded px-2 py-1 text-white text-xs"
+                        >
+                          <option value="gr">gr</option>
+                          <option value="ml">ml</option>
+                          <option value="unid">unid</option>
+                        </select>
+                      </div>
+                      <div className="col-span-1 flex items-center justify-center">
+                        <button
+                          onClick={() => handleRemoveIngredient(idx)}
+                          className="text-red-400 hover:text-red-300 p-1"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {(formData.ingredients ?? []).length === 0 && (
+                    <div className="text-center py-4 text-gray-500 text-xs">
+                      Sin ingredientes
+                    </div>
+                  )}
+                </div>
+                
+                {/* Botón agregar */}
+                <button
+                  onClick={handleAddIngredient}
+                  className="w-full py-1.5 text-xs text-primary-blue hover:text-blue-400 border-t border-gray-700 hover:bg-gray-800/50"
+                >
+                  + Agregar Ingrediente
+                </button>
+              </div>
+            </div>
+
+            {/* Preparación */}
+            <div>
+              <label className="block text-xs font-medium text-gray-300 mb-1">
+                📖 Preparación / Instrucciones
               </label>
               <textarea
                 value={formData.preparation}
                 onChange={(e) => setFormData({ ...formData, preparation: e.target.value })}
-                className="w-full bg-dark-bg border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:border-primary-blue focus:outline-none resize-none"
-                rows="4"
+                className="w-full bg-dark-bg border border-gray-600 rounded-lg px-2 py-1.5 text-white placeholder-gray-500 focus:border-primary-blue focus:outline-none resize-none text-sm"
+                rows="3"
                 placeholder="Describe los pasos..."
               />
             </div>
 
-            <div className="bg-dark-bg/50 rounded-lg p-3 border border-gray-700">
-              <p className="text-sm text-gray-300">
-                <strong>Costo Base Estimado:</strong> <span className="text-success-green">{formatMoneyDisplay(calculateRecipeCost())}</span>
+            {/* Resumen COMPACTO */}
+            <div className="bg-dark-bg/50 rounded-lg p-2 border border-gray-700">
+              <p className="text-xs text-gray-300">
+                <strong>Costo Base Estimado:</strong> <span className="text-success-green font-semibold">{formatMoneyDisplay(calculateRecipeCost())}</span>
               </p>
             </div>
 
-            <div className="flex gap-3 pt-4">
+            {/* Botones */}
+            <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded-lg transition-colors text-sm"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSave}
-                className="flex-1 bg-primary-blue hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+                className="flex-1 bg-primary-blue hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors font-medium text-sm"
               >
                 Guardar
               </button>
