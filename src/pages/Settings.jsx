@@ -198,56 +198,56 @@ export default function Settings() {
                 <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   🏢 Arriendo / Alquiler
                 </label>
-                <input
-                  type="text"
-                  value={formatNumberWithThousands(config.rentCost || 0)}
-                  onChange={(e) => handleNumericChange('rentCost', e.target.value)}
-                  className={`w-full rounded px-2 py-1 border text-sm ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`}
-                  placeholder="Ej: 1.500"
-                />
+                  <input
+                    type="text"
+                    value={formatNumberWithThousands(config.rentCost || 0)}
+                    onChange={(e) => handleNumericChange('rentCost', e.target.value)}
+                    className={`w-full max-w-[300px] rounded px-2 py-1 border text-sm ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`}
+                    placeholder="Ej: 1.500"
+                  />
               </div>
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   ⚡ Servicios Públicos (Luz, Gas, Agua)
                 </label>
-                <input
-                  type="text"
-                  value={formatNumberWithThousands(config.utilitiesCost || 0)}
-                  onChange={(e) => handleNumericChange('utilitiesCost', e.target.value)}
-                  className={`w-full rounded px-2 py-1 border text-sm ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`}
-                  placeholder="Ej: 500"
-                />
+                  <input
+                    type="text"
+                    value={formatNumberWithThousands(config.utilitiesCost || 0)}
+                    onChange={(e) => handleNumericChange('utilitiesCost', e.target.value)}
+                    className={`w-full max-w-[300px] rounded px-2 py-1 border text-sm ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`}
+                    placeholder="Ej: 500"
+                  />
               </div>
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   👥 Nómina Total Mensual
                 </label>
-                <input
-                  type="text"
-                  value={formatNumberWithThousands(config.payrollCost || 0)}
-                  onChange={(e) => handleNumericChange('payrollCost', e.target.value)}
-                  className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
-                    isDarkMode
-                      ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                      : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                  }`}
-                  placeholder="Ej: 3.000"
-                />
+                  <input
+                    type="text"
+                    value={formatNumberWithThousands(config.payrollCost || 0)}
+                    onChange={(e) => handleNumericChange('payrollCost', e.target.value)}
+                    className={`w-full max-w-[300px] rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
+                      isDarkMode
+                        ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
+                        : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
+                    }`}
+                    placeholder="Ej: 3.000"
+                  />
               </div>
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   📋 Otros Gastos Fijos
                 </label>
-                <input
-                  type="text"
-                  value={formatNumberWithThousands(config.otherFixedCosts || 0)}
-                  onChange={(e) => handleNumericChange('otherFixedCosts', e.target.value)}
-                  className={`w-full rounded px-2 py-1 border text-sm ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`}
-                  placeholder="Ej: 300"
-                />
+                  <input
+                    type="text"
+                    value={formatNumberWithThousands(config.otherFixedCosts || 0)}
+                    onChange={(e) => handleNumericChange('otherFixedCosts', e.target.value)}
+                    className={`w-full max-w-[300px] rounded px-2 py-1 border text-sm ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`}
+                    placeholder="Ej: 300"
+                  />
                 <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
                   Seguros, licencias, mantenimiento, etc.
                 </p>
@@ -268,6 +268,7 @@ export default function Settings() {
                   <input
                     type="number"
                     step="1"
+                    className="w-full max-w-[300px] rounded px-2 py-1 border text-sm focus:outline-none focus:ring-2 focus:ring-[#206DDA]"
                     min="1"
                     value={config.monthlyWorkHours || 176}
                     onChange={(e) => handleChange('monthlyWorkHours', parseFloat(e.target.value) || 176)}
