@@ -511,7 +511,7 @@ export default function ProductsNew() {
   }
 
   const handleDelete = async (id) => {
-    if (!id) return
+    if (id === null || id === undefined) return
     if (window.confirm('¿Eliminar este producto?')) {
       try {
         await deleteProduct(id)
@@ -524,7 +524,7 @@ export default function ProductsNew() {
   }
 
   const handleDuplicate = async (product) => {
-    if (!product || !product.id) return
+    if (!product || product.id === null || product.id === undefined) return
     try {
       setEditingId(null)
       const duplicated = {

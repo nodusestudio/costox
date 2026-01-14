@@ -110,15 +110,31 @@ export default function Recipes() {
   }
 
   const handleDelete = (id) => {
+    // 1. Validación robusta del ID
     if (!id) {
-      // Si no hay ID, solo filtrar del estado local
-      console.warn('⚠️ ID nulo detectado, filtrando solo del estado local')
+      console.error('❌ ID no encontrado')
+      // Limpiar documentos con ID nulo del estado
+      setRecipes(prev => prev.filter(r => r.id))
       return
     }
-    if (window.confirm('¿Eliminar esta receta?')) {
+
+    if (!window.confirm('¿Eliminar esta receta?')) return
+
+    try {
+      // 2. Actualización optimista: eliminar del estado local primero
       const updatedRecipes = recipes.filter(r => r.id !== id)
       setRecipes(updatedRecipes)
+
+      // 3. Guardar en Firebase/localStorage
       saveRecipes(updatedRecipes)
+      
+      console.log('✅ Receta eliminada correctamente')
+    } catch (error) {
+      // 4. Manejo de errores
+      console.error('❌ Error al eliminar receta:', error)
+      alert('Error al eliminar la receta. Por favor, intenta nuevamente.')
+      // Revertir el estado en caso de error
+      setRecipes(recipes)
     }
   }
 

@@ -597,20 +597,33 @@ export default function Promotions() {
   }
 
   const handleDelete = async (id) => {
+    // 1. Validación robusta del ID
     if (!id) {
-      // Si no hay ID, solo filtrar del estado local para que desaparezca visualmente
-      console.warn('⚠️ ID nulo detectado, filtrando solo del estado local')
-      setPromotions(prev => prev.filter(p => p.id !== id))
+      console.error('❌ ID no encontrado')
+      // Limpiar documentos con ID nulo del estado
+      setPromotions(prev => prev.filter(p => p.id))
       return
     }
+
     if (!confirm('¿Eliminar este combo?')) return
+
+    // Guardar referencia del estado actual para revertir si falla
+    const previousPromotions = [...promotions]
+
     try {
+      // 2. Actualización optimista: eliminar del estado local primero
+      setPromotions(prev => prev.filter(p => p.id !== id))
+
+      // 3. Ejecutar eliminación en Firebase
       await deleteDocument('promotions', id)
-      // onSnapshot actualizará automáticamente la lista
-      console.log('✅ Combo eliminado')
+      
+      console.log('✅ Combo eliminado correctamente')
     } catch (error) {
-      console.error('Error deleting promotion:', error)
-      alert('❌ Error al eliminar el combo')
+      // 4. Manejo de errores
+      console.error('❌ Error al eliminar combo:', error)
+      alert('Error al eliminar el combo. Por favor, intenta nuevamente.')
+      // Revertir el estado en caso de error
+      setPromotions(previousPromotions)
     }
   }
 

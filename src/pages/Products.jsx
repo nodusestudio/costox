@@ -118,15 +118,31 @@ export default function Products() {
   }
 
   const handleDelete = (id) => {
+    // 1. Validación robusta del ID
     if (!id) {
-      // Si no hay ID, solo filtrar del estado local
-      console.warn('⚠️ ID nulo detectado, filtrando solo del estado local')
+      console.error('❌ ID no encontrado')
+      // Limpiar documentos con ID nulo del estado
+      setProducts(prev => prev.filter(p => p.id))
       return
     }
-    if (window.confirm('¿Eliminar este producto?')) {
+
+    if (!window.confirm('¿Eliminar este producto?')) return
+
+    try {
+      // 2. Actualización optimista: eliminar del estado local primero
       const updatedProducts = products.filter(p => p.id !== id)
       setProducts(updatedProducts)
+
+      // 3. Guardar en Firebase/localStorage
       saveProducts(updatedProducts)
+      
+      console.log('✅ Producto eliminado correctamente')
+    } catch (error) {
+      // 4. Manejo de errores
+      console.error('❌ Error al eliminar producto:', error)
+      alert('Error al eliminar el producto. Por favor, intenta nuevamente.')
+      // Revertir el estado en caso de error
+      setProducts(products)
     }
   }
 

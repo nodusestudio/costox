@@ -327,7 +327,7 @@ export default function PromotionsNew() {
 
   // ===== ELIMINAR COMBO =====
   const handleDelete = async (id) => {
-    if (!id) return
+    if (id === null || id === undefined) return
     if (window.confirm('¿Eliminar este combo?')) {
       try {
         await deletePromotion(id)
@@ -342,7 +342,7 @@ export default function PromotionsNew() {
 
   // ===== DUPLICAR COMBO =====
   const handleDuplicate = async (promotion) => {
-    if (!promotion || !promotion.id) return
+    if (!promotion || promotion.id === null || promotion.id === undefined) return
     try {
       setEditingId(null)
       const duplicated = {
