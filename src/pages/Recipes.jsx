@@ -110,19 +110,28 @@ export default function Recipes() {
   }
 
   const handleDelete = (id) => {
+    console.log('[handleDelete] CLICK en eliminar. ID recibido:', id, 'Tipo:', typeof id);
     if (!window.confirm('¿Deseas eliminar este ítem?')) return;
-    if (!id || typeof id !== 'string') {
-      console.log('Intentando borrar ID:', id);
+    if (!id) {
+      console.warn('[handleDelete] ID nulo o vacío:', id);
       setRecipes(prev => prev.filter(item => item.id));
       return;
     }
-    console.log('Intentando borrar ID:', id);
-    setRecipes(prev => prev.filter(item => item.id !== id));
+    const idStr = String(id);
+    console.log('[handleDelete] ID normalizado:', idStr);
+    setRecipes(prev => {
+      const filtered = prev.filter(item => String(item.id) !== idStr);
+      console.log('[handleDelete] Estado local tras filtro:', filtered.map(i => i.id));
+      return filtered;
+    });
     try {
-      // await deleteDoc(doc(db, 'recipes', id));
-      saveRecipes(recipes.filter(item => item.id !== id));
+      // await deleteDoc(doc(db, 'recipes', idStr));
+      saveRecipes(recipes.filter(item => String(item.id) !== idStr));
+      // Si usas Firebase, descomenta la línea de arriba y comenta la de abajo
+      // await deleteDocument('recipes', idStr);
+      console.log('[handleDelete] Borrado en backend ejecutado para:', idStr);
     } catch (error) {
-      console.error('Error al eliminar receta:', error);
+      console.error('[handleDelete] Error al eliminar receta:', error);
       alert('Error al eliminar la receta.');
     }
   }
@@ -200,7 +209,7 @@ export default function Recipes() {
         >
           <div className="space-y-2">
             {/* Nombre y Descripción */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <div>
                 <label className="block text-xs font-medium text-gray-300 mb-1">
                   📋 Nombre de la Receta *

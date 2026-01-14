@@ -255,6 +255,7 @@ export default function Promotions() {
 
       // Crear copia con TODOS los campos calculados
       const comboDuplicado = {
+        id: `tmp-${Date.now()}`,
         name: `COPIA - ${promo.name}`,
         items: itemsOriginales,
         promoPrice: promoPrice,
@@ -597,19 +598,25 @@ export default function Promotions() {
   }
 
   const handleDelete = async (id) => {
+    console.log('[handleDelete] CLICK en eliminar. ID recibido:', id, 'Tipo:', typeof id);
     if (!window.confirm('¿Deseas eliminar este ítem?')) return;
-    if (!id || typeof id !== 'string') {
-      console.log('Intentando borrar ID:', id);
+    if (!id) {
+      console.warn('[handleDelete] ID nulo o vacío:', id);
       setPromotions(prev => prev.filter(item => item.id));
       return;
     }
-    console.log('Intentando borrar ID:', id);
-    setPromotions(prev => prev.filter(item => item.id !== id));
+    const idStr = String(id);
+    console.log('[handleDelete] ID normalizado:', idStr);
+    setPromotions(prev => {
+      const filtered = prev.filter(item => String(item.id) !== idStr);
+      console.log('[handleDelete] Estado local tras filtro:', filtered.map(i => i.id));
+      return filtered;
+    });
     try {
-      // await deleteDoc(doc(db, 'promotions', id));
-      await deleteDocument('promotions', id);
+      await deleteDocument('promotions', idStr);
+      console.log('[handleDelete] Borrado en backend ejecutado para:', idStr);
     } catch (error) {
-      console.error('Error al eliminar promoción:', error);
+      console.error('[handleDelete] Error al eliminar promoción:', error);
       alert('Error al eliminar la promoción.');
     }
   }
@@ -1256,7 +1263,8 @@ export default function Promotions() {
               // FÓRMULA CORREGIDA: margen sobre precio de venta, no recargo sobre costo
               // Precio = Costo / (1 - Margen Deseado)
               // Usar margen configurado por el usuario
-              const targetMargin = (config?.targetProfitMargin || 35) / 100
+              const margenConfig = config?.targetProfitMargin ?? 35
+              const targetMargin = parseFloat(margenConfig) / 100
               const suggestedPrice = roundToNearestThousand(totals.totalCost / (1 - targetMargin))
               
               return (
@@ -1422,14 +1430,14 @@ export default function Promotions() {
                         <div key={`${isEmbalaje ? 'emb' : 'ali'}-${index}`} className={`grid grid-cols-10 gap-2 px-2 py-1.5 border-b text-xs ${
                           isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                         }`}>
-                          <div className="col-span-3 flex items-center gap-2">
+                          <div className="grid grid-cols-3 gap-2">
                             <span className={`text-xs font-semibold px-2 py-1 rounded ${badgeColor}`}>
                               {badgeLabel}
                             </span>
                             <SearchSelect
                               options={sourceList}
                               value={item.id}
-                              onChange={(val) => handleItemChange(formData.items.indexOf(item), 'id', val)}
+                              onChange={(val) => handleItemChange(item.id, 'id', val)}
                               displayKey="name"
                               valueKey="id"
                               placeholder={placeholder}
@@ -1443,7 +1451,7 @@ export default function Promotions() {
                               step="1"
                               min="1"
                               value={item.quantity}
-                              onChange={(e) => handleItemChange(formData.items.indexOf(item), 'quantity', parseFloat(e.target.value) || 1)}
+                              onChange={(e) => handleItemChange(item.id, 'quantity', parseFloat(e.target.value) || 1)}
                               onFocus={(e) => e.target.select()}
                               className={`w-full px-2 py-1 rounded border text-center text-xs ${
                                 isDarkMode
@@ -1466,7 +1474,7 @@ export default function Promotions() {
                               step="1000"
                               min="0"
                               value={item.optionalPrice || ''}
-                              onChange={(e) => handleItemChange(formData.items.indexOf(item), 'optionalPrice', parseFloat(e.target.value) || 0)}
+                              onChange={(e) => handleItemChange(item.id, 'optionalPrice', parseFloat(e.target.value) || 0)}
                               onFocus={(e) => e.target.select()}
                               onDoubleClick={(e) => e.target.select()}
                               className={`w-full px-2 py-1 rounded border text-right text-xs ${
@@ -1485,7 +1493,7 @@ export default function Promotions() {
 
                           <div className="col-span-1 flex items-center justify-center">
                             <button
-                              onClick={() => handleRemoveItem(formData.items.indexOf(item))}
+                              onClick={() => handleRemoveItem(item.id)}
                               className={`p-1 rounded transition-colors ${
                                 isDarkMode
                                   ? 'hover:bg-red-900/30 text-red-400'

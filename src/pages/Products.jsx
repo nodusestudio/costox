@@ -6,6 +6,19 @@ import Modal from '@/components/Modal'
 import Button from '@/components/Button'
 
 export default function Products() {
+    // Sincronización en tiempo real con Firestore
+    import { useEffect } from 'react';
+    import { db } from '@/config/firebase';
+    import { collection, onSnapshot } from 'firebase/firestore';
+
+    useEffect(() => {
+      const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+        const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setProducts(productsData);
+        console.log('[Firestore] Productos sincronizados:', productsData.map(p => p.id));
+      });
+      return () => unsubscribe();
+    }, []);
   const [products, setProducts] = useState(getProducts())
   const [recipes] = useState(getRecipes())
   const [ingredients] = useState(getIngredients())
@@ -56,8 +69,11 @@ export default function Products() {
     const margin = parseFloat(formData.profitMarginPercent || 0)
     // FÓRMULA CORREGIDA: margen sobre precio de venta
     // Precio = Costo / (1 - (Margen / 100))
-    if (margin >= 100) return realCost * 2 // Fallback
-    return realCost / (1 - (margin / 100))
+    // Usar margen que viene de la base de datos si está disponible
+    const margenConfig = config?.targetProfitMargin ?? margin
+    const margenFinal = parseFloat(margenConfig)
+    if (margenFinal >= 100) return realCost * 2 // Fallback
+    return realCost / (1 - (margenFinal / 100))
   }
 
   const handleAddIngredient = () => {
@@ -103,7 +119,7 @@ export default function Products() {
       updatedProducts = [
         ...products,
         {
-          id: Date.now(),
+          id: String(Date.now()),
           ...formData,
           realCost,
           salePrice,

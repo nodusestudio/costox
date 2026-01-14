@@ -120,87 +120,60 @@ export default function Settings() {
       {/* Formulario - Mostrado por defecto o cuando edita */}
       {showForm ? (
         <>
-          {/* Información de la Empresa */}
-          <div className={`rounded-lg border p-6 space-y-4 transition-colors duration-300 ${
-            isDarkMode 
-              ? 'bg-[#1f2937] border-gray-700' 
-              : 'bg-gray-50 border-gray-300'
-          }`}>
-            <h3 className="text-xl font-semibold mb-4">{t('companyInfo')}</h3>
-
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                {t('companyName')} {t('companyNameRequired')}
-              </label>
-              <input
-                type="text"
-                value={config.companyName}
-                onChange={(e) => handleChange('companyName', e.target.value)}
-                className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
-                  isDarkMode
-                    ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                    : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                }`}
-                placeholder={t('companyNameExample')}
-              />
-              <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{t('companyNameHint')}</p>
-            </div>
-
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                {t('chefName')} {t('chefNameRequired')}
-              </label>
-              <input
-                type="text"
-                value={config.chefName}
-                onChange={(e) => handleChange('chefName', e.target.value)}
-                className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
-                  isDarkMode
-                    ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                    : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                }`}
-                placeholder={t('chefNameExample')}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  {t('currency')} {t('currencyRequired')}
-                </label>
-                <select
-                  value={config.currency}
-                  onChange={(e) => handleChange('currency', e.target.value)}
-                  className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
-                    isDarkMode
-                      ? 'bg-[#111827] border-gray-600 text-white focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                      : 'bg-white border-gray-300 text-[#111827] focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                  }`}
-                >
-                  {currencies.map(curr => (
-                    <option key={curr.code} value={curr.code}>
-                      {curr.name} ({curr.symbol}{curr.code})
-                    </option>
-                  ))}
-                </select>
+          {/* Información de la Empresa y Configuración de Costos lado a lado */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Empresa */}
+            <div className={`rounded-lg border p-6 space-y-4 transition-colors duration-300 ${isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-gray-50 border-gray-300'}`}> 
+              <h3 className="text-xl font-semibold mb-4">{t('companyInfo')}</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('companyName')} {t('companyNameRequired')}</label>
+                  <input type="text" value={config.companyName} onChange={(e) => handleChange('companyName', e.target.value)} className={`w-full rounded px-2 py-1 border text-sm ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`} placeholder={t('companyNameExample')} />
+                  <p className={`text-xs mt-0.5 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{t('companyNameHint')}</p>
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('chefName')} {t('chefNameRequired')}</label>
+                  <input type="text" value={config.chefName} onChange={(e) => handleChange('chefName', e.target.value)} className={`w-full rounded px-2 py-1 border text-sm ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`} placeholder={t('chefNameExample')} />
+                </div>
               </div>
+              <div className="grid grid-cols-2 gap-4 mt-2">
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('currency')} {t('currencyRequired')}</label>
+                  <select value={config.currency} onChange={(e) => handleChange('currency', e.target.value)} className={`w-full rounded px-2 py-1 border text-sm ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`}>
+                    {currencies.map(curr => (
+                      <option key={curr.code} value={curr.code}>{curr.name} ({curr.symbol}{curr.code})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('language')} {t('languageRequired')}</label>
+                  <select value={language} onChange={(e) => handleLanguageChange(e.target.value)} className={`w-full rounded px-2 py-1 border text-sm ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`}>
+                    <option value="es">Español</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+              </div>
+            </div>
 
+            {/* Configuración de Costos */}
+            <div className={`rounded-lg border p-6 space-y-4 transition-colors duration-300 ${isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-gray-50 border-gray-300'}`}> 
+              <h3 className="text-xl font-semibold mb-4">{t('costConfig')}</h3>
               <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  {t('language')} {t('languageRequired')}
-                </label>
-                <select
-                  value={language}
-                  onChange={(e) => handleLanguageChange(e.target.value)}
-                  className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
-                    isDarkMode
-                      ? 'bg-[#111827] border-gray-600 text-white focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                      : 'bg-white border-gray-300 text-[#111827] focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                  }`}
-                >
-                  <option value="es">Español</option>
-                  <option value="en">English</option>
-                </select>
+                <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('wastageTitle')}</label>
+                <div className="flex items-center gap-2">
+                  <input type="number" step="0.1" min="0" value={config.globalWastagePercent} onChange={(e) => handleChange('globalWastagePercent', parseFloat(e.target.value))} className={`flex-1 rounded px-2 py-1 border text-sm ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`} />
+                  <span className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>%</span>
+                </div>
+                <p className={`text-xs mt-0.5 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>{t('wastageHint')}</p>
+              </div>
+              <div className={`rounded-lg p-4 border-2 mt-2 transition-colors duration-300 ${isDarkMode ? 'bg-[#111827]/50 border-[#206DDA]/20' : 'bg-blue-50 border-blue-200'}`}> 
+                <h4 className="text-sm font-semibold text-[#206DDA] mb-2">{t('wastageFormula')}</h4>
+                <p className={`text-xs mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}><strong>Costo Real Unitario</strong> = (Costo Compra ÷ Cantidad) × (1 + % Merma ÷ 100)</p>
+                <div className={`p-3 rounded text-xs font-mono ${isDarkMode ? 'bg-[#111827] text-gray-400' : 'bg-white text-gray-700 border border-gray-200'}`}>
+                  <p>{t('wastageExample')}</p>
+                  <p className="text-[#206DDA] mt-2">= ($10,0 ÷ 1000) × (1 + 5÷100)</p>
+                  <p className="text-[#206DDA]">= $0,0 por gramo</p>
+                </div>
               </div>
             </div>
           </div>
@@ -282,11 +255,7 @@ export default function Settings() {
                   type="text"
                   value={formatNumberWithThousands(config.rentCost || 0)}
                   onChange={(e) => handleNumericChange('rentCost', e.target.value)}
-                  className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
-                    isDarkMode
-                      ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                      : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                  }`}
+                  className={`w-full rounded px-2 py-1 border text-sm ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`}
                   placeholder="Ej: 1.500"
                 />
               </div>
@@ -299,11 +268,7 @@ export default function Settings() {
                   type="text"
                   value={formatNumberWithThousands(config.utilitiesCost || 0)}
                   onChange={(e) => handleNumericChange('utilitiesCost', e.target.value)}
-                  className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
-                    isDarkMode
-                      ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                      : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                  }`}
+                  className={`w-full rounded px-2 py-1 border text-sm ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`}
                   placeholder="Ej: 500"
                 />
               </div>
@@ -333,12 +298,8 @@ export default function Settings() {
                   type="text"
                   value={formatNumberWithThousands(config.otherFixedCosts || 0)}
                   onChange={(e) => handleNumericChange('otherFixedCosts', e.target.value)}
-                  className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${
-                    isDarkMode
-                      ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                      : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'
-                  }`}
-                  placeholder="Ej: 200"
+                  className={`w-full rounded px-2 py-1 border text-sm ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`}
+                  placeholder="Ej: 300"
                 />
                 <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
                   Seguros, licencias, mantenimiento, etc.
@@ -457,7 +418,7 @@ export default function Settings() {
                   max="100"
                   value={config.targetProfitMargin || 35}
                   onChange={(e) => handleChange('targetProfitMargin', parseFloat(e.target.value) || 35)}
-                  className={`w-full rounded-lg px-4 py-3 border-2 transition-colors duration-200 focus:outline-none ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white placeholder-gray-500 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20' : 'bg-white border-gray-300 text-[#111827] placeholder-gray-400 focus:border-[#206DDA] focus:ring-2 focus:ring-[#206DDA]/20'}`}
+                  className={`w-full rounded px-2 py-1 border text-sm ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`}
                   placeholder="35"
                 />
                 <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
