@@ -54,27 +54,26 @@ export default function Settings() {
     try {
       await saveConfig(config)
       setIsSaved(true)
-      alert(t('successMessage'))
-      
-      setTimeout(() => {
-        setShowForm(false)
-        setIsSaved(false)
-      }, 500)
-    } catch (error) {
-      console.error('Error saving config:', error)
-      alert('Error al guardar la configuración')
-    }
-  }
-
-  const handleEdit = async () => {
-    setShowForm(true)
-    await loadConfig()
-  }
-
-  if (loading || !config) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-gray-400">Cargando configuración...</p>
+              {/* Configuración de Costos */}
+              <div className="mt-6">
+                <h3 className="text-base font-semibold mb-2">{t('costConfig')}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 items-start">
+                  {/* Merma Global */}
+                  <div className="flex flex-col">
+                    <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('wastageTitle')}</label>
+                    <div className="flex items-center gap-2">
+                      <input type="number" step="0.1" min="0" value={config.globalWastagePercent} onChange={(e) => handleChange('globalWastagePercent', parseFloat(e.target.value))} className={`w-full max-w-[120px] rounded px-2 py-1 border text-xs ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`} />
+                      <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>%</span>
+                    </div>
+                    <p className={`text-xs mt-0.5 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>{t('wastageHint')}</p>
+                  </div>
+                  {/* Tip/Fórmula */}
+                  <div className={`rounded-lg p-2 border-2 transition-colors duration-300 text-xs font-mono ${isDarkMode ? 'bg-[#111827]/50 border-[#206DDA]/20' : 'bg-blue-50 border-blue-200'}`} style={{ fontSize: '0.7em' }}>
+                    <h4 className="font-semibold text-[#206DDA] mb-1">{t('wastageFormula')}</h4>
+                    <p className={`mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}><strong>Costo Real Unitario</strong> = (Costo Compra ÷ Cantidad) × (1 + % Merma ÷ 100)</p>
+                  </div>
+                </div>
+              </div>
       </div>
     )
   }

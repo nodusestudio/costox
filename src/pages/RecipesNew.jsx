@@ -882,7 +882,7 @@ export default function RecipesNew() {
                     const costoProporcional = calculateItemCost(item)
 
                     return (
-                      <div key={index} className={`flex gap-2 p-1 border-b text-sm ${
+                      <div key={index} className={`flex gap-2 p-1 border-b text-sm h-8 items-center ${
                         isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                       }`}>
                         {/* Icono de Tipo */}

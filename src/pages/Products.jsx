@@ -166,7 +166,7 @@ export default function Products() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      <div className="grid grid-cols-3 gap-2 items-center">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
         <div className="col-span-2">
           <h2 className="text-2xl font-bold text-white">Productos Finales</h2>
           <p className="text-gray-400 text-xs mt-1">Combina recetas e ingredientes para venta</p>
