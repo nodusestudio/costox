@@ -13,6 +13,8 @@ export default function Settings() {
 
   useEffect(() => {
     loadConfig()
+    setShowForm(false)
+    setIsSaved(false)
   }, [])
 
   const loadConfig = async () => {
@@ -111,11 +113,16 @@ export default function Settings() {
 
       {/* Mensaje de Éxito */}
       {isSaved && (
-        <div className="bg-green-900/30 border border-green-500/50 rounded-lg p-4 text-green-400 text-sm flex items-center gap-2 animate-pulse">
-          <span>✓</span>
-          <span>{t('successMessage')}</span>
+        <div className="flex items-center justify-center my-4">
+          <div className="rounded-xl shadow-lg border-2 px-6 py-4 flex items-center gap-3 bg-gradient-to-r from-green-400/80 to-green-600/80 text-white animate-fade-in" style={{ minWidth: 280 }}>
+            <span className="text-2xl font-bold bg-white/20 rounded-full px-2 py-1">✓</span>
+            <div>
+              <span className="block text-lg font-semibold">{t('successMessage')}</span>
+              <span className="block text-xs opacity-80">La configuración se guardó correctamente.</span>
+            </div>
+          </div>
         </div>
-      )}
+      )
 
       {/* Formulario - Mostrado por defecto o cuando edita */}
       {showForm ? (
@@ -169,11 +176,7 @@ export default function Settings() {
                 <div className={`rounded-lg p-2 border-2 transition-colors duration-300 text-xs font-mono ${isDarkMode ? 'bg-[#111827]/50 border-[#206DDA]/20' : 'bg-blue-50 border-blue-200'}`} style={{ fontSize: '0.7em' }}>
                   <h4 className="font-semibold text-[#206DDA] mb-1">{t('wastageFormula')}</h4>
                   <p className={`mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}><strong>Costo Real Unitario</strong> = (Costo Compra ÷ Cantidad) × (1 + % Merma ÷ 100)</p>
-                  <div className={`rounded text-xs font-mono ${isDarkMode ? 'bg-[#111827] text-gray-400' : 'bg-white text-gray-700 border border-gray-200'}`}>
-                    <p>{t('wastageExample')}</p>
-                    <p className="text-[#206DDA] mt-1">= ($10,0 ÷ 1000) × (1 + 5÷100)</p>
-                    <p className="text-[#206DDA]">= $0,0 por gramo</p>
-                  </div>
+                  {/* Ejemplo eliminado por solicitud */}
                 </div>
               </div>
             </div>
