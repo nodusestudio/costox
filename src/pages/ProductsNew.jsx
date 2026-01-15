@@ -511,15 +511,13 @@ export default function ProductsNew() {
   }
 
   const handleDelete = async (id) => {
-    if (id === null || id === undefined) return
-    if (window.confirm('¿Eliminar este producto?')) {
-      try {
-        await deleteProduct(id)
-        await loadData()
-      } catch (error) {
-        console.error('Error deleting product:', error)
-        alert('Error al eliminar')
-      }
+    if (!id) return;
+    if (!window.confirm('¿Eliminar?')) return;
+    try {
+      await deleteDoc(doc(db, 'products', id));
+      setProducts(prev => prev.filter(i => i.id !== id));
+    } catch (e) {
+      console.error(e);
     }
   }
 

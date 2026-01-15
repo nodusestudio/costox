@@ -81,11 +81,14 @@ export default function Ingredients() {
     setShowModal(false)
   }
 
-  const handleDelete = (id) => {
-    if (window.confirm('¿Eliminar este ingrediente?')) {
-      const updatedIngredients = ingredients.filter(i => i.id !== id)
-      setIngredients(updatedIngredients)
-      saveIngredients(updatedIngredients)
+  const handleDelete = async (id) => {
+    if (!id) return;
+    if (!window.confirm('¿Eliminar?')) return;
+    try {
+      await deleteDoc(doc(db, 'ingredients', id));
+      setIngredients(prev => prev.filter(i => i.id !== id));
+    } catch (e) {
+      console.error(e);
     }
   }
 

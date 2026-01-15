@@ -135,29 +135,14 @@ export default function Products() {
 
   const handleDelete = (id) => {
     console.log('[handleDelete] CLICK en eliminar. ID recibido:', id, 'Tipo:', typeof id);
-    if (!window.confirm('¿Deseas eliminar este ítem?')) return;
-    if (!id) {
-      console.warn('[handleDelete] ID nulo o vacío:', id);
-      setProducts(prev => prev.filter(item => item.id));
-      return;
-    }
-    const idStr = String(id);
-    console.log('[handleDelete] ID normalizado:', idStr);
-    setProducts(prev => {
-      const filtered = prev.filter(item => String(item.id) !== idStr);
-      console.log('[handleDelete] Estado local tras filtro:', filtered.map(i => i.id));
-      return filtered;
-    });
-    try {
-      // await deleteDoc(doc(db, 'products', idStr));
-      saveProducts(products.filter(item => String(item.id) !== idStr));
-      // Si usas Firebase, descomenta la línea de arriba y comenta la de abajo
-      // await deleteDocument('products', idStr);
-      console.log('[handleDelete] Borrado en backend ejecutado para:', idStr);
-    } catch (error) {
-      console.error('[handleDelete] Error al eliminar producto:', error);
-      alert('Error al eliminar el producto.');
-    }
+      if (!id) return;
+      if (!window.confirm('¿Eliminar?')) return;
+      try {
+        await deleteDoc(doc(db, 'products', id));
+        setProducts(prev => prev.filter(i => i.id !== id));
+      } catch (e) {
+        console.error(e);
+      }
   }
 
   const realCost = calculateRealCost()

@@ -55,14 +55,22 @@ export const CategoriesProvider = ({ children }) => {
 
   const handleDeleteCategory = async (id, type = 'recipes') => {
     try {
-      await deleteCategory(id, type)
-      await loadAllCategories()
-      showToast('🗑️ Categoría eliminada', 'success')
-      return true
     } catch (error) {
       console.error('Error deleting category:', error)
       showToast('Error al eliminar categoría', 'error')
       return false
+    }
+    if (!id) return false;
+    if (!window.confirm('¿Eliminar?')) return false;
+    try {
+      await deleteDoc(doc(db, 'categories', id));
+      await loadAllCategories();
+      showToast('🗑️ Categoría eliminada', 'success');
+      return true;
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      showToast('Error al eliminar categoría', 'error');
+      return false;
     }
   }
 

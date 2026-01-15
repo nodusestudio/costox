@@ -5,6 +5,18 @@ import Button from '@/components/Button'
 import { useI18n } from '@/context/I18nContext'
 
 export default function Settings() {
+    // Guardar cambios (handleEdit)
+    const handleEdit = async () => {
+      try {
+        await saveConfig(config);
+        setIsSaved(true);
+        setTimeout(() => setIsSaved(false), 2000);
+      } catch (e) {
+        alert('Error al guardar configuración');
+        console.error(e);
+      }
+    };
+
   const { t, language, changeLanguage, isDarkMode, toggleTheme } = useI18n()
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -17,67 +29,6 @@ export default function Settings() {
     setIsSaved(false)
   }, [])
 
-  const loadConfig = async () => {
-    setLoading(true)
-    try {
-      const configData = await getConfig()
-      setConfig(configData)
-    } catch (error) {
-      console.error('Error loading config:', error)
-    }
-    setLoading(false)
-  }
-
-  const handleChange = (field, value) => {
-    setConfig({ ...config, [field]: value })
-  }
-
-  // Formatear número con puntos de miles para mostrar
-  const formatNumberWithThousands = (num) => {
-    if (!num && num !== 0) return ''
-    return num.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-  }
-
-  // Manejar cambio de campos numéricos con formato de miles
-  const handleNumericChange = (field, displayValue) => {
-    // Remover puntos de miles y reemplazar coma por punto si existe
-    const cleanValue = displayValue.replace(/\./g, '').replace(',', '.')
-    const numericValue = parseFloat(cleanValue) || 0
-    setConfig({ ...config, [field]: numericValue })
-  }
-
-  const handleLanguageChange = (newLang) => {
-    changeLanguage(newLang)
-  }
-
-  const handleSave = async () => {
-    try {
-      await saveConfig(config)
-      setIsSaved(true)
-              {/* Configuración de Costos */}
-              <div className="mt-6">
-                <h3 className="text-base font-semibold mb-2">{t('costConfig')}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 items-start">
-                  {/* Merma Global */}
-                  <div className="flex flex-col">
-                    <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('wastageTitle')}</label>
-                    <div className="flex items-center gap-2">
-                      <input type="number" step="0.1" min="0" value={config.globalWastagePercent} onChange={(e) => handleChange('globalWastagePercent', parseFloat(e.target.value))} className={`w-full max-w-[120px] rounded px-2 py-1 border text-xs ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`} />
-                      <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>%</span>
-                    </div>
-                    <p className={`text-xs mt-0.5 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>{t('wastageHint')}</p>
-                  </div>
-                  {/* Tip/Fórmula */}
-                  <div className={`rounded-lg p-2 border-2 transition-colors duration-300 text-xs font-mono ${isDarkMode ? 'bg-[#111827]/50 border-[#206DDA]/20' : 'bg-blue-50 border-blue-200'}`} style={{ fontSize: '0.7em' }}>
-                    <h4 className="font-semibold text-[#206DDA] mb-1">{t('wastageFormula')}</h4>
-                    <p className={`mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}><strong>Costo Real Unitario</strong> = (Costo Compra ÷ Cantidad) × (1 + % Merma ÷ 100)</p>
-                  </div>
-                </div>
-              </div>
-      </div>
-    )
-  }
-
   const currencies = [
     { code: 'USD', symbol: '$', name: 'Dólar' },
     { code: 'EUR', symbol: '€', name: 'Euro' },
@@ -87,7 +38,19 @@ export default function Settings() {
     { code: 'CLP', symbol: '$', name: 'Peso Chileno' },
     { code: 'BRL', symbol: 'R$', name: 'Real Brasileño' },
     { code: 'PEN', symbol: 'S/', name: 'Sol Peruano' },
-  ]
+  ];
+
+  const loadConfig = async () => {
+    setLoading(true)
+    try {
+      const configData = await getConfig()
+      setConfig(configData)
+    } catch (error) {
+      console.error('Error loading config:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className={`p-4 md:p-6 space-y-6 transition-colors duration-300 ${isDarkMode ? 'bg-[#111827] text-white' : 'bg-white text-[#111827]'}`}>
@@ -121,59 +84,45 @@ export default function Settings() {
         </div>
       )}
         {/* Formulario - Mostrado por defecto o cuando edita */}
-      {showForm ? (
+      {showForm && config ? (
         <>
           {/* Información de la Empresa y Configuración de Costos lado a lado */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Empresa */}
-            <div className={`rounded-lg border p-6 space-y-4 transition-colors duration-300 ${isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-gray-50 border-gray-300'}`}> 
-              <h3 className="text-xl font-semibold mb-4">{t('companyInfo')}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
-                <div>
-                  <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('companyName')}</label>
-                  <input type="text" value={config.companyName} onChange={(e) => handleChange('companyName', e.target.value)} className={`w-full rounded px-2 py-1 border text-xs ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`} placeholder={t('companyNameExample')} />
-                </div>
-                <div>
-                  <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('chefName')}</label>
-                  <input type="text" value={config.chefName} onChange={(e) => handleChange('chefName', e.target.value)} className={`w-full rounded px-2 py-1 border text-xs ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`} placeholder={t('chefNameExample')} />
-                </div>
-                <div>
-                  <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('currency')}</label>
-                  <select value={config.currency} onChange={(e) => handleChange('currency', e.target.value)} className={`w-full rounded px-2 py-1 border text-xs ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`}>
-                    {currencies.map(curr => (
-                      <option key={curr.code} value={curr.code}>{curr.name} ({curr.symbol}{curr.code})</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('language')}</label>
-                  <select value={language} onChange={(e) => handleLanguageChange(e.target.value)} className={`w-full rounded px-2 py-1 border text-xs ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`}>
-                    <option value="es">Español</option>
-                    <option value="en">English</option>
-                  </select>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Empresa: 3 columnas */}
+            <div>
+              <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('companyName')}</label>
+              <input type="text" value={config.companyName} onChange={(e) => handleChange('companyName', e.target.value)} className={`w-full rounded px-2 py-1 border text-xs ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`} placeholder={t('companyNameExample')} />
             </div>
-
-            {/* Configuración de Costos */}
-            <div className={`rounded-lg border p-3 space-y-2 transition-colors duration-300 ${isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-gray-50 border-gray-300'}`}> 
-              <h3 className="text-base font-semibold mb-2">{t('costConfig')}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 items-start">
-                {/* Merma Global */}
-                <div className="flex flex-col">
-                  <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('wastageTitle')}</label>
-                  <div className="flex items-center gap-2">
-                    <input type="number" step="0.1" min="0" value={config.globalWastagePercent} onChange={(e) => handleChange('globalWastagePercent', parseFloat(e.target.value))} className={`w-20 rounded px-2 py-1 border text-xs ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`} />
-                    <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>%</span>
-                  </div>
-                  <p className={`text-xs mt-0.5 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>{t('wastageHint')}</p>
+            <div>
+              <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('chefName')}</label>
+              <input type="text" value={config.chefName} onChange={(e) => handleChange('chefName', e.target.value)} className={`w-full rounded px-2 py-1 border text-xs ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`} placeholder={t('chefNameExample')} />
+            </div>
+            <div>
+              <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('currency')}</label>
+              <select value={config.currency} onChange={(e) => handleChange('currency', e.target.value)} className={`w-full rounded px-2 py-1 border text-xs ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`}>
+                {currencies.map(curr => (
+                  <option key={curr.code} value={curr.code}>{curr.name} ({curr.symbol}{curr.code})</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {/* Configuración de Costos (solo una vez) */}
+          <div className={`rounded-lg border p-3 space-y-2 transition-colors duration-300 ${isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-gray-50 border-gray-300'}`}> 
+            <h3 className="text-base font-semibold mb-2">{t('costConfig')}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 items-start">
+              {/* Merma Global */}
+              <div className="flex flex-col">
+                <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{t('wastageTitle')}</label>
+                <div className="flex items-center gap-2">
+                  <input type="number" step="0.1" min="0" value={config.globalWastagePercent} onChange={(e) => handleChange('globalWastagePercent', parseFloat(e.target.value))} className={`w-20 rounded px-2 py-1 border text-xs ${isDarkMode ? 'bg-[#111827] border-gray-600 text-white' : 'bg-white border-gray-300 text-[#111827]'}`} />
+                  <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>%</span>
                 </div>
-                {/* Tip/Fórmula */}
-                <div className={`rounded-lg p-2 border-2 transition-colors duration-300 text-xs font-mono ${isDarkMode ? 'bg-[#111827]/50 border-[#206DDA]/20' : 'bg-blue-50 border-blue-200'}`} style={{ fontSize: '0.7em' }}>
-                  <h4 className="font-semibold text-[#206DDA] mb-1">{t('wastageFormula')}</h4>
-                  <p className={`mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}><strong>Costo Real Unitario</strong> = (Costo Compra ÷ Cantidad) × (1 + % Merma ÷ 100)</p>
-                  {/* Ejemplo eliminado por solicitud: solo se muestra la fórmula */}
-                </div>
+                <p className={`text-xs mt-0.5 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>{t('wastageHint')}</p>
+              </div>
+              {/* Tip/Fórmula */}
+              <div className={`rounded-lg p-2 border-2 transition-colors duration-300 text-xs font-mono ${isDarkMode ? 'bg-[#111827]/50 border-[#206DDA]/20' : 'bg-blue-50 border-blue-200'}`} style={{ fontSize: '0.7em' }}>
+                <h4 className="font-semibold text-[#206DDA] mb-1">{t('wastageFormula')}</h4>
+                <p className={`mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}><strong>Costo Real Unitario</strong> = (Costo Compra ÷ Cantidad) × (1 + % Merma ÷ 100)</p>
               </div>
             </div>
           </div>
@@ -497,7 +446,7 @@ export default function Settings() {
       ) : (
         /* Tarjeta Visual de Empresa - Mostrada cuando NO está en modo edición */
         <>
-          {config.companyName && (
+          {config && config.companyName && (
             <div className={`rounded-lg border-2 border-[#206DDA] p-8 text-center transition-all duration-300 ${
               isDarkMode 
                 ? 'bg-gradient-to-br from-[#1f2937] to-[#111827]' 

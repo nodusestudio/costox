@@ -32,19 +32,19 @@ export default function CategoriesManager() {
 
   const handleOpenModal = (category = null) => {
     if (category) {
-      setEditingId(category.id)
+      setEditingId(category.id);
       setFormData({
         name: category.name || '',
         color: category.color || '#3B82F6',
-      })
+      });
     } else {
-      setEditingId(null)
+      setEditingId(null);
       setFormData({
         name: '',
         color: '#3B82F6',
-      })
+      });
     }
-    setShowModal(true)
+    setShowModal(true);
   }
 
   const handleSave = async () => {

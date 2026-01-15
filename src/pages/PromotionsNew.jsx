@@ -327,16 +327,13 @@ export default function PromotionsNew() {
 
   // ===== ELIMINAR COMBO =====
   const handleDelete = async (id) => {
-    if (id === null || id === undefined) return
-    if (window.confirm('¿Eliminar este combo?')) {
-      try {
-        await deletePromotion(id)
-        showToast('✅ Combo eliminado', 'success')
-        await loadData()
-      } catch (error) {
-        console.error('Error deleting promotion:', error)
-        showToast('Error al eliminar', 'error')
-      }
+    if (!id) return;
+    if (!window.confirm('¿Eliminar?')) return;
+    try {
+      await deleteDoc(doc(db, 'promotions', id));
+      setPromotions(prev => prev.filter(i => i.id !== id));
+    } catch (e) {
+      console.error(e);
     }
   }
 
@@ -450,14 +447,15 @@ export default function PromotionsNew() {
   }
 
   const handleDeleteCategory = async (id) => {
-    if (window.confirm('¿Eliminar esta categoría? Los combos no se eliminarán.')) {
-      try {
-        await deleteCategory(id)
-        showToast('✅ Categoría eliminada', 'success')
-      } catch (error) {
-        console.error('Error deleting category:', error)
-        showToast('Error al eliminar categoría', 'error')
-      }
+    if (!id) return;
+    if (!window.confirm('¿Eliminar?')) return;
+    try {
+      await deleteDoc(doc(db, 'categories', id));
+      setCategories(prev => prev.filter(i => i.id !== id));
+      showToast('🗑️ Categoría eliminada', 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('Error al eliminar categoría', 'error');
     }
   }
 

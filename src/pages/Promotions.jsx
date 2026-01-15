@@ -598,26 +598,13 @@ export default function Promotions() {
   }
 
   const handleDelete = async (id) => {
-    console.log('[handleDelete] CLICK en eliminar. ID recibido:', id, 'Tipo:', typeof id);
-    if (!window.confirm('¿Deseas eliminar este ítem?')) return;
-    if (!id) {
-      console.warn('[handleDelete] ID nulo o vacío:', id);
-      setPromotions(prev => prev.filter(item => item.id));
-      return;
-    }
-    const idStr = String(id);
-    console.log('[handleDelete] ID normalizado:', idStr);
-    setPromotions(prev => {
-      const filtered = prev.filter(item => String(item.id) !== idStr);
-      console.log('[handleDelete] Estado local tras filtro:', filtered.map(i => i.id));
-      return filtered;
-    });
+    if (!id) return;
+    if (!window.confirm('¿Eliminar?')) return;
     try {
-      await deleteDocument('promotions', idStr);
-      console.log('[handleDelete] Borrado en backend ejecutado para:', idStr);
-    } catch (error) {
-      console.error('[handleDelete] Error al eliminar promoción:', error);
-      alert('Error al eliminar la promoción.');
+      await deleteDoc(doc(db, 'promotions', id));
+      setPromotions(prev => prev.filter(i => i.id !== id));
+    } catch (e) {
+      console.error(e);
     }
   }
 

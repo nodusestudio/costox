@@ -55,14 +55,13 @@ export default function Suppliers() {
   }
 
   const handleDelete = async (id) => {
-    if (window.confirm('¿Eliminar este proveedor?')) {
-      try {
-        await deleteSupplier(id)
-        await loadData()
-      } catch (error) {
-        console.error('Error deleting supplier:', error)
-        alert('Error al eliminar')
-      }
+    if (!id) return;
+    if (!window.confirm('¿Eliminar?')) return;
+    try {
+      await deleteDoc(doc(db, 'suppliers', id));
+      setSuppliers(prev => prev.filter(i => i.id !== id));
+    } catch (e) {
+      console.error(e);
     }
   }
 

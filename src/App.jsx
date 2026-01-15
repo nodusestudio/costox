@@ -1,4 +1,33 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react';
+
+function ErrorBoundary({ children }) {
+  const [error, setError] = useState(null);
+  if (error) {
+    return <div style={{ color: 'red', padding: 32 }}><h2>Ocurrió un error inesperado.</h2><pre>{error.message}</pre></div>;
+  }
+  return (
+    <ErrorCatcher onError={setError}>{children}</ErrorCatcher>
+  );
+}
+
+class ErrorCatcher extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    if (this.props.onError) this.props.onError(error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return null;
+    }
+    return this.props.children;
+  }
+}
 import { BarChart3, Users, Package, BookOpen, ShoppingCart, Tags, Settings, Folder } from 'lucide-react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import Dashboard from '@/pages/Dashboard'
@@ -65,79 +94,10 @@ function AppContent() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-900 text-white">
-      {/* Header */}
-      <header className={`border-b px-4 py-4 transition-colors duration-300 ${isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-gray-50 border-gray-300'}`}>
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-[#206DDA]">CostoX</h1>
-            <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Gestión de costos, escandallos y rentabilidad</p>
-          </div>
-          <div className={`text-right ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            <p className="text-sm font-medium">{config.companyName}</p>
-            <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{config.chefName}</p>
-          </div>
-        </div>
-      <div className="flex h-full">
-        {/* Sidebar Navigation - Desktop */}
-        <nav className="hidden md:flex md:flex-col w-64 border-r border-gray-800 bg-slate-800 overflow-y-auto">
-          <div className="p-4 space-y-2">
-            {tabs.map(tab => {
-              const IconComponent = tab.icon
-              const isActive = currentTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setCurrentTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${isActive ? 'bg-[#206DDA] text-white' : 'text-gray-300 hover:bg-slate-700'}`}
-                >
-                  <IconComponent size={20} />
-                  <span>{tab.label}</span>
-                </button>
-              )
-            })}
-          </div>
-        </nav>
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col h-full">
-          {/* Header */}
-          <header className="border-b border-gray-800 px-4 py-4 bg-slate-900">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-[#206DDA]">CostoX</h1>
-                <p className="text-xs mt-1 text-gray-400">Gestión de costos, escandallos y rentabilidad</p>
-              </div>
-              <div className="text-right text-gray-300">
-                <p className="text-sm font-medium">{config.companyName}</p>
-                <p className="text-xs text-gray-500">{config.chefName}</p>
-              </div>
-            </div>
-          </header>
-          {/* Main Section */}
-          <main className="flex-1 overflow-y-auto bg-slate-900">
-            {(() => {
-              const ActiveComponent = tabs.find(tab => tab.id === currentTab)?.component
-              return ActiveComponent ? <ActiveComponent /> : null
-            })()}
-          </main>
-        </div>
-      </div>
-            })}
-          </div>
-        </nav>
-
-        {/* Content Area */}
-        <main className={`flex-1 overflow-y-auto transition-colors duration-300 ${isDarkMode ? 'bg-[#111827]' : 'bg-white'}`}>
-          {(() => {
-            const ActiveComponent = tabs.find(tab => tab.id === currentTab)?.component
-            return ActiveComponent ? <ActiveComponent /> : null
-          })()}
-        </main>
-      </div>
-
-      {/* Mobile Bottom Navigation */}
-      <nav className={`md:hidden fixed bottom-0 left-0 right-0 border-t overflow-x-auto transition-colors duration-300 ${isDarkMode ? 'bg-[#1f2937] border-gray-700' : 'bg-gray-50 border-gray-300'}`}>
-        <div className="flex gap-1 px-2 py-2 min-w-full">
+    <div className="flex h-screen bg-slate-900 overflow-hidden">
+      {/* Sidebar */}
+      <nav className="hidden md:flex md:flex-col w-64 border-r border-gray-800 bg-slate-800 overflow-y-auto">
+        <div className="p-4 space-y-2">
           {tabs.map(tab => {
             const IconComponent = tab.icon
             const isActive = currentTab === tab.id
@@ -145,36 +105,49 @@ function AppContent() {
               <button
                 key={tab.id}
                 onClick={() => setCurrentTab(tab.id)}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
-                  isActive
-                    ? 'bg-[#206DDA] text-white'
-                    : isDarkMode
-                    ? 'text-gray-400 hover:bg-[#111827]'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-                title={tab.label}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${isActive ? 'bg-[#206DDA] text-white' : 'text-gray-300 hover:bg-slate-700'}`}
               >
-                <IconComponent size={18} />
-                <span className="text-xs">{tab.label}</span>
+                <IconComponent size={20} />
+                <span>{tab.label}</span>
               </button>
             )
           })}
         </div>
       </nav>
-
-      {/* Spacer para mobile navigation */}
-      <div className="md:hidden h-24"></div>
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto p-4">
+        {/* Header */}
+        <header className="border-b border-gray-800 px-4 py-4 bg-slate-900">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-[#206DDA]">CostoX</h1>
+              <p className="text-xs mt-1 text-gray-400">Gestión de costos, escandallos y rentabilidad</p>
+            </div>
+            <div className="text-right text-gray-300">
+              <p className="text-sm font-medium">{config.companyName}</p>
+              <p className="text-xs text-gray-500">{config.chefName}</p>
+            </div>
+          </div>
+        </header>
+        {/* Main Section */}
+        {(() => {
+          const ActiveComponent = tabs.find(tab => tab.id === currentTab)?.component
+          return ActiveComponent ? <ActiveComponent /> : null
+        })()}
+      </main>
     </div>
-  )
+  );
 }
 
 export default function App() {
   return (
     <I18nProvider>
       <CategoriesProvider>
-        <AppContent />
+        <ErrorBoundary>
+          <AppContent />
+        </ErrorBoundary>
         <SpeedInsights />
       </CategoriesProvider>
     </I18nProvider>
-  )
+  );
 }

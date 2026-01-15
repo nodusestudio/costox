@@ -189,14 +189,13 @@ export default function RecipesNew() {
   }
 
   const handleDelete = async (id) => {
-    if (window.confirm('¿Eliminar esta receta?')) {
-      try {
-        await deleteRecipe(id)
-        await loadData()
-      } catch (error) {
-        console.error('Error deleting recipe:', error)
-        alert('Error al eliminar')
-      }
+    if (!id) return;
+    if (!window.confirm('¿Eliminar?')) return;
+    try {
+      await deleteDoc(doc(db, 'recipes', id));
+      setRecipes(prev => prev.filter(i => i.id !== id));
+    } catch (e) {
+      console.error(e);
     }
   }
 

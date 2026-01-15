@@ -98,14 +98,13 @@ export default function IngredientsNew() {
   }
 
   const handleDelete = async (id) => {
-    if (window.confirm('¿Eliminar este ingrediente?')) {
-      try {
-        await deleteIngredient(id)
-        await loadData()
-      } catch (error) {
-        console.error('Error deleting ingredient:', error)
-        alert('Error al eliminar')
-      }
+    if (!id) return;
+    if (!window.confirm('¿Eliminar?')) return;
+    try {
+      await deleteDoc(doc(db, 'ingredients', id));
+      setIngredients(prev => prev.filter(i => i.id !== id));
+    } catch (e) {
+      console.error(e);
     }
   }
 

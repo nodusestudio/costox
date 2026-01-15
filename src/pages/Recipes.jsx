@@ -111,29 +111,14 @@ export default function Recipes() {
 
   const handleDelete = (id) => {
     console.log('[handleDelete] CLICK en eliminar. ID recibido:', id, 'Tipo:', typeof id);
-    if (!window.confirm('¿Deseas eliminar este ítem?')) return;
-    if (!id) {
-      console.warn('[handleDelete] ID nulo o vacío:', id);
-      setRecipes(prev => prev.filter(item => item.id));
-      return;
-    }
-    const idStr = String(id);
-    console.log('[handleDelete] ID normalizado:', idStr);
-    setRecipes(prev => {
-      const filtered = prev.filter(item => String(item.id) !== idStr);
-      console.log('[handleDelete] Estado local tras filtro:', filtered.map(i => i.id));
-      return filtered;
-    });
-    try {
-      // await deleteDoc(doc(db, 'recipes', idStr));
-      saveRecipes(recipes.filter(item => String(item.id) !== idStr));
-      // Si usas Firebase, descomenta la línea de arriba y comenta la de abajo
-      // await deleteDocument('recipes', idStr);
-      console.log('[handleDelete] Borrado en backend ejecutado para:', idStr);
-    } catch (error) {
-      console.error('[handleDelete] Error al eliminar receta:', error);
-      alert('Error al eliminar la receta.');
-    }
+      if (!id) return;
+      if (!window.confirm('¿Eliminar?')) return;
+      try {
+        await deleteDoc(doc(db, 'recipes', id));
+        setRecipes(prev => prev.filter(i => i.id !== id));
+      } catch (e) {
+        console.error(e);
+      }
   }
 
   const getIngredientName = (id) => {
