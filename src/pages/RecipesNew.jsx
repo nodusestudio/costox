@@ -33,6 +33,21 @@ export default function RecipesNew() {
   })
   const searchSelectRefs = useRef({})
 
+    // Calcular métricas para la receta actual en el modal
+    const metrics = (() => {
+      // Costo total de los componentes actuales
+      const totalCost = calculatePreviewCost();
+      // Porciones (rendimiento)
+      const servings = parseFloat(formData.servings) || 1;
+      // Peso total
+      const totalWeight = parseFloat(formData.totalWeight || formData.pesoTotal) || 0;
+      // Costo por porción
+      const costPerServing = servings > 0 ? totalCost / servings : 0;
+      // Costo por gramo
+      const costPerGram = totalWeight > 0 ? totalCost / totalWeight : 0;
+      return { totalCost, costPerServing, costPerGram };
+    })();
+
   useEffect(() => {
     loadData()
   }, [])
