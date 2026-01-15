@@ -33,20 +33,26 @@ export default function RecipesNew() {
   })
   const searchSelectRefs = useRef({})
 
-    // Calcular métricas para la receta actual en el modal
-    const metrics = (() => {
-      // Costo total de los componentes actuales
-      const totalCost = calculatePreviewCost();
-      // Porciones (rendimiento)
-      const servings = parseFloat(formData.servings) || 1;
-      // Peso total
-      const totalWeight = parseFloat(formData.totalWeight || formData.pesoTotal) || 0;
-      // Costo por porción
-      const costPerServing = servings > 0 ? totalCost / servings : 0;
-      // Costo por gramo
-      const costPerGram = totalWeight > 0 ? totalCost / totalWeight : 0;
-      return { totalCost, costPerServing, costPerGram };
-    })();
+  // ...existing code...
+  // ...existing code...
+  const calculatePreviewCost = () => {
+    const items = Array.isArray(formData.ingredients) ? formData.ingredients : []
+    let totalCosto = 0
+    for (const item of items) {
+      totalCosto += calculateItemCost(item)
+    }
+    return totalCosto
+  }
+
+  // Calcular métricas para la receta actual en el modal
+  const metrics = (() => {
+    const totalCost = calculatePreviewCost();
+    const servings = parseFloat(formData.servings) || 1;
+    const totalWeight = parseFloat(formData.totalWeight || formData.pesoTotal) || 0;
+    const costPerServing = servings > 0 ? totalCost / servings : 0;
+    const costPerGram = totalWeight > 0 ? totalCost / totalWeight : 0;
+    return { totalCost, costPerServing, costPerGram };
+  })();
 
   useEffect(() => {
     loadData()
@@ -480,17 +486,6 @@ export default function RecipesNew() {
     return 0
   }
 
-  const calculatePreviewCost = () => {
-    const items = Array.isArray(formData.ingredients) ? formData.ingredients : []
-
-    // Suma simple: el total es estrictamente la suma de cada fila visible
-    // (sin acumular sobre ejecuciones anteriores).
-    let totalCosto = 0
-    for (const item of items) {
-      totalCosto += calculateItemCost(item)
-    }
-    return totalCosto
-  }
 
   // Filtrar recetas por categoría
   const filteredRecipes = selectedCategoryFilter
