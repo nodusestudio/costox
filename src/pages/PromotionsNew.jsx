@@ -786,18 +786,18 @@ export default function PromotionsNew() {
               {/* Tabla de Items */}
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
+                  <thead className="bg-gray-100 dark:bg-gray-800">
                     <tr>
-                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Tipo</th>
-                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Item</th>
-                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Cantidad</th>
-                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Costo Unit.</th>
-                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Precio Venta</th>
-                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Subtotal</th>
-                      <th className="px-2 py-1"></th>
+                      <th className="px-4 py-2 text-left text-sm font-bold text-dark-text dark:text-light-text">Tipo</th>
+                      <th className="px-4 py-2 text-left text-sm font-bold text-dark-text dark:text-light-text">Item</th>
+                      <th className="px-4 py-2 text-left text-sm font-bold text-dark-text dark:text-light-text">Cantidad</th>
+                      <th className="px-4 py-2 text-left text-sm font-bold text-dark-text dark:text-light-text">Costo Unit.</th>
+                      <th className="px-4 py-2 text-left text-sm font-bold text-dark-text dark:text-light-text">Precio Venta</th>
+                      <th className="px-4 py-2 text-left text-sm font-bold text-dark-text dark:text-light-text">Subtotal</th>
+                      <th className="px-4 py-2"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <tbody className="divide-y divide-gray-300 dark:divide-gray-700">
                     {formData.items.map((item, index) => {
                       const quantity = toNumber(item.quantity)
                       let liveData = { costoTotal: 0, precioVenta: 0, nombre: '', costoPorGramo: 0 }
@@ -818,56 +818,59 @@ export default function PromotionsNew() {
                       }
 
                       return (
-                        <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                          <td className="px-2 py-1 text-sm">
+                        <tr key={index} className="hover:bg-blue-50 dark:hover:bg-blue-900/30">
+                          <td className="px-4 py-2 text-base font-semibold">
                             <div className="flex items-center gap-2">
-                              <span className={`w-7 h-7 flex items-center justify-center rounded-md text-xs font-bold text-white shadow-sm ${
-                                item.type === 'product' ? 'bg-blue-600' : 'bg-orange-500'
+                              <span className={`w-8 h-8 flex items-center justify-center rounded-md text-base font-bold text-white shadow ${
+                                item.type === 'product' ? 'bg-blue-700' : 'bg-orange-600'
                               }`}>
                                 {item.type === 'product' ? 'P' : 'I'}
                               </span>
-                              <span className="text-gray-600 dark:text-gray-400">
+                              <span className="text-dark-text dark:text-light-text font-bold">
                                 {item.type === 'product' ? 'Producto' : 'Ingrediente'}
                               </span>
                             </div>
                           </td>
-                          <td className="px-2 py-1">
-                            <SearchSelect
-                              options={
-                                item.type === 'product'
-                                  ? products.map(p => ({ value: p.id, label: p.name }))
-                                  : ingredients.map(i => ({ value: i.id, label: i.name }))
-                              }
-                              value={item.id}
-                              onChange={(value) => handleItemChange(index, 'id', value)}
-                              placeholder={`Seleccionar ${item.type === 'product' ? 'producto' : 'ingrediente'}`}
-                            />
+                          <td className="px-4 py-2 w-full max-w-[400px]">
+                            <div className="w-full">
+                              <SearchSelect
+                                options={
+                                  item.type === 'product'
+                                    ? products.map(p => ({ value: p.id, label: p.name }))
+                                    : ingredients.map(i => ({ value: i.id, label: i.name }))
+                                }
+                                value={item.id}
+                                onChange={(value) => handleItemChange(index, 'id', value)}
+                                placeholder={`Seleccionar ${item.type === 'product' ? 'producto' : 'ingrediente'}`}
+                                className="w-full font-semibold text-dark-text dark:text-light-text bg-white dark:bg-gray-900 border border-primary-blue rounded-lg px-2 py-1"
+                              />
+                            </div>
                           </td>
-                          <td className="px-2 py-1">
+                          <td className="px-4 py-2">
                             <input
                               type="number"
                               value={item.quantity}
                               onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                               min="1"
                               step="1"
-                              className="w-20 px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-dark-text dark:text-light-text"
+                              className="w-24 px-3 py-2 rounded-lg border-2 border-primary-blue bg-white dark:bg-gray-900 text-lg font-bold text-dark-text dark:text-light-text focus:ring-2 focus:ring-primary-blue"
                             />
                           </td>
-                          <td className="px-2 py-1 text-sm text-gray-700 dark:text-gray-300">
+                          <td className="px-4 py-2 text-base font-semibold text-dark-text dark:text-light-text">
                             {formatMoneyDisplay(costoUnit)}
                           </td>
-                          <td className="px-2 py-1 text-sm text-gray-700 dark:text-gray-300">
+                          <td className="px-4 py-2 text-base font-semibold text-dark-text dark:text-light-text">
                             {item.type === 'product' ? formatMoneyDisplay(precioVenta) : '-'}
                           </td>
-                          <td className="px-2 py-1 text-sm font-semibold text-dark-text dark:text-light-text">
+                          <td className="px-4 py-2 text-base font-bold text-primary-blue">
                             {formatMoneyDisplay(subtotalCosto)}
                           </td>
-                          <td className="px-2 py-1">
+                          <td className="px-4 py-2">
                             <button
                               onClick={() => handleRemoveItem(index)}
-                              className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
+                              className="p-2 hover:bg-red-200 dark:hover:bg-red-900 rounded-lg transition-colors"
                             >
-                              <Trash2 className="w-4 h-4 text-red-500" />
+                              <Trash2 className="w-5 h-5 text-red-600" />
                             </button>
                           </td>
                         </tr>
