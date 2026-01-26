@@ -812,6 +812,9 @@ export default function Promotions() {
           <h2 className="text-3xl font-bold mb-2 flex items-center gap-2">
             <Tag size={32} className="text-primary-blue" />
             Promociones / Combos
+            <span className="text-xs bg-green-500/20 text-green-600 px-2 py-1 rounded-full ml-2">
+              v2026.01.26
+            </span>
           </h2>
           <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
             Gestiona combos con datos vivos de productos y recetas
