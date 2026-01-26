@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Tag, Copy, GripVertical } from 'lucide-react'
 import { db } from '@/config/firebase'
-import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore'
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore'
 import { getProducts, getRecipes, getIngredients, getAllDocs, saveDoc, deleteDocument, getConfig } from '@/utils/storage'
 import { formatMoneyDisplay, roundToNearestThousand } from '@/utils/formatters'
 import Modal from '@/components/Modal'

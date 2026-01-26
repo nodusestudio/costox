@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, AlertTriangle, TrendingUp, TrendingDown, Upload, Download } from 'lucide-react'
+import { doc, deleteDoc } from 'firebase/firestore'
+import { db } from '@/config/firebase'
 import { getPromotions, savePromotion, deletePromotion, getProducts, getIngredients, getConfig } from '@/utils/storage'
 import { formatMoneyDisplay, calcularCostoProporcional } from '@/utils/formatters'
 import { showToast } from '@/utils/toast'
