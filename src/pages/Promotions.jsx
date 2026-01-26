@@ -1348,14 +1348,15 @@ export default function Promotions() {
                 isDarkMode ? 'bg-[#0a0e1a] border-gray-700' : 'bg-gray-50 border-gray-300'
               }`}>
                 {/* Cabecera */}
-                <div className={`grid grid-cols-10 gap-2 px-2 py-1.5 border-b font-bold text-[10px] ${
+                <div className={`grid grid-cols-[40px_3fr_100px_100px_100px_32px] gap-2 px-2 py-1.5 border-b font-bold text-[10px] items-center ${
                   isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-200 border-gray-300 text-gray-700'
                 }`}>
-                  <div className="col-span-3">NOMBRE</div>
-                  <div className="col-span-2 text-center">CANT</div>
-                  <div className="col-span-2 text-right">COSTO UNIT.</div>
-                  <div className="col-span-2 text-right">PRECIO VENTA</div>
-                  <div className="col-span-1"></div>
+                  <div className="text-center">TIPO</div>
+                  <div>NOMBRE</div>
+                  <div className="text-center">CANT</div>
+                  <div className="text-right">COSTO UNIT.</div>
+                  <div className="text-right">PRECIO VENTA</div>
+                  <div></div>
                 </div>
 
                 {/* Lista de Items CON AGRUPACIÓN */}
@@ -1414,13 +1415,17 @@ export default function Promotions() {
                         : liveData.price * qty
 
                       return (
-                        <div key={`${isEmbalaje ? 'emb' : 'ali'}-${index}`} className={`grid grid-cols-10 gap-2 px-2 py-1.5 border-b text-xs ${
+                        <div key={`${isEmbalaje ? 'emb' : 'ali'}-${index}`} className={`grid grid-cols-[40px_3fr_100px_100px_100px_32px] gap-2 px-2 py-1.5 border-b text-xs items-center min-h-[36px] ${
                           isDarkMode ? 'border-gray-700 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'
                         }`}>
-                          <div className="grid grid-cols-3 gap-2">
-                            <span className={`text-xs font-semibold px-2 py-1 rounded ${badgeColor}`}>
-                              {badgeLabel}
+                          <div className="flex items-center justify-center">
+                            <span className={`w-6 h-6 flex items-center justify-center rounded text-[10px] font-bold text-white ${
+                              item.type === 'product' ? 'bg-blue-600' : item.type === 'recipe' ? 'bg-purple-600' : 'bg-orange-500'
+                            }`}>
+                              {item.type === 'product' ? 'P' : item.type === 'recipe' ? 'R' : 'I'}
                             </span>
+                          </div>
+                          <div className="flex items-center">
                             <SearchSelect
                               options={sourceList}
                               value={item.id}
@@ -1428,11 +1433,11 @@ export default function Promotions() {
                               displayKey="name"
                               valueKey="id"
                               placeholder={placeholder}
-                              className="flex-1"
+                              className="w-full h-8"
                             />
                           </div>
 
-                          <div className="col-span-2 flex items-center">
+                          <div className="flex items-center justify-center">
                             <input
                               type="number"
                               step="1"
@@ -1440,7 +1445,7 @@ export default function Promotions() {
                               value={item.quantity}
                               onChange={(e) => handleItemChange(item.id, 'quantity', parseFloat(e.target.value) || 1)}
                               onFocus={(e) => e.target.select()}
-                              className={`w-full px-2 py-1 rounded border text-center text-xs ${
+                              className={`w-full h-8 px-2 py-1 rounded border text-center text-xs ${
                                 isDarkMode
                                   ? 'bg-[#111827] border-gray-600 text-white'
                                   : 'bg-white border-gray-300 text-gray-900'
@@ -1449,13 +1454,13 @@ export default function Promotions() {
                             />
                           </div>
 
-                          <div className={`col-span-2 flex items-center justify-end ${
+                          <div className={`flex items-center justify-end ${
                             isDarkMode ? 'text-blue-300' : 'text-blue-600'
                           }`}>
-                            <span className="font-semibold text-xs truncate">{formatMoneyDisplay(itemCost)}</span>
+                            <span className="font-semibold text-xs">{formatMoneyDisplay(itemCost)}</span>
                           </div>
 
-                          <div className="col-span-2 flex items-center justify-end">
+                          <div className="flex items-center justify-end">
                             <input
                               type="number"
                               step="1000"
@@ -1464,7 +1469,7 @@ export default function Promotions() {
                               onChange={(e) => handleItemChange(item.id, 'optionalPrice', parseFloat(e.target.value) || 0)}
                               onFocus={(e) => e.target.select()}
                               onDoubleClick={(e) => e.target.select()}
-                              className={`w-full px-2 py-1 rounded border text-right text-xs ${
+                              className={`w-full h-8 px-2 py-1 rounded border text-right text-xs ${
                                 Number(item.optionalPrice) > 0
                                   ? isDarkMode
                                     ? 'bg-green-900/30 border-green-600 text-green-300 font-bold'
@@ -1478,10 +1483,10 @@ export default function Promotions() {
                             />
                           </div>
 
-                          <div className="col-span-1 flex items-center justify-center">
+                          <div className="flex items-center justify-center">
                             <button
                               onClick={() => handleRemoveItem(item.id)}
-                              className={`p-1 rounded transition-colors ${
+                              className={`p-1 rounded transition-colors flex items-center justify-center ${
                                 isDarkMode
                                   ? 'hover:bg-red-900/30 text-red-400'
                                   : 'hover:bg-red-100 text-red-600'
@@ -1508,13 +1513,15 @@ export default function Promotions() {
                             {alimentosItems.map((item, idx) => renderItem(item, idx, false))}
                             
                             {/* Subtotal Alimentos */}
-                            <div className={`grid grid-cols-10 gap-2 px-2 py-2 border-b font-bold text-xs ${
+                            <div className={`grid grid-cols-[40px_3fr_100px_100px_100px_32px] gap-2 px-2 py-2 border-b font-bold text-xs items-center ${
                               isDarkMode ? 'bg-purple-900/20 border-purple-800 text-purple-400' : 'bg-purple-100 border-purple-300 text-purple-700'
                             }`}>
-                              <div className="col-span-5"></div>
-                              <div className="col-span-2 text-right">SUBTOTAL:</div>
-                              <div className="col-span-2 text-right">{formatMoneyDisplay(subtotalAlimentos)}</div>
-                              <div className="col-span-1"></div>
+                              <div></div>
+                              <div></div>
+                              <div></div>
+                              <div className="text-right">SUBTOTAL:</div>
+                              <div className="text-right">{formatMoneyDisplay(subtotalAlimentos)}</div>
+                              <div></div>
                             </div>
                           </>
                         )}
@@ -1530,13 +1537,15 @@ export default function Promotions() {
                             {embalajeItems.map((item, idx) => renderItem(item, idx, true))}
                             
                             {/* Subtotal Embalaje */}
-                            <div className={`grid grid-cols-10 gap-2 px-2 py-2 border-b font-bold text-xs ${
+                            <div className={`grid grid-cols-[40px_3fr_100px_100px_100px_32px] gap-2 px-2 py-2 border-b font-bold text-xs items-center ${
                               isDarkMode ? 'bg-green-900/20 border-green-800 text-green-400' : 'bg-green-100 border-green-300 text-green-700'
                             }`}>
-                              <div className="col-span-5"></div>
-                              <div className="col-span-2 text-right">SUBTOTAL:</div>
-                              <div className="col-span-2 text-right">{formatMoneyDisplay(subtotalEmbalaje)}</div>
-                              <div className="col-span-1"></div>
+                              <div></div>
+                              <div></div>
+                              <div></div>
+                              <div className="text-right">SUBTOTAL:</div>
+                              <div className="text-right">{formatMoneyDisplay(subtotalEmbalaje)}</div>
+                              <div></div>
                             </div>
                           </>
                         )}

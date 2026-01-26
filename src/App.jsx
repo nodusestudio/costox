@@ -1,4 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { LayoutDashboard, Users, Box, BookOpen, ShoppingCart, Tag, FolderTree, Settings } from 'lucide-react'
+import { SpeedInsights } from '@vercel/speed-insights/react'
+import Dashboard from '@/pages/Dashboard'
+import Suppliers from '@/pages/Suppliers'
+import IngredientsNew from '@/pages/IngredientsNew'
+import RecipesNew from '@/pages/RecipesNew'
+import ProductsNew from '@/pages/ProductsNew'
+import Promotions from '@/pages/Promotions'
+import SettingsPage from '@/pages/Settings'
+import CategoriesManager from '@/pages/CategoriesManager'
+import { getConfig } from '@/utils/storage'
+import { useI18n, I18nProvider } from '@/context/I18nContext'
+import { CategoriesProvider } from '@/context/CategoriesContext'
 
 function ErrorBoundary({ children }) {
   const [error, setError] = useState(null);
@@ -28,23 +41,10 @@ class ErrorCatcher extends React.Component {
     return this.props.children;
   }
 }
-import { BarChart3, Users, Package, BookOpen, ShoppingCart, Tags, Settings, Folder } from 'lucide-react'
-import { SpeedInsights } from '@vercel/speed-insights/react'
-import Dashboard from '@/pages/Dashboard'
-import Suppliers from '@/pages/Suppliers'
-import IngredientsNew from '@/pages/IngredientsNew'
-import RecipesNew from '@/pages/RecipesNew'
-import ProductsNew from '@/pages/ProductsNew'
-import Promotions from '@/pages/Promotions'
-import SettingsPage from '@/pages/Settings'
-import CategoriesManager from '@/pages/CategoriesManager'
-import { getConfig } from '@/utils/storage'
-import { useI18n, I18nProvider } from '@/context/I18nContext'
-import { CategoriesProvider } from '@/context/CategoriesContext'
 
 function AppContent() {
   const { t, isDarkMode } = useI18n()
-  const [currentTab, setCurrentTab] = useState('dashboard')
+  const [currentTab, setCurrentTab] = useState('panel')
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -66,20 +66,20 @@ function AppContent() {
 
   // Actualizar config cuando cambia el tab
   useEffect(() => {
-    if (currentTab === 'settings') {
+    if (currentTab === 'configuracion') {
       loadConfig()
     }
   }, [currentTab])
 
   const tabs = [
-    { id: 'dashboard', label: t('panel'), icon: BarChart3, component: Dashboard },
-    { id: 'suppliers', label: t('suppliers'), icon: Users, component: Suppliers },
-    { id: 'ingredients', label: t('ingredients'), icon: Package, component: IngredientsNew },
-    { id: 'recipes', label: t('recipes'), icon: BookOpen, component: RecipesNew },
-    { id: 'products', label: t('products'), icon: ShoppingCart, component: ProductsNew },
-    { id: 'promotions', label: t('promotions'), icon: Tags, component: Promotions },
-    { id: 'categories', label: 'Categorías', icon: Folder, component: CategoriesManager },
-    { id: 'settings', label: t('settings'), icon: Settings, component: SettingsPage },
+    { id: 'panel', label: 'Panel', icon: LayoutDashboard, component: Dashboard },
+    { id: 'proveedores', label: 'Proveedores', icon: Users, component: Suppliers },
+    { id: 'ingredientes', label: 'Ingredientes', icon: Box, component: IngredientsNew },
+    { id: 'recetas', label: 'Recetas', icon: BookOpen, component: RecipesNew },
+    { id: 'productos', label: 'Productos', icon: ShoppingCart, component: ProductsNew },
+    { id: 'promociones', label: 'Promociones', icon: Tag, component: Promotions },
+    { id: 'categorias', label: 'Categorías', icon: FolderTree, component: CategoriesManager },
+    { id: 'configuracion', label: 'Configuración', icon: Settings, component: SettingsPage },
   ]
 
   if (loading || !config) {

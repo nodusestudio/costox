@@ -63,7 +63,7 @@ const SearchSelect = memo(forwardRef(({
   }
 
   return (
-    <div ref={containerRef} className={`relative ${className}`} style={{ zIndex: isOpen ? 10000 : 1 }}>
+    <div ref={containerRef} className={`relative overflow-visible ${className}`} style={{ zIndex: isOpen ? 10000 : 1 }}>
       <div
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-2 py-2 bg-[#111827] border border-gray-600 rounded-lg text-white cursor-pointer flex items-center justify-between hover:border-primary-blue transition-colors"
@@ -88,15 +88,14 @@ const SearchSelect = memo(forwardRef(({
       </div>
 
       {isOpen && (
-        <div 
+        <div
+          className="absolute z-[100]"
           style={{
-            position: 'fixed',
-            zIndex: 100000,
             backgroundColor: '#1a1a1a',
             border: '1px solid #4b5563',
-            top: containerRef.current?.getBoundingClientRect().bottom + window.scrollY + 8 + 'px',
-            left: containerRef.current?.getBoundingClientRect().left + 'px',
-            width: containerRef.current?.getBoundingClientRect().width + 'px',
+            top: 'calc(100% + 8px)',
+            left: 0,
+            width: '100%',
             maxHeight: '16rem',
             borderRadius: '0.5rem',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',

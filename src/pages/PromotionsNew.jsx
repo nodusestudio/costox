@@ -783,101 +783,95 @@ export default function PromotionsNew() {
                 </div>
               </div>
 
-              {/* Tabla de Items */}
+              {/* Items con Grid */}
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-100 dark:bg-gray-800">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-sm font-bold text-dark-text dark:text-light-text">Tipo</th>
-                      <th className="px-4 py-2 text-left text-sm font-bold text-dark-text dark:text-light-text">Item</th>
-                      <th className="px-4 py-2 text-left text-sm font-bold text-dark-text dark:text-light-text">Cantidad</th>
-                      <th className="px-4 py-2 text-left text-sm font-bold text-dark-text dark:text-light-text">Costo Unit.</th>
-                      <th className="px-4 py-2 text-left text-sm font-bold text-dark-text dark:text-light-text">Precio Venta</th>
-                      <th className="px-4 py-2 text-left text-sm font-bold text-dark-text dark:text-light-text">Subtotal</th>
-                      <th className="px-4 py-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-300 dark:divide-gray-700">
-                    {formData.items.map((item, index) => {
-                      const quantity = toNumber(item.quantity)
-                      let liveData = { costoTotal: 0, precioVenta: 0, nombre: '', costoPorGramo: 0 }
-                      let costoUnit = 0
-                      let precioVenta = 0
-                      let subtotalCosto = 0
+                <div className="grid grid-cols-[28px_3fr_80px_100px_100px_100px_32px] gap-2 px-2 py-2 bg-gray-50 dark:bg-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 items-center">
+                  <div>TIPO</div>
+                  <div>ITEM (NOMBRE)</div>
+                  <div>CANT</div>
+                  <div>COSTO U.</div>
+                  <div>PRECIO V.</div>
+                  <div>SUBTOTAL</div>
+                  <div></div>
+                </div>
+                {formData.items.map((item, index) => {
+                  const quantity = toNumber(item.quantity)
+                  let liveData = { costoTotal: 0, precioVenta: 0, nombre: '', costoPorGramo: 0 }
+                  let costoUnit = 0
+                  let precioVenta = 0
+                  let subtotalCosto = 0
 
-                      if (item.type === 'product') {
-                        liveData = getLiveProductData(item.id)
-                        costoUnit = liveData.costoTotal
-                        precioVenta = liveData.precioVenta
-                        subtotalCosto = costoUnit * quantity
-                      } else {
-                        liveData = getLiveIngredientData(item.id)
-                        costoUnit = liveData.costoPorGramo
-                        precioVenta = 0
-                        subtotalCosto = costoUnit * quantity
-                      }
+                  if (item.type === 'product') {
+                    liveData = getLiveProductData(item.id)
+                    costoUnit = liveData.costoTotal
+                    precioVenta = liveData.precioVenta
+                    subtotalCosto = costoUnit * quantity
+                  } else {
+                    liveData = getLiveIngredientData(item.id)
+                    costoUnit = liveData.costoPorGramo
+                    precioVenta = 0
+                    subtotalCosto = costoUnit * quantity
+                  }
 
-                      return (
-                        <tr key={index} className="hover:bg-blue-50 dark:hover:bg-blue-900/30">
-                          <td className="px-4 py-2 text-base font-semibold">
-                            <div className="flex items-center gap-2">
-                              <span className={`w-8 h-8 flex items-center justify-center rounded-md text-base font-bold text-white shadow ${
-                                item.type === 'product' ? 'bg-blue-700' : 'bg-orange-600'
-                              }`}>
-                                {item.type === 'product' ? 'P' : 'I'}
-                              </span>
-                              <span className="text-dark-text dark:text-light-text font-bold">
-                                {item.type === 'product' ? 'Producto' : 'Ingrediente'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-2 w-full max-w-[400px]">
-                            <div className="w-full">
-                              <SearchSelect
-                                options={
-                                  item.type === 'product'
-                                    ? products.map(p => ({ value: p.id, label: p.name }))
-                                    : ingredients.map(i => ({ value: i.id, label: i.name }))
-                                }
-                                value={item.id}
-                                onChange={(value) => handleItemChange(index, 'id', value)}
-                                placeholder={`Seleccionar ${item.type === 'product' ? 'producto' : 'ingrediente'}`}
-                                className="w-full font-semibold text-dark-text dark:text-light-text bg-white dark:bg-gray-900 border border-primary-blue rounded-lg px-2 py-1"
-                              />
-                            </div>
-                          </td>
-                          <td className="px-4 py-2">
-                            <input
-                              type="number"
-                              value={item.quantity}
-                              onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                              min="1"
-                              step="1"
-                              className="w-24 px-3 py-2 rounded-lg border-2 border-primary-blue bg-white dark:bg-gray-900 text-lg font-bold text-dark-text dark:text-light-text focus:ring-2 focus:ring-primary-blue"
-                            />
-                          </td>
-                          <td className="px-4 py-2 text-base font-semibold text-dark-text dark:text-light-text">
-                            {formatMoneyDisplay(costoUnit)}
-                          </td>
-                          <td className="px-4 py-2 text-base font-semibold text-dark-text dark:text-light-text">
-                            {item.type === 'product' ? formatMoneyDisplay(precioVenta) : '-'}
-                          </td>
-                          <td className="px-4 py-2 text-base font-bold text-primary-blue">
-                            {formatMoneyDisplay(subtotalCosto)}
-                          </td>
-                          <td className="px-4 py-2">
-                            <button
-                              onClick={() => handleRemoveItem(index)}
-                              className="p-2 hover:bg-red-200 dark:hover:bg-red-900 rounded-lg transition-colors"
-                            >
-                              <Trash2 className="w-5 h-5 text-red-600" />
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                  return (
+                    <div key={index} className="grid grid-cols-[28px_3fr_80px_100px_100px_100px_32px] gap-2 px-2 py-2 border-b border-gray-200 dark:border-gray-700 items-center min-h-[40px]">
+                      <div className="flex items-center justify-center">
+                        <span className={`w-5 h-5 flex items-center justify-center rounded text-[10px] font-bold text-white ${
+                          item.type === 'product' ? 'bg-blue-600' : 'bg-orange-500'
+                        }`}>
+                          {item.type === 'product' ? 'P' : 'I'}
+                        </span>
+                      </div>
+                      <div className="flex items-center">
+                        <SearchSelect
+                          options={
+                            item.type === 'product'
+                              ? products.map(p => ({ value: p.id, label: p.name }))
+                              : ingredients.map(i => ({ value: i.id, label: i.name }))
+                          }
+                          value={item.id}
+                          onChange={(value) => handleItemChange(index, 'id', value)}
+                          placeholder={`Seleccionar ${item.type === 'product' ? 'producto' : 'ingrediente'}`}
+                          className="w-full h-8"
+                        />
+                      </div>
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                          min="1"
+                          step="1"
+                          className="w-full h-8 px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-dark-text dark:text-light-text text-center"
+                        />
+                      </div>
+                      <div className="flex items-center justify-end">
+                        <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                          {formatMoneyDisplay(costoUnit)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-end">
+                        <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                          {item.type === 'product' ? formatMoneyDisplay(precioVenta) : '-'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-end">
+                        <span className="text-sm font-semibold text-dark-text dark:text-light-text">
+                          {formatMoneyDisplay(subtotalCosto)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-center">
+                        <button
+                          onClick={() => handleRemoveItem(index)}
+                          className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors flex items-center justify-center"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
